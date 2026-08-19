@@ -1,0 +1,36 @@
+# Docker
+.env
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Frontend
+frontend/.dart_tool/
+frontend/build/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/.metadata
+frontend/*.iml
+frontend/android/
+frontend/ios/
+frontend/linux/
+frontend/macos/
+frontend/web/
+frontend/windows/
+
+# Backend
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/HELP.md
+backend/.idea/
+backend/*.iml
