@@ -1,0 +1,16 @@
+{
+  "name": "finza-testing",
+  "version": "1.0.0",
+  "description": "Testing con Cucumber para Finza",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "cucumber-js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.8.1"
+  }
+}

@@ -34,3 +34,6 @@ backend/.mvn/wrapper/maven-wrapper.jar
 backend/HELP.md
 backend/.idea/
 backend/*.iml
+
+# Testing
+testing/node_modules/
