@@ -1,4 +1,4 @@
-package Finza.demo.config;
+package com.finza.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
