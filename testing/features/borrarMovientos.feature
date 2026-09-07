@@ -5,18 +5,19 @@ Característica: Eliminacion de movimientos
   Para mantener mi historial financiero actualizado
 
   Antecedentes:
-    Dado que la API del backend está activa y lista para recibir peticiones
-    Y que el usuario " Juan Perez " está registrado y autenticado
+    Dado que la API del backend esta activa y lista para recibir peticiones
+    Y que el usuario " Juan Perez " esta registrado y autenticado
 
-  Escenario: Eliminación exitosa de un movimiento existente
-    Dado que existe un movimiento registrado con ID "12345" para el usuario autenticado
-    Cuando envío una solicitud DELETE a "/api/movimientos/12345"
-    Entonces la respuesta debe tener un código de estado 200
-    Y la respuesta debe contener el mensaje "Movimiento eliminado exitosamente"
-    Y el movimiento con ID "12345" ya no debe existir en la base de datos
+  Escenario: Eliminacion exitosa de un movimiento
+    Dado que el usuario autenticado tiene un movimiento registrado con los siguientes datos:
+      | tipo  | monto    | categoria | descripcion      | fecha      |
+      | gasto | 15000.00 | Comida    | Almuerzo laboral | 10-05-2026 |
+    Cuando envio una solicitud DELETE a "/api/movimientos" para ese movimiento
+    Entonces la respuesta debe tener un codigo de estado 200
+    Y el movimiento ya no debe estar presente en la base de datos
 
   Escenario: Intento de eliminar un movimiento que no existe
-    Dado que no existe un movimiento con ID "67890" para el usuario autenticado
-    Cuando envío una solicitud DELETE a "/api/movimientos/67890"
-    Entonces la respuesta debe tener un código de estado 404
-    Y la respuesta debe contener el mensaje de error "Movimiento no encontrado"
+    Dado que el usuario autenticado intenta eliminar un movimiento inexistente
+    Cuando envio una solicitud DELETE a "/api/movimientos/999999"
+    Entonces la respuesta debe tener un codigo de estado 404
+    Y la respuesta debe contener el mensaje "Movimiento no encontrado"
