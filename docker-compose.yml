@@ -31,6 +31,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   test:
     image: node:22-alpine
@@ -39,7 +44,8 @@ services:
     volumes:
       - ./testing:/app
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     command: sh -c "npm install && npm test"
 
 volumes:
