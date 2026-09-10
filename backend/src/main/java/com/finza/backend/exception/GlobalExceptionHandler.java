@@ -2,7 +2,6 @@ package com.finza.backend.exception;
 
 import com.finza.backend.dto.Response;
 
-import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
