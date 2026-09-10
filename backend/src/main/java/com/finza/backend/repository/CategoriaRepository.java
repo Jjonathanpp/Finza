@@ -8,4 +8,5 @@ import com.finza.backend.model.Categoria;
 @Repository
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     Optional<Categoria> findByIdAndCuentaId(Long id, Long cuentaId);
+    Optional<Categoria> findByNombre(String nombre);
 }
