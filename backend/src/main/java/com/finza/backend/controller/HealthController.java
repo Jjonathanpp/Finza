@@ -16,4 +16,4 @@ public class HealthController {
 	public ResponseEntity<Object> health() {
 		return Response.ok(Map.of("service", "finza-backend"));
 	}
-}
+} 

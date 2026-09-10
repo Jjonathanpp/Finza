@@ -1,8 +1,7 @@
 package com.finza.backend.repository;
 
-import com.finza.backend.model.Perfil;
-
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.finza.backend.model.Perfil;
 
 public interface PerfilRepository extends JpaRepository<Perfil, Long> {
 }
