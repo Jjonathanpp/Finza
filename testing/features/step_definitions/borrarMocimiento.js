@@ -16,13 +16,6 @@ Given('que la API del backend esta activa y lista para recibir peticiones', asyn
     }
 });
 
-Given('que el usuario {string} esta registrado y autenticado', async function (nombreUsuario) {
-    this.usuarioAutenticado = {
-        nombre: nombreUsuario.trim(),
-        token: 'jwt-token-simulado-123'
-    };
-});
-
 Given('que el usuario autenticado tiene un movimiento registrado con los siguientes datos:', async function (dataTable) {
     const datosMovimiento = dataTable.hashes()[0];
 
@@ -127,25 +120,4 @@ Then('la respuesta debe contener el mensaje {string}', function (mensajeEsperado
         mensajeEsperado,
         `Se esperaba el mensaje "${mensajeEsperado}", pero el backend devolvio "${mensajeObtenido}"`
     );
-});
-
-Then('el movimiento ya no debe estar presente en la base de datos', async function () {
-    try {
-        // Intentamos obtener el movimiento eliminado directamente por su ID
-        const response = await fetch(`${BACKEND_URL}/api/movimientos/${this.movimientoIdCreado}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${this.usuarioAutenticado?.token || ''}`
-            }
-        });
-
-        // Se considera correcto si el backend responde 404 (No encontrado)
-        assert.strictEqual(
-            response.status,
-            404,
-            `El movimiento con ID ${this.movimientoIdCreado} sigue existiendo en la base de datos`
-        );
-    } catch (error) {
-        assert.ok(true);
-    }
 });

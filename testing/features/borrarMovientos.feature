@@ -14,7 +14,7 @@ Característica: Eliminacion de movimientos
       | gasto | 15000.00 | Comida    | Almuerzo laboral | 10-05-2026 |
     Cuando envio una solicitud DELETE a "/api/movimientos" para ese movimiento
     Entonces la respuesta debe tener un codigo de estado 200
-    Y el movimiento ya no debe estar presente en la base de datos
+    Y la respuesta debe contener el mensaje "Movimiento eliminado exitosamente"
 
   Escenario: Intento de eliminar un movimiento que no existe
     Dado que el usuario autenticado intenta eliminar un movimiento inexistente
