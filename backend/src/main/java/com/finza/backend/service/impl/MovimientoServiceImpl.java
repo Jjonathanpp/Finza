@@ -15,9 +15,9 @@ import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.Categoria;
 import com.finza.backend.model.Movimiento;
 import com.finza.backend.model.Perfil;
-import com.finza.backend.repository.CategoriaRepository;
 import com.finza.backend.repository.MovimientoRepository;
 import com.finza.backend.repository.PerfilRepository;
+import com.finza.backend.service.CategoriaService;
 import com.finza.backend.service.MovimientoService;
 
 import org.springframework.stereotype.Service;
@@ -32,7 +32,7 @@ public class MovimientoServiceImpl implements MovimientoService {
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     private final MovimientoRepository movimientoRepository;
-    private final CategoriaRepository categoriaRepository;
+    private final CategoriaService categoriaService;
     private final PerfilRepository perfilRepository;
 
     @Override
@@ -80,26 +80,19 @@ public class MovimientoServiceImpl implements MovimientoService {
     private Movimiento crearMovimiento(MovimientoRequest request, Perfil perfil) {
         Movimiento movimiento = new Movimiento();
         movimiento.setPerfil(perfil);
-        movimiento.setCategoria(buscarOCrearCategoria(request.getCategoria()));
+
+        boolean esIngreso = "ingreso".equalsIgnoreCase(request.getTipo().trim());
+        Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
+
+        movimiento.setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo, perfil.getCuenta()));
         movimiento.setMonto(new BigDecimal(request.getMonto().trim()));
-        movimiento.setEsIngreso("ingreso".equalsIgnoreCase(request.getTipo().trim()));
+        movimiento.setEsIngreso(esIngreso);
         movimiento.setFecha(parsearFecha(request.getFecha()));
         movimiento.setDescripcion(esVacio(request.getDescripcion()) ? null : request.getDescripcion().trim());
         movimiento.setEstado(Movimiento.EstadoMovimiento.APROBADO);
         movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL);
         movimiento.setFechaCreacion(LocalDateTime.now());
         return movimiento;
-    }
-
-    private Categoria buscarOCrearCategoria(String nombre) {
-        String nombreLimpio = nombre.trim();
-        return categoriaRepository.findByNombre(nombreLimpio)
-                .orElseGet(() -> {
-                    Categoria categoria = new Categoria();
-                    categoria.setNombre(nombreLimpio);
-                    categoria.setTipoCategoriaPredefinida(Categoria.TipoCategoria.INGRESO);
-                    return categoriaRepository.save(categoria);
-                });
     }
 
     private LocalDate parsearFecha(String fecha) {
