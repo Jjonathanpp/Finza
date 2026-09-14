@@ -1,3 +1,4 @@
+# language: es
 Característica: Endpoint base de la API
 
   Escenario: Happy path del endpoint health
