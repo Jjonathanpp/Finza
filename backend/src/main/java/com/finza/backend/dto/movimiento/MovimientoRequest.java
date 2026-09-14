@@ -1,4 +1,4 @@
-package com.finza.backend.dto;
+package com.finza.backend.dto.movimiento;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

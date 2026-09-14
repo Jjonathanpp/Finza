@@ -1,4 +1,4 @@
-package com.finza.backend.service;
+package com.finza.backend.service.impl;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -6,8 +6,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
-import com.finza.backend.dto.MovimientoRequest;
+import com.finza.backend.dto.movimiento.MovimientoRequest;
+import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
+import com.finza.backend.dto.movimiento.MovimientosRegistroRequest;
 import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.Categoria;
 import com.finza.backend.model.Movimiento;
@@ -15,6 +18,7 @@ import com.finza.backend.model.Perfil;
 import com.finza.backend.repository.CategoriaRepository;
 import com.finza.backend.repository.MovimientoRepository;
 import com.finza.backend.repository.PerfilRepository;
+import com.finza.backend.service.MovimientoService;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,14 +37,31 @@ public class MovimientoServiceImpl implements MovimientoService {
 
     @Override
     @Transactional
-    public List<Movimiento> registrar(List<MovimientoRequest> requests) {
-        Perfil perfil = perfilPorDefecto();
-        List<Movimiento> creados = new ArrayList<>();
-        for (MovimientoRequest request : requests) {
-            validar(request);
-            creados.add(crearMovimiento(request, perfil));
+    public List<MovimientoResponseDTO> registrar(MovimientosRegistroRequest request) {
+        if (request.getMovimientos() == null || request.getMovimientos().isEmpty()) {
+            throw new BadRequestException("Debe enviar al menos un movimiento");
         }
-        return movimientoRepository.saveAll(creados);
+
+        Perfil perfil = perfilRepository.findById(request.getPerfilId())
+                .orElseThrow(() -> new BadRequestException("El perfil indicado no existe"));
+
+        List<Movimiento> creados = new ArrayList<>();
+        for (MovimientoRequest mov : request.getMovimientos()) {
+            validar(mov);
+            creados.add(crearMovimiento(mov, perfil));
+        }
+
+        return movimientoRepository.saveAll(creados).stream()
+                .map(MovimientoResponseDTO::new)
+                .toList();
+    }
+
+    @Override
+    public void eliminar(Long id) {
+        if (!movimientoRepository.existsById(id)) {
+            throw new NoSuchElementException("Movimiento no encontrado");
+        }
+        movimientoRepository.deleteById(id);
     }
 
     private void validar(MovimientoRequest request) {
@@ -73,12 +94,12 @@ public class MovimientoServiceImpl implements MovimientoService {
     private Categoria buscarOCrearCategoria(String nombre) {
         String nombreLimpio = nombre.trim();
         return categoriaRepository.findByNombre(nombreLimpio)
-            .orElseGet(() -> {
-                Categoria categoria = new Categoria();
-                categoria.setNombre(nombreLimpio);
-                categoria.setTipoCategoriaPredefinida(Categoria.TipoCategoria.INGRESO);
-                return categoriaRepository.save(categoria);
-            });
+                .orElseGet(() -> {
+                    Categoria categoria = new Categoria();
+                    categoria.setNombre(nombreLimpio);
+                    categoria.setTipoCategoriaPredefinida(Categoria.TipoCategoria.INGRESO);
+                    return categoriaRepository.save(categoria);
+                });
     }
 
     private LocalDate parsearFecha(String fecha) {
@@ -88,12 +109,8 @@ public class MovimientoServiceImpl implements MovimientoService {
         return LocalDate.parse(fecha.trim(), FORMATO_FECHA);
     }
 
-    private Perfil perfilPorDefecto() {
-        return perfilRepository.findAll().stream().findFirst()
-            .orElseThrow(() -> new BadRequestException("No hay un perfil configurado"));
-    }
-
     private boolean esVacio(String valor) {
         return valor == null || valor.isBlank();
     }
+
 }

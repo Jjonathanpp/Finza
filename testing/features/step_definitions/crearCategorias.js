@@ -1,4 +1,4 @@
-const Given = require('@cucumber/cucumber').Given;
+const { Given, When, Then } = require('@cucumber/cucumber');
 const assert = require('assert');
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://app:8080';
