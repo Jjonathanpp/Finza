@@ -33,7 +33,7 @@ public class CategoriaService {
 
         String nombreLimpio = request.getNombre().trim();
 
-        if (categoriaRepository.buscarPropiaOGlobal(nombreLimpio, request.getTipo(), cuentaId).isPresent()) {
+        if (!categoriaRepository.buscarPropiaOGlobal(nombreLimpio, request.getTipo(), cuentaId).isEmpty()) {
             throw new IllegalArgumentException("Ya existe una categoría con ese nombre para el tipo indicado");
         }
 
@@ -42,11 +42,12 @@ public class CategoriaService {
     }
 
     // Usado por MovimientoServiceImpl. Recibe la Cuenta ya resuelta para no repetir
-    // la consulta que el caller ya hizo al buscar el perfil.
-    @Transactional
+    // la consulta que el caller ya hizo al buscar el perfil. Corre dentro de la
+    // transacción de MovimientoServiceImpl.registrar.
     public Categoria buscarOCrearCategoria(String nombre, Categoria.TipoCategoria tipo, Cuenta cuenta) {
         String nombreLimpio = nombre.trim();
-        return categoriaRepository.buscarPropiaOGlobal(nombreLimpio, tipo, cuenta.getId())
+        return categoriaRepository.buscarPropiaOGlobal(nombreLimpio, tipo, cuenta.getId()).stream()
+                .findFirst()
                 .orElseGet(() -> crearYGuardar(cuenta, nombreLimpio, null, tipo));
     }
 
