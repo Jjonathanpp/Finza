@@ -66,7 +66,7 @@ public class CuentaService {
         perfil.setEsActivo(true);
         perfilRepository.save(perfil);
 
-        return new CuentaResponseDTO(cuenta);
+        return new CuentaResponseDTO(cuenta,perfil);
     }
 
 }
