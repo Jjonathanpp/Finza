@@ -1,5 +1,7 @@
 package com.finza.backend.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.finza.backend.dto.CategoriaRequest;
@@ -24,6 +26,15 @@ public class CategoriaService {
         this.categoriaRepository = categoriaRepository;
         this.movimientoRepository = movimientoRepository;
         this.cuentaRepository = cuentaRepository;
+    }
+
+    public List<CategoriaResponseDTO> listarCategorias(Long cuentaId) {
+        if (!cuentaRepository.existsById(cuentaId)) {
+            throw new BadRequestException("La cuenta indicada no existe");
+        }
+        return categoriaRepository.findByCuentaIdOrCuentaIsNull(cuentaId).stream()
+                .map(CategoriaResponseDTO::new)
+                .toList();
     }
 
     @Transactional

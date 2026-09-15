@@ -12,6 +12,9 @@ import com.finza.backend.model.Categoria;
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     Optional<Categoria> findByIdAndCuentaId(Long id, Long cuentaId);
 
+    // Predefinidas (cuenta_id NULL) + propias de la cuenta, para GET /api/categorias.
+    List<Categoria> findByCuentaIdOrCuentaIsNull(Long cuentaId);
+
     // Propias de la cuenta o globales (cuenta_id NULL), mismo nombre y tipo. Lista y no
     // Optional: si una carrera deja un duplicado, se usa la más vieja en vez de tirar 500.
     @Query("""
