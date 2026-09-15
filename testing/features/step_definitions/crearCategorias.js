@@ -1,118 +1,67 @@
-const Given = require('@cucumber/cucumber').Given;
+const { Given, When, Then } = require('@cucumber/cucumber');
 const assert = require('assert');
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://app:8080';
 
-// ------------------------------------------------------------------
-// ANTECEDENTES Y PASOS PREVIOS (GIVEN)
-// ------------------------------------------------------------------
+let contador = 0;
 
-Given('que la API del backend esta activa y lista para recibir peticiones', async function () {
-    try {
-        await fetch(`${BACKEND_URL}/actuator/health`);
-    } catch (error) {
-        throw new Error(`Error al verificar el estado de la API: ${error.message}`);
-    }
+// Cuenta nueva por escenario: el test se puede repetir sin limpiar la base.
+Given('que tengo una cuenta nueva para probar categorías', async function () {
+  const unico = `${Date.now()}${contador++}`;
+  const response = await fetch(`${BACKEND_URL}/api/auth/registro`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: `categorias.${unico}@test.com`,
+      password: 'Password123!',
+      usuario: { nombre: 'Test', apellido: 'Categorias', dni: Number(unico.slice(-9)) }
+    })
+  });
+  assert.strictEqual(response.status, 201, `No se pudo registrar la cuenta de prueba (status ${response.status})`);
+  this.cuentaId = (await response.json()).id;
 });
 
-Given('que el usuario {string} esta registrado y autenticado', async function (nombreUsuario) {
-    this.usuarioAutenticado = {
-        nombre: nombreUsuario.trim(),
-        token: 'jwt-token-simulado-123'
-    };
+async function crearCategoria(world, cuentaId, datos) {
+  // Las celdas vacías no se mandan, así se prueban los campos faltantes.
+  const body = Object.fromEntries(Object.entries(datos).filter(([, valor]) => valor !== ''));
+  const response = await fetch(`${BACKEND_URL}/api/categorias?cuentaId=${cuentaId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  world.status = response.status;
+  world.body = await response.json().catch(() => ({}));
+}
+
+Given('que ya creé la categoría {string} de tipo {string}', async function (nombre, tipo) {
+  await crearCategoria(this, this.cuentaId, { nombre, tipo });
+  assert.strictEqual(this.status, 201, `No se pudo precrear la categoría "${nombre}" (status ${this.status})`);
 });
 
-Given('que el usuario autenticado desea crear una categoria', function () {
-    assert.ok(
-        this.usuarioAutenticado,
-        'Se requiere un usuario autenticado para realizar esta operacion'
-    );
+When('creo una categoría con los siguientes datos:', async function (dataTable) {
+  await crearCategoria(this, this.cuentaId, dataTable.rowsHash());
 });
 
-// ------------------------------------------------------------------
-// ACCIONES (WHEN)
-// ------------------------------------------------------------------
-
-When('envio una solicitud POST a {string} con los siguientes datos:', async function (endpoint, dataTable) {
-    const categorias = dataTable.hashes();
-
-    try {
-        const response = await fetch(`${BACKEND_URL}${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.usuarioAutenticado?.token || ''}`
-            },
-            body: JSON.stringify(categorias)
-        });
-
-        this.responseStatus = response.status;
-
-        try {
-            this.responseData = await response.json();
-        } catch (e) {
-            this.responseData = {};
-        }
-    } catch (error) {
-        throw new Error(`Error de conexion al enviar la peticion HTTP a ${endpoint}: ${error.message}`);
-    }
+When('creo una categoría en la cuenta {int} con los siguientes datos:', async function (cuentaId, dataTable) {
+  await crearCategoria(this, cuentaId, dataTable.rowsHash());
 });
 
-When('envio una solicitud POST a {string} con esos datos incompletos', async function (endpoint) {
-    try {
-        const response = await fetch(`${BACKEND_URL}${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.usuarioAutenticado?.token || ''}`
-            },
-            body: JSON.stringify(this.datosCategoriaIncompletos)
-        });
-
-        this.responseStatus = response.status;
-
-        try {
-            this.responseData = await response.json();
-        } catch (e) {
-            this.responseData = {};
-        }
-    } catch (error) {
-        throw new Error(`Error de conexión al enviar la petición HTTP a ${endpoint}: ${error.message}`);
-    }
+Then('la categoría se responde con código {int}', function (codigo) {
+  assert.strictEqual(this.status, codigo, `Se esperaba ${codigo} pero llegó ${this.status}: ${JSON.stringify(this.body)}`);
 });
 
-// ------------------------------------------------------------------
-// ASERCIONES Y VALIDACIONES (THEN)
-// ------------------------------------------------------------------
-
-Then('la respuesta debe tener un codigo de estado {int}', function (statusCodeEsperado) {
-    assert.strictEqual(
-        this.responseStatus,
-        statusCodeEsperado,
-        `Se esperaba código HTTP ${statusCodeEsperado} pero el backend devolvió ${this.responseStatus}`
-    );
+Then('el mensaje de la respuesta es {string}', function (mensaje) {
+  assert.strictEqual(this.body.message, mensaje);
 });
 
-Then('la respuesta debe contener un mensaje de éxito indicando que la categoría fue creada correctamente', function () {
-    const mensaje = this.responseData.mensaje || this.responseData.message;
-    assert.ok(
-        mensaje,
-        'La respuesta no contiene un mensaje de éxito'
-    );
+Then('la categoría creada es {string} de tipo {string}', function (nombre, tipo) {
+  const categoria = this.body.data;
+  assert.ok(categoria && categoria.id, 'La respuesta no trae la categoría creada con su id');
+  assert.strictEqual(categoria.nombre, nombre);
+  assert.strictEqual(categoria.tipo, tipo);
+  assert.strictEqual(categoria.esPredefinida, false);
 });
 
-Then('la nueva categoría debe estar presente en la base de datos', function () {
-    const id = this.responseData.id || (Array.isArray(this.responseData) && this.responseData.length > 0);
-    assert.ok(
-        id,
-        'No se confirmó la presencia de la nueva categoría en la respuesta'
-    );
-});
-
-Then('la respuesta debe contener un mensaje de error indicando que falta información obligatoria', function () {
-    const mensajeError = this.responseData.error || this.responseData.mensaje || this.responseData.message;
-    assert.ok(
-        mensajeError || this.responseStatus === 400,
-        'No se recibió el mensaje de error esperado al enviar datos incompletos'
-    );
+Then('el campo {string} informa {string}', function (campo, mensaje) {
+  assert.strictEqual(this.body.data && this.body.data[campo], mensaje);
 });
