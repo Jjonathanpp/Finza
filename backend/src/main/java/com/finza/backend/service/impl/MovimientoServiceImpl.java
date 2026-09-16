@@ -22,7 +22,8 @@ import com.finza.backend.service.MovimientoService;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -104,6 +105,16 @@ public class MovimientoServiceImpl implements MovimientoService {
 
     private boolean esVacio(String valor) {
         return valor == null || valor.isBlank();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, LocalDate fechaInicio, LocalDate fechaFin, Long categoriaId, Boolean esIngreso, Pageable pageable) {
+        
+        Page<Movimiento> paginaMovimientos = movimientoRepository.buscarConFiltros(
+                perfilId, fechaInicio, fechaFin, categoriaId, esIngreso, pageable);
+        
+        return paginaMovimientos.map(MovimientoResponseDTO::new);
     }
 
 }
