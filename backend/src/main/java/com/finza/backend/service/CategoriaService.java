@@ -1,6 +1,7 @@
 package com.finza.backend.service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,7 +77,7 @@ public class CategoriaService {
     @Transactional
     public Categoria editarCategoria(Long id, Long cuentaId, String nombre, String color) {
         Categoria categoria = categoriaRepository.findByIdAndCuentaId(id, cuentaId)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada o no pertenece a la cuenta"));
+                .orElseThrow(() -> new NoSuchElementException("Categoría no encontrada o no pertenece a la cuenta"));
 
         categoria.setNombre(nombre);
         categoria.setColor(color);
@@ -87,7 +88,7 @@ public class CategoriaService {
     @Transactional
     public void eliminarCategoria(Long id, Long cuentaId) {
         Categoria categoria = categoriaRepository.findByIdAndCuentaId(id, cuentaId)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada o no pertenece a la cuenta"));
+                .orElseThrow(() -> new NoSuchElementException("Categoría no encontrada o no pertenece a la cuenta"));
 
         if (movimientoRepository.existsByCategoriaId(id)) {
             throw new IllegalStateException("No se puede eliminar la categoría porque tiene movimientos asociados");
