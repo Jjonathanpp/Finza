@@ -91,7 +91,12 @@ public class MovimientoServiceImpl implements MovimientoService {
         movimiento.setFecha(parsearFecha(request.getFecha()));
         movimiento.setDescripcion(esVacio(request.getDescripcion()) ? null : request.getDescripcion().trim());
         movimiento.setEstado(Movimiento.EstadoMovimiento.APROBADO);
-        movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL);
+        //movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL);
+        if (!esVacio(request.getOrigen())) {
+            movimiento.setOrigen(Movimiento.OrigenMovimiento.valueOf(request.getOrigen().toUpperCase()));
+        } else {
+            movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL); // Por defecto si se carga desde el formulario normal
+        }
         movimiento.setFechaCreacion(LocalDateTime.now());
         return movimiento;
     }
