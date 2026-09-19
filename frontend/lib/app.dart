@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
+import 'features/voice/voice_screen.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Finza',
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const Scaffold(
-        body: Center(child: Text('Finza')),
-      ),
+      home: VoiceScreen(),
     );
   }
 }
