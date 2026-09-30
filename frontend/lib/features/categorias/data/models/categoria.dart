@@ -13,6 +13,9 @@ class Categoria {
   final String tipo;
   final bool esPredefinida;
 
+  // El backend no guarda íconos: hasta que se puedan elegir (T-4.2.2), sale del nombre.
+  String get emoji => _emojis[nombre.toLowerCase()] ?? '🏷️';
+
   factory Categoria.fromJson(Map<String, dynamic> json) => Categoria(
         id: json['id'],
         nombre: json['nombre'],
@@ -21,3 +24,16 @@ class Categoria {
         esPredefinida: json['esPredefinida'],
       );
 }
+
+const _emojis = {
+  'sueldo': '💼',
+  'freelance': '💻',
+  'alquiler': '🏠',
+  'inversiones': '📈',
+  'otros': '📦',
+  'comida': '🍔',
+  'transporte': '🚗',
+  'servicios': '💡',
+  'mascotas': '🐾',
+  'suscripciones': '📺',
+};

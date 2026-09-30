@@ -1,0 +1,38 @@
+import 'package:flutter/foundation.dart';
+import 'package:frontend/core/errors/api_exception.dart';
+import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
+import 'package:frontend/features/categorias/data/models/categoria.dart';
+
+class CategoriasViewModel extends ChangeNotifier {
+  CategoriasViewModel(this._api);
+
+  final CategoriaApi _api;
+
+  bool _cargando = false;
+  String? _error;
+  List<Categoria> _categorias = [];
+
+  bool get cargando => _cargando;
+  String? get error => _error;
+  List<Categoria> get categorias => _categorias;
+
+  List<Categoria> get deIngreso =>
+      _categorias.where((c) => c.tipo == 'INGRESO').toList();
+
+  List<Categoria> get deEgreso =>
+      _categorias.where((c) => c.tipo == 'EGRESO').toList();
+
+  Future<void> cargar() async {
+    _cargando = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _categorias = await _api.listar();
+    } on ApiException catch (e) {
+      _error = e.message;
+    } finally {
+      _cargando = false;
+      notifyListeners();
+    }
+  }
+}
