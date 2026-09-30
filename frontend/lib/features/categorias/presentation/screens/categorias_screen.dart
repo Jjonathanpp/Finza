@@ -144,15 +144,22 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = colorDesdeHex(categoria.color);
+    final emoji = categoria.emoji;
     return Container(
       width: 38,
       height: 38,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: colorDesdeHex(categoria.color).withValues(alpha: 0.18),
+        color: color.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(categoria.emoji, style: const TextStyle(fontSize: 18)),
+      child: emoji != null
+          ? Text(emoji, style: const TextStyle(fontSize: 18))
+          : Text(
+              categoria.nombre.isEmpty ? '?' : categoria.nombre[0].toUpperCase(),
+              style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800),
+            ),
     );
   }
 }
