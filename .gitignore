@@ -36,5 +36,5 @@ backend/.idea/
 backend/*.iml
 
 # Testing
-testing/node_modules/.env
+testing/node_modules/
 *.mp3
