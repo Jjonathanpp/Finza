@@ -1,0 +1,38 @@
+import 'package:dio/dio.dart';
+import 'package:frontend/config/constants/api_config.dart';
+import 'package:frontend/core/errors/api_exception.dart';
+
+class ApiClient {
+  final Dio _dio = Dio(BaseOptions(baseUrl: apiBaseUrl));
+
+  Future<dynamic> get(String path) => _enviar(() => _dio.get(path));
+
+  Future<dynamic> post(String path, Map<String, dynamic> body) =>
+      _enviar(() => _dio.post(path, data: body));
+
+  Future<dynamic> put(String path, Map<String, dynamic> body) =>
+      _enviar(() => _dio.put(path, data: body));
+
+  Future<dynamic> delete(String path) => _enviar(() => _dio.delete(path));
+
+  Future<dynamic> _enviar(Future<Response> Function() pedido) async {
+    try {
+      final respuesta = await pedido();
+      return respuesta.data['data'];
+    } on DioException catch (e) {
+      final respuestaError = e.response;
+      if (respuestaError == null) {
+        throw ApiException(null, 'No se pudo conectar con el servidor');
+      }
+      final cuerpo = respuestaError.data;
+      if (cuerpo is Map && cuerpo['message'] != null) {
+        throw ApiException(
+          respuestaError.statusCode,
+          cuerpo['message'],
+          cuerpo['data'],
+        );
+      }
+      throw ApiException(respuestaError.statusCode, 'Error inesperado del servidor');
+    }
+  }
+}
