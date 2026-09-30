@@ -37,3 +37,4 @@ backend/*.iml
 
 # Testing
 testing/node_modules/
+*.mp3

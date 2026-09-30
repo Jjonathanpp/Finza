@@ -29,6 +29,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME:-finza}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-finza}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS:-finza}
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
