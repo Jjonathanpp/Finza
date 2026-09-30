@@ -17,6 +17,8 @@ public interface MovimientoService {
     List<MovimientoResponseDTO> registrar(MovimientosRegistroRequest requests);
      void eliminar(Long id);
 
-     Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, LocalDate fechaInicio, LocalDate fechaFin, Long categoriaId, Boolean esIngreso, Pageable pageable);
+     Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, LocalDate fechaInicio, LocalDate fechaFin, Long categoriaId, Boolean esIngreso, String estadoStr, Pageable pageable);
+
+     MovimientoResponseDTO cambiarEstado(Long id, String nuevoEstado);
 }
 

@@ -65,6 +65,17 @@ public class MovimientoServiceImpl implements MovimientoService {
         movimientoRepository.deleteById(id);
     }
 
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public MovimientoResponseDTO cambiarEstado(Long id, String nuevoEstado) {
+        Movimiento movimiento = movimientoRepository.findById(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Movimiento no encontrado"));
+        
+        movimiento.setEstado(Movimiento.EstadoMovimiento.valueOf(nuevoEstado.toUpperCase()));
+        
+        return new MovimientoResponseDTO(movimientoRepository.save(movimiento));
+    }
+
     private void validar(MovimientoRequest request) {
         if (esVacio(request.getTipo()) || esVacio(request.getMonto()) || esVacio(request.getCategoria())) {
             throw new BadRequestException("Error: Falta informacion obligatoria");
@@ -90,7 +101,12 @@ public class MovimientoServiceImpl implements MovimientoService {
         movimiento.setEsIngreso(esIngreso);
         movimiento.setFecha(parsearFecha(request.getFecha()));
         movimiento.setDescripcion(esVacio(request.getDescripcion()) ? null : request.getDescripcion().trim());
-        movimiento.setEstado(Movimiento.EstadoMovimiento.APROBADO);
+        //movimiento.setEstado(Movimiento.EstadoMovimiento.APROBADO);
+        if (!esVacio(request.getEstado())) {
+            movimiento.setEstado(Movimiento.EstadoMovimiento.valueOf(request.getEstado().toUpperCase()));
+        } else {
+            movimiento.setEstado(Movimiento.EstadoMovimiento.APROBADO); // Por defecto
+        }
         //movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL);
         if (!esVacio(request.getOrigen())) {
             movimiento.setOrigen(Movimiento.OrigenMovimiento.valueOf(request.getOrigen().toUpperCase()));
@@ -114,10 +130,15 @@ public class MovimientoServiceImpl implements MovimientoService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, LocalDate fechaInicio, LocalDate fechaFin, Long categoriaId, Boolean esIngreso, Pageable pageable) {
+    public Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, LocalDate fechaInicio, LocalDate fechaFin, Long categoriaId, Boolean esIngreso, String estadoStr, Pageable pageable) {
         
+        Movimiento.EstadoMovimiento estado = null;
+        if (estadoStr != null && !estadoStr.isBlank()) {
+            estado = Movimiento.EstadoMovimiento.valueOf(estadoStr.toUpperCase());
+        }
+
         Page<Movimiento> paginaMovimientos = movimientoRepository.buscarConFiltros(
-                perfilId, fechaInicio, fechaFin, categoriaId, esIngreso, pageable);
+                perfilId, fechaInicio, fechaFin, categoriaId, esIngreso, estado, pageable);
         
         return paginaMovimientos.map(MovimientoResponseDTO::new);
     }

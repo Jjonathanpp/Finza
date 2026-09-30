@@ -49,19 +49,28 @@ public class MovimientoController {
 
     @GetMapping
     public ResponseEntity<Page<MovimientoResponseDTO>> obtenerMovimientos(
+            @RequestParam(name = "perfilId", required = false, defaultValue = "1") Long perfilId, // <-- Ahora lo recibe por URL
             @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             @RequestParam(name = "categoriaId", required = false) Long categoriaId,
             @RequestParam(name = "esIngreso", required = false) String esIngresoStr,
+            @RequestParam(name = "estado", required = false) String estadoStr,
             @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        Long perfilIdAutenticado = 1L; 
         Boolean esIngreso = esIngresoStr != null ? Boolean.parseBoolean(esIngresoStr) : null;
 
         Page<MovimientoResponseDTO> resultado = movimientoService.listarMovimientos(
-                perfilIdAutenticado, fechaInicio, fechaFin, categoriaId, esIngreso, pageable);
+                perfilId, fechaInicio, fechaFin, categoriaId, esIngreso, estadoStr, pageable);
 
         return ResponseEntity.ok(resultado);
+    }
+
+    @PutMapping("/{id}/estado")
+    public ResponseEntity<Object> cambiarEstado(
+            @PathVariable Long id, 
+            @RequestParam("nuevoEstado") String nuevoEstado) {
+        MovimientoResponseDTO actualizado = movimientoService.cambiarEstado(id, nuevoEstado);
+        return Response.response(HttpStatus.OK, "Estado actualizado correctamente", actualizado);
     }
 
     @PostMapping("/procesar-audio")
