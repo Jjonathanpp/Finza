@@ -43,6 +43,14 @@ ThemeData temaFinza() {
         borderSide: BorderSide(color: AppColors.accent),
       ),
     ),
+    // El botón principal de los formularios ("Registrar movimiento", "Crear categoría").
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+      ),
+    ),
     tooltipTheme: const TooltipThemeData(
       decoration: BoxDecoration(
         color: AppColors.surface,

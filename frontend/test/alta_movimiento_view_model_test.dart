@@ -8,7 +8,7 @@ import 'package:frontend/features/movimientos/presentation/viewmodels/alta_movim
 
 const _sueldo = Categoria(id: 1, nombre: 'Sueldo', tipo: 'INGRESO', esPredefinida: true);
 
-class CategoriaApiDeMentira implements CategoriaApi {
+class CategoriaApiDeMentira extends Fake implements CategoriaApi {
   @override
   Future<List<Categoria>> listar() async => const [
         _sueldo,
@@ -53,6 +53,17 @@ void main() {
     expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), ['Sueldo']);
     vm.cambiarTipo(false);
     expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), ['Comida', 'Mascotas']);
+  });
+
+  test('la categoría creada desde el panel aparece entre las opciones y queda elegida', () async {
+    final vm = AltaMovimientoViewModel(CategoriaApiDeMentira(), MovimientoApiDeMentira());
+    await vm.cargarCategorias();
+    vm.cambiarTipo(false);
+
+    vm.agregarCategoria(const Categoria(id: 20, nombre: 'Gimnasio', tipo: 'EGRESO', esPredefinida: false));
+
+    expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), ['Comida', 'Mascotas', 'Gimnasio']);
+    expect(vm.categoria, 'Gimnasio');
   });
 
   test('si el monto o la categoría están mal, no manda nada', () async {

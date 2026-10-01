@@ -3,8 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
-import 'package:frontend/core/widgets/boton_icono.dart';
+import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/core/widgets/selector_tipo.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
+import 'package:frontend/features/categorias/data/models/categoria.dart';
+import 'package:frontend/features/categorias/presentation/widgets/formulario_categoria.dart';
 import 'package:frontend/features/movimientos/data/datasources/movimiento_api.dart';
 import 'package:frontend/features/movimientos/presentation/monto_formatter.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/alta_movimiento_view_model.dart';
@@ -46,37 +50,32 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
     _monto.clear();
     _descripcion.clear();
     _vm.limpiar();
-    _vm.cargarCategorias(); // por si se creó una categoría nueva
   }
 
+  // Un panel chico desde abajo, para no salir del movimiento. La categoría se crea en el momento,
+  // con el tipo del movimiento, y queda elegida.
   Future<void> _nuevaCategoria() async {
-    var escrito = '';
-    final nombre = (await showDialog<String>(
+    final creada = await showModalBottomSheet<Categoria>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nueva categoría'),
-        content: TextField(
-          autofocus: true,
-          inputFormatters: [LengthLimitingTextInputFormatter(100)],
-          decoration: const InputDecoration(
-            hintText: 'Por ejemplo, Gimnasio',
-            helperText: 'Se crea con el tipo del movimiento cuando lo registres.',
-            helperMaxLines: 2,
-          ),
-          onChanged: (texto) => escrito = texto,
-          onSubmitted: (texto) => Navigator.pop(context, texto),
+      isScrollControlled: true, // así el panel sube cuando aparece el teclado
+      showDragHandle: true,
+      builder: (context) => SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(18, 0, 18, 18 + MediaQuery.viewInsetsOf(context).bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Nueva categoría de ${_vm.esIngreso ? 'ingreso' : 'egreso'}',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            FormularioCategoria(esIngreso: _vm.esIngreso, tipoFijo: true),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, escrito), child: const Text('Usar')),
-        ],
       ),
-    ))
-        ?.trim();
-    if (nombre == null || nombre.isEmpty) return;
-    // Si ya existe con otro uso de mayúsculas, se elige la que existe.
-    final existente = _vm.categoriasDelTipo.where((c) => c.nombre.toLowerCase() == nombre.toLowerCase());
-    _vm.elegirCategoria(existente.isEmpty ? nombre : existente.first.nombre);
+    );
+    if (creada != null) _vm.agregarCategoria(creada);
   }
 
   Future<void> _elegirFecha() async {
@@ -95,22 +94,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        titleSpacing: 18,
-        title: Row(
-          children: [
-            BotonIcono(
-              icono: Icons.arrow_back,
-              tamanio: 34,
-              ayuda: 'Volver',
-              alTocar: () => Navigator.maybePop(context),
-            ),
-            const SizedBox(width: 12),
-            const Text('Nuevo movimiento'),
-          ],
-        ),
-      ),
+      appBar: barraConVolver(context, 'Nuevo movimiento'),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -118,10 +102,10 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
             children: [
-              _selectorTipo(),
+              SelectorTipo(esIngreso: _vm.esIngreso, alCambiar: _vm.cambiarTipo),
               _campoMonto(),
               _categorias(),
-              _Campo(
+              Campo(
                 etiqueta: 'Fecha',
                 child: InkWell(
                   onTap: _elegirFecha,
@@ -132,7 +116,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
                   ),
                 ),
               ),
-              _Campo(
+              Campo(
                 etiqueta: 'Descripción (opcional)',
                 child: TextField(
                   controller: _descripcion,
@@ -151,36 +135,10 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.check),
                 label: const Text('Registrar movimiento'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
-                ),
               ),
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _selectorTipo() {
-    return SegmentedButton<bool>(
-      segments: const [
-        ButtonSegment(value: true, label: Text('Ingreso')),
-        ButtonSegment(value: false, label: Text('Egreso')),
-      ],
-      selected: {_vm.esIngreso},
-      onSelectionChanged: (seleccion) => _vm.cambiarTipo(seleccion.first),
-      showSelectedIcon: false,
-      expandedInsets: EdgeInsets.zero,
-      style: SegmentedButton.styleFrom(
-        backgroundColor: AppColors.surface2,
-        foregroundColor: AppColors.muted,
-        selectedBackgroundColor: AppColors.surface,
-        selectedForegroundColor: _vm.esIngreso ? AppColors.accent : AppColors.danger,
-        side: const BorderSide(color: AppColors.line),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -220,26 +178,15 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
   }
 
   Widget _categorias() {
-    final elegida = _vm.categoria;
-    final lista = _vm.categoriasDelTipo;
-    final esNueva = elegida != null && !lista.any((c) => c.nombre == elegida);
-    return _Campo(
+    return Campo(
       etiqueta: 'Categoría',
       error: _vm.errorCategoria,
-      ayuda: esNueva
-          ? '"$elegida" se crea cuando registres el movimiento.'
-          : 'Se muestran solo las categorías de ${_vm.esIngreso ? 'ingreso' : 'egreso'}.',
+      ayuda: 'Se muestran solo las categorías de ${_vm.esIngreso ? 'ingreso' : 'egreso'}.',
       child: Wrap(
         spacing: 7,
         runSpacing: 7,
         children: [
-          for (final c in lista)
-            _chip(
-              c.nombre,
-              seleccionado: c.nombre == elegida,
-              icono: c.emoji != null ? Text(c.emoji!) : _punto(colorDesdeHex(c.color)),
-            ),
-          if (esNueva) _chip(elegida, seleccionado: true, icono: _punto(AppColors.faint)),
+          for (final c in _vm.categoriasDelTipo) _chip(c),
           ActionChip(
             avatar: const Icon(Icons.add, size: 16),
             label: const Text('Nueva'),
@@ -253,12 +200,20 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
     );
   }
 
-  Widget _chip(String nombre, {required bool seleccionado, required Widget icono}) {
+  // Las predefinidas llevan su emoji; las propias, un punto de su color.
+  Widget _chip(Categoria categoria) {
+    final seleccionado = categoria.nombre == _vm.categoria;
     return ChoiceChip(
-      avatar: icono,
-      label: Text(nombre),
+      avatar: categoria.emoji != null
+          ? Text(categoria.emoji!)
+          : Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: colorDesdeHex(categoria.color), shape: BoxShape.circle),
+            ),
+      label: Text(categoria.nombre),
       selected: seleccionado,
-      onSelected: (_) => _vm.elegirCategoria(nombre),
+      onSelected: (_) => _vm.elegirCategoria(categoria.nombre),
       showCheckmark: false,
       backgroundColor: AppColors.surface2,
       selectedColor: AppColors.accent.withValues(alpha: 0.12),
@@ -271,50 +226,10 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
     );
   }
 
-  Widget _punto(Color color) => Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
-
   String _textoFecha(DateTime fecha) {
     final hoy = DateTime.now();
     if (fecha.year == hoy.year && fecha.month == hoy.month && fecha.day == hoy.day) return 'Hoy';
     String dos(int n) => n.toString().padLeft(2, '0');
     return '${dos(fecha.day)}/${dos(fecha.month)}/${fecha.year}';
-  }
-}
-
-// Una etiqueta arriba, el campo, y abajo el error o una ayuda.
-class _Campo extends StatelessWidget {
-  const _Campo({required this.etiqueta, required this.child, this.error, this.ayuda});
-
-  final String etiqueta;
-  final Widget child;
-  final String? error;
-  final String? ayuda;
-
-  @override
-  Widget build(BuildContext context) {
-    final abajo = error ?? ayuda;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(etiqueta, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.muted)),
-          const SizedBox(height: 6),
-          child,
-          if (abajo != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 5),
-              child: Text(
-                abajo,
-                style: TextStyle(fontSize: 11.5, color: error != null ? AppColors.danger : AppColors.faint),
-              ),
-            ),
-        ],
-      ),
-    );
   }
 }
