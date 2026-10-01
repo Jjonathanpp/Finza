@@ -66,6 +66,12 @@ class AltaMovimientoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // La categoría recién creada desde el panel: se suma a las opciones y queda elegida.
+  void agregarCategoria(Categoria categoria) {
+    _categorias = [..._categorias, categoria];
+    elegirCategoria(categoria.nombre);
+  }
+
   void cambiarFecha(DateTime fecha) {
     _fecha = fecha;
     notifyListeners();

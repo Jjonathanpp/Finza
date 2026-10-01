@@ -4,7 +4,7 @@ import 'package:frontend/features/categorias/data/datasources/categoria_api.dart
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/viewmodels/categorias_view_model.dart';
 
-class CategoriaApiDeMentira implements CategoriaApi {
+class CategoriaApiDeMentira extends Fake implements CategoriaApi {
   CategoriaApiDeMentira({this.falla = false});
 
   final bool falla;

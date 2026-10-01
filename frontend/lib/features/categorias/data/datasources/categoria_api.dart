@@ -11,4 +11,17 @@ class CategoriaApi {
     final data = await _api.get('/api/categorias?cuentaId=$cuentaIdTemporal');
     return (data as List).map((json) => Categoria.fromJson(json)).toList();
   }
+
+  Future<Categoria> crear({
+    required String nombre,
+    required bool esIngreso,
+    required String color,
+  }) async {
+    final data = await _api.post('/api/categorias?cuentaId=$cuentaIdTemporal', {
+      'nombre': nombre,
+      'tipo': esIngreso ? 'INGRESO' : 'EGRESO',
+      'color': color,
+    });
+    return Categoria.fromJson(data);
+  }
 }

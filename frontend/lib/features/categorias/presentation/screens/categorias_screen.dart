@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/widgets/aviso_exito.dart';
+import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/core/widgets/boton_icono.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/viewmodels/categorias_view_model.dart';
+import 'package:frontend/features/categorias/presentation/widgets/formulario_categoria.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 
 class CategoriasScreen extends StatefulWidget {
@@ -35,13 +38,31 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     );
   }
 
+  Future<void> _nuevaCategoria() async {
+    final creada = await Navigator.push<Categoria>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: barraConVolver(context, 'Nueva categoría'),
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+            children: const [FormularioCategoria()],
+          ),
+        ),
+      ),
+    );
+    if (creada == null || !mounted) return;
+    mostrarExito(context, 'Categoría creada');
+    _vm.cargar();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Categorías'),
         actions: [
-          BotonIcono(icono: Icons.add, tamanio: 34, ayuda: 'Nueva categoría', alTocar: _proximamente),
+          BotonIcono(icono: Icons.add, tamanio: 34, ayuda: 'Nueva categoría', alTocar: _nuevaCategoria),
         ],
       ),
       body: ListenableBuilder(
