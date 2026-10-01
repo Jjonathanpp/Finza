@@ -11,6 +11,19 @@ class CategoriasViewModel extends ChangeNotifier {
   bool _cargando = false;
   String? _error;
   List<Categoria> _categorias = [];
+  bool _cerrado = false;
+
+  // Si la pantalla se cerró mientras se esperaba al backend, no hay a quién avisar.
+  @override
+  void notifyListeners() {
+    if (!_cerrado) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _cerrado = true;
+    super.dispose();
+  }
 
   bool get cargando => _cargando;
   String? get error => _error;
