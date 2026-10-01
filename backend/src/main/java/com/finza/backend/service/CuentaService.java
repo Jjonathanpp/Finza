@@ -2,6 +2,7 @@ package com.finza.backend.service;
 
 import java.time.LocalDateTime;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,13 +22,16 @@ public class CuentaService {
     private final CuentaRepository cuentaRepository;
     private final UsuarioRepository usuarioRepository;
     private final PerfilRepository perfilRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public CuentaService(CuentaRepository cuentaRepository,
                           UsuarioRepository usuarioRepository,
-                          PerfilRepository perfilRepository) {
+                          PerfilRepository perfilRepository,
+                          PasswordEncoder passwordEncoder) {
         this.cuentaRepository = cuentaRepository;
         this.usuarioRepository = usuarioRepository;
         this.perfilRepository = perfilRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -52,7 +56,7 @@ public class CuentaService {
 
         Cuenta cuenta = new Cuenta();
         cuenta.setEmail(dto.getEmail());
-        cuenta.setPassword(dto.getPassword()); 
+        cuenta.setPassword(passwordEncoder.encode(dto.getPassword()));
         cuenta.setUsuario(usuario);
         cuenta.setEmailVerificado(false);
         cuenta.setFechaCreacion(LocalDateTime.now());
