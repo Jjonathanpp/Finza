@@ -32,6 +32,13 @@ void main() {
     expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Comida', 'Mascotas']);
   });
 
+  test('si la pantalla se cierra mientras carga, no se rompe', () async {
+    final vm = CategoriasViewModel(CategoriaApiDeMentira());
+    final carga = vm.cargar();
+    vm.dispose();
+    await carga; // sin el arreglo, acá tiraba "A ChangeNotifier was used after being disposed"
+  });
+
   test('si el backend falla, guarda el mensaje y deja de cargar', () async {
     final vm = CategoriasViewModel(CategoriaApiDeMentira(falla: true));
 

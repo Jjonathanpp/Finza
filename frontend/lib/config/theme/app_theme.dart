@@ -29,6 +29,20 @@ ThemeData temaFinza() {
       onInverseSurface: AppColors.text,
     ),
     scaffoldBackgroundColor: AppColors.bg,
+    inputDecorationTheme: const InputDecorationThemeData(
+      filled: true,
+      fillColor: AppColors.surface2,
+      contentPadding: EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+      hintStyle: TextStyle(color: AppColors.faint),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(color: AppColors.line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(color: AppColors.accent),
+      ),
+    ),
     tooltipTheme: const TooltipThemeData(
       decoration: BoxDecoration(
         color: AppColors.surface,

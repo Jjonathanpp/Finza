@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/widgets/boton_icono.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/viewmodels/categorias_view_model.dart';
@@ -40,7 +41,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       appBar: AppBar(
         title: const Text('Categorías'),
         actions: [
-          _BotonIcono(icono: Icons.add, tamanio: 34, ayuda: 'Nueva categoría', alTocar: _proximamente),
+          BotonIcono(icono: Icons.add, tamanio: 34, ayuda: 'Nueva categoría', alTocar: _proximamente),
         ],
       ),
       body: ListenableBuilder(
@@ -127,9 +128,9 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
             ),
           ),
           if (!categoria.esPredefinida) ...[
-            _BotonIcono(icono: Icons.edit_outlined, tamanio: 28, ayuda: 'Editar', alTocar: _proximamente),
+            BotonIcono(icono: Icons.edit_outlined, tamanio: 28, ayuda: 'Editar', alTocar: _proximamente),
             const SizedBox(width: 4),
-            _BotonIcono(icono: Icons.delete_outline, tamanio: 28, ayuda: 'Eliminar', alTocar: _proximamente),
+            BotonIcono(icono: Icons.delete_outline, tamanio: 28, ayuda: 'Eliminar', alTocar: _proximamente),
           ],
         ],
       ),
@@ -183,44 +184,6 @@ class _Etiqueta extends StatelessWidget {
           fontSize: 10,
           fontWeight: FontWeight.w700,
           color: predefinida ? AppColors.faint : AppColors.blue,
-        ),
-      ),
-    );
-  }
-}
-
-class _BotonIcono extends StatelessWidget {
-  const _BotonIcono({
-    required this.icono,
-    required this.tamanio,
-    required this.ayuda,
-    required this.alTocar,
-  });
-
-  final IconData icono;
-  final double tamanio;
-  final String ayuda;
-  final VoidCallback alTocar;
-
-  @override
-  Widget build(BuildContext context) {
-    final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(tamanio / 3),
-      side: const BorderSide(color: AppColors.line),
-    );
-    return Tooltip(
-      message: ayuda,
-      child: Material(
-        color: AppColors.surface2,
-        shape: forma,
-        child: InkWell(
-          customBorder: forma,
-          onTap: alTocar,
-          child: SizedBox(
-            width: tamanio,
-            height: tamanio,
-            child: Icon(icono, size: tamanio / 2, color: AppColors.muted),
-          ),
         ),
       ),
     );
