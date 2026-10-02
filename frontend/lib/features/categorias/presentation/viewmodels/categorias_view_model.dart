@@ -48,4 +48,16 @@ class CategoriasViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // Devuelve null si se borró, o el mensaje del backend si no (por ejemplo, si tiene movimientos).
+  Future<String?> eliminar(Categoria categoria) async {
+    try {
+      await _api.eliminar(categoria);
+    } on ApiException catch (e) {
+      return e.message;
+    }
+    _categorias = _categorias.where((c) => c.id != categoria.id).toList();
+    notifyListeners();
+    return null;
+  }
 }

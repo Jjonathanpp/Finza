@@ -32,28 +32,57 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     super.dispose();
   }
 
-  void _proximamente() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Próximamente')),
-    );
-  }
-
-  Future<void> _nuevaCategoria() async {
-    final creada = await Navigator.push<Categoria>(
+  // "Nueva categoría" o "Editar categoría": el mismo formulario en una pantalla entera.
+  Future<void> _abrirFormulario({Categoria? editando}) async {
+    final guardada = await Navigator.push<Categoria>(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: barraConVolver(context, 'Nueva categoría'),
+          appBar: barraConVolver(context, editando == null ? 'Nueva categoría' : 'Editar categoría'),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-            children: const [FormularioCategoria()],
+            children: [FormularioCategoria(editando: editando)],
           ),
         ),
       ),
     );
-    if (creada == null || !mounted) return;
-    mostrarExito(context, 'Categoría creada');
+    if (guardada == null || !mounted) return;
+    mostrarExito(context, editando == null ? 'Categoría creada' : 'Categoría actualizada');
     _vm.cargar();
+  }
+
+  Future<void> _eliminar(Categoria categoria) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('¿Eliminar "${categoria.nombre}"?'),
+        content: const Text('No se puede deshacer.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+    final error = await _vm.eliminar(categoria);
+    if (!mounted) return;
+    if (error == null) {
+      mostrarExito(context, 'Categoría eliminada');
+      return;
+    }
+    // Por ejemplo, si tiene movimientos: el backend no la deja borrar y explica por qué.
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('No se pudo eliminar'),
+        content: Text(error),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Entendido'))],
+      ),
+    );
   }
 
   @override
@@ -62,7 +91,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       appBar: AppBar(
         title: const Text('Categorías'),
         actions: [
-          BotonIcono(icono: Icons.add, tamanio: 34, ayuda: 'Nueva categoría', alTocar: _nuevaCategoria),
+          BotonIcono(icono: Icons.add, tamanio: 34, ayuda: 'Nueva categoría', alTocar: _abrirFormulario),
         ],
       ),
       body: ListenableBuilder(
@@ -149,9 +178,9 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
             ),
           ),
           if (!categoria.esPredefinida) ...[
-            BotonIcono(icono: Icons.edit_outlined, tamanio: 28, ayuda: 'Editar', alTocar: _proximamente),
+            BotonIcono(icono: Icons.edit_outlined, tamanio: 28, ayuda: 'Editar', alTocar: () => _abrirFormulario(editando: categoria)),
             const SizedBox(width: 4),
-            BotonIcono(icono: Icons.delete_outline, tamanio: 28, ayuda: 'Eliminar', alTocar: _proximamente),
+            BotonIcono(icono: Icons.delete_outline, tamanio: 28, ayuda: 'Eliminar', alTocar: () => _eliminar(categoria)),
           ],
         ],
       ),
@@ -179,7 +208,8 @@ class _Avatar extends StatelessWidget {
       child: emoji != null
           ? Text(emoji, style: const TextStyle(fontSize: 18))
           : Text(
-              categoria.nombre.isEmpty ? '?' : categoria.nombre[0].toUpperCase(),
+              // characters, no [0]: un emoji ocupa dos lugares del texto, y medio emoji no se puede dibujar.
+              categoria.nombre.isEmpty ? '?' : categoria.nombre.characters.first.toUpperCase(),
               style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800),
             ),
     );

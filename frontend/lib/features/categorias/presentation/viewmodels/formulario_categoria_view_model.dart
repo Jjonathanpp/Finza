@@ -4,15 +4,18 @@ import 'package:frontend/features/categorias/data/datasources/categoria_api.dart
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/paleta_categorias.dart';
 
-class NuevaCategoriaViewModel extends ChangeNotifier {
-  // Desde Categorías arranca en egreso, que es para lo que más se crean categorías propias.
-  // Desde "Nuevo movimiento" llega el tipo del movimiento.
-  NuevaCategoriaViewModel(this._api, {this._esIngreso = false});
+class FormularioCategoriaViewModel extends ChangeNotifier {
+  // Para crear: desde Categorías arranca en egreso, que es para lo que más se crean categorías
+  // propias; desde "Nuevo movimiento" llega el tipo del movimiento.
+  // Para editar: llega la categoría, y arranca con su color (el tipo no se puede cambiar).
+  FormularioCategoriaViewModel(this._api, {this._esIngreso = false, this.editando})
+      : _color = editando?.color ?? paletaCategorias.first;
 
   final CategoriaApi _api;
+  final Categoria? editando;
 
   bool _esIngreso;
-  String _color = paletaCategorias.first;
+  String _color;
   bool _cerrado = false;
   bool _guardando = false;
   String? _error;
@@ -46,10 +49,11 @@ class NuevaCategoriaViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Valida y guarda. Devuelve la categoría creada, o null si algo falló.
+  // Valida y guarda. Devuelve la categoría creada o editada, o null si algo falló.
   Future<Categoria?> guardar(String nombre) async {
-    // Vacío, el backend responde solo "Error de validación", sin decir qué campo.
-    _errorNombre = nombre.trim().isEmpty ? 'Ingresá un nombre' : null;
+    // Al editar, el backend no valida el nombre ni le saca los espacios: lo hacemos acá.
+    nombre = nombre.trim();
+    _errorNombre = nombre.isEmpty ? 'Ingresá un nombre' : null;
     _error = null;
     if (_errorNombre != null) {
       notifyListeners();
@@ -58,7 +62,12 @@ class NuevaCategoriaViewModel extends ChangeNotifier {
     _guardando = true;
     notifyListeners();
     try {
-      return await _api.crear(nombre: nombre, esIngreso: _esIngreso, color: _color);
+      final editando = this.editando;
+      if (editando == null) {
+        return await _api.crear(nombre: nombre, esIngreso: _esIngreso, color: _color);
+      }
+      await _api.editar(editando, nombre: nombre, color: _color);
+      return Categoria(id: editando.id, nombre: nombre, color: _color, tipo: editando.tipo, esPredefinida: false);
     } on ApiException catch (e) {
       // 409 es el nombre repetido: el mensaje va abajo del campo, que es lo que hay que corregir.
       if (e.status == 409) {

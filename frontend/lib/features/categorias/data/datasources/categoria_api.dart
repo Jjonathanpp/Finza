@@ -24,4 +24,18 @@ class CategoriaApi {
     });
     return Categoria.fromJson(data);
   }
+
+  // La respuesta no se lee: el PUT devuelve la entidad entera, con otros nombres de campos.
+  Future<void> editar(Categoria categoria, {required String nombre, required String color}) async {
+    await _api.put('/api/categorias/${categoria.id}?cuentaId=$cuentaIdTemporal', {
+      'nombre': nombre,
+      'color': color,
+      // Hoy el PUT no lo usa, pero es el mismo pedido del alta, donde es obligatorio.
+      'tipo': categoria.tipo,
+    });
+  }
+
+  Future<void> eliminar(Categoria categoria) async {
+    await _api.delete('/api/categorias/${categoria.id}?cuentaId=$cuentaIdTemporal');
+  }
 }
