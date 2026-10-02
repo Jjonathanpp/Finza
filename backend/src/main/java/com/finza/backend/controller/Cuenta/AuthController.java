@@ -1,10 +1,12 @@
 package com.finza.backend.controller.Cuenta;
 
+import com.finza.backend.dto.Response;
+import com.finza.backend.dto.login.LoginRequestDTO;
+import com.finza.backend.dto.login.LoginResponseDTO;
 import com.finza.backend.dto.registro.CuentaRegistroDTO;
 import com.finza.backend.dto.registro.CuentaResponseDTO;
 import com.finza.backend.service.CuentaService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,7 +24,12 @@ public class AuthController {
     }
 
     @PostMapping("/registro")
-    public ResponseEntity<CuentaResponseDTO> registrar(@Valid @RequestBody CuentaRegistroDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(cuentaService.crear(dto));
+    public ResponseEntity<Object> registrar(@Valid @RequestBody CuentaRegistroDTO dto) {
+        return Response.created(cuentaService.crear(dto), "Cuenta creada");
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Object> login(@Valid @RequestBody LoginRequestDTO dto) {
+        return Response.ok(cuentaService.login(dto));
     }
 }

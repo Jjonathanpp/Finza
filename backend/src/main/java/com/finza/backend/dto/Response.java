@@ -36,4 +36,12 @@ public class Response {
 	public static ResponseEntity<Object> error(Object data, String message) {
 		return response(HttpStatus.BAD_REQUEST, message, data);
 	}
+
+	public static ResponseEntity<Object> created(Object responseObj, String msj) {
+		return response(HttpStatus.CREATED, msj, responseObj);
+	}
+
+	public static ResponseEntity<Object> unauthorized(String msj) {
+		return response(HttpStatus.UNAUTHORIZED, msj, null);
+	}
 }
