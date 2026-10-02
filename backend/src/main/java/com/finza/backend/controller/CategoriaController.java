@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.finza.backend.dto.CategoriaRequest;
 import com.finza.backend.dto.CategoriaResponseDTO;
 import com.finza.backend.dto.Response;
-import com.finza.backend.model.Categoria;
 import com.finza.backend.service.CategoriaService;
 
 import jakarta.validation.Valid;
@@ -47,8 +46,8 @@ public class CategoriaController {
     public ResponseEntity<Object> editarCategoria(
             @PathVariable Long id,
             @RequestParam Long cuentaId,
-            @RequestBody CategoriaRequest request) {
-        Categoria categoria = categoriaService.editarCategoria(
+            @Valid @RequestBody CategoriaRequest request) {
+        CategoriaResponseDTO categoria = categoriaService.editarCategoria(
                 id,
                 cuentaId,
                 request.getNombre(),

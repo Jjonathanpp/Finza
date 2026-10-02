@@ -75,14 +75,27 @@ public class CategoriaService {
     }
 
     @Transactional
-    public Categoria editarCategoria(Long id, Long cuentaId, String nombre, String color) {
+    public CategoriaResponseDTO editarCategoria(Long id, Long cuentaId, String nombre, String color) {
         Categoria categoria = categoriaRepository.findByIdAndCuentaId(id, cuentaId)
                 .orElseThrow(() -> new NoSuchElementException("Categoría no encontrada o no pertenece a la cuenta"));
 
-        categoria.setNombre(nombre);
+        String nombreLimpio = nombre.trim();
+
+        // La misma búsqueda del alta, sin contar la categoría que se edita:
+        // así se puede guardar sin cambiar el nombre (solo el color).
+        boolean repetido = categoriaRepository
+                .buscarPropiaOGlobal(nombreLimpio, categoria.getTipoCategoriaPredefinida(), cuentaId)
+                .stream()
+                .anyMatch(otra -> !otra.getId().equals(id));
+        if (repetido) {
+            throw new IllegalArgumentException("Ya existe una categoría con ese nombre para el tipo indicado");
+        }
+
+        categoria.setNombre(nombreLimpio);
         categoria.setColor(color);
 
-        return categoriaRepository.save(categoria);
+        // El DTO y no la entidad: la entidad trae la cuenta adentro (email, contraseña, datos del usuario).
+        return new CategoriaResponseDTO(categoriaRepository.save(categoria));
     }
 
     @Transactional
