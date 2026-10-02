@@ -5,9 +5,10 @@ import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/viewmodels/categorias_view_model.dart';
 
 class CategoriaApiDeMentira extends Fake implements CategoriaApi {
-  CategoriaApiDeMentira({this.falla = false});
+  CategoriaApiDeMentira({this.falla = false, this.fallaAlEliminar});
 
   final bool falla;
+  final ApiException? fallaAlEliminar;
 
   @override
   Future<List<Categoria>> listar() async {
@@ -17,6 +18,11 @@ class CategoriaApiDeMentira extends Fake implements CategoriaApi {
       Categoria(id: 2, nombre: 'Sueldo', tipo: 'INGRESO', esPredefinida: true),
       Categoria(id: 3, nombre: 'Mascotas', tipo: 'EGRESO', esPredefinida: false),
     ];
+  }
+
+  @override
+  Future<void> eliminar(Categoria categoria) async {
+    if (fallaAlEliminar != null) throw fallaAlEliminar!;
   }
 }
 
@@ -47,5 +53,26 @@ void main() {
     expect(vm.cargando, isFalse);
     expect(vm.error, 'No se pudo conectar con el servidor');
     expect(vm.categorias, isEmpty);
+  });
+
+  test('eliminar la saca de la lista', () async {
+    final vm = CategoriasViewModel(CategoriaApiDeMentira());
+    await vm.cargar();
+
+    final error = await vm.eliminar(vm.deEgreso.last);
+
+    expect(error, isNull);
+    expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Comida']);
+  });
+
+  test('si tiene movimientos, devuelve el mensaje y la deja en la lista', () async {
+    const mensaje = 'No se puede eliminar la categoría porque tiene movimientos asociados';
+    final vm = CategoriasViewModel(CategoriaApiDeMentira(fallaAlEliminar: ApiException(409, mensaje)));
+    await vm.cargar();
+
+    final error = await vm.eliminar(vm.deEgreso.last);
+
+    expect(error, mensaje);
+    expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Comida', 'Mascotas']);
   });
 }

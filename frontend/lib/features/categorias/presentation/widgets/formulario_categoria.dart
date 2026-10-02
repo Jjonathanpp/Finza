@@ -5,25 +5,34 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/campo.dart';
 import 'package:frontend/core/widgets/selector_tipo.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
+import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/paleta_categorias.dart';
-import 'package:frontend/features/categorias/presentation/viewmodels/nueva_categoria_view_model.dart';
+import 'package:frontend/features/categorias/presentation/viewmodels/formulario_categoria_view_model.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 
-// Nombre, tipo y color de una categoría nueva. Lo usan la pantalla "Nueva categoría"
-// y el panel de "Nuevo movimiento". Al crearla, cierra y devuelve la categoría.
+// Nombre, tipo y color de una categoría. Lo usan las pantallas "Nueva categoría" y
+// "Editar categoría" (con editando), y el panel de "Nuevo movimiento".
+// Al guardar, cierra y devuelve la categoría.
 class FormularioCategoria extends StatefulWidget {
-  const FormularioCategoria({super.key, this.esIngreso = false, this.tipoFijo = false});
+  const FormularioCategoria({super.key, this.esIngreso = false, this.tipoFijo = false, this.editando});
 
   final bool esIngreso;
   final bool tipoFijo;
+  final Categoria? editando;
 
   @override
   State<FormularioCategoria> createState() => _FormularioCategoriaState();
 }
 
 class _FormularioCategoriaState extends State<FormularioCategoria> {
-  late final _vm = NuevaCategoriaViewModel(CategoriaApi(ApiClient()), esIngreso: widget.esIngreso);
-  final _nombre = TextEditingController();
+  late final _vm = FormularioCategoriaViewModel(
+    CategoriaApi(ApiClient()),
+    esIngreso: widget.esIngreso,
+    editando: widget.editando,
+  );
+  late final _nombre = TextEditingController(text: widget.editando?.nombre);
+  // Al editar, el tipo no se puede cambiar (el backend no lo deja).
+  late final _mostrarTipo = !widget.tipoFijo && widget.editando == null;
 
   @override
   void dispose() {
@@ -33,8 +42,8 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
   }
 
   Future<void> _guardar() async {
-    final creada = await _vm.guardar(_nombre.text);
-    if (creada != null && mounted) Navigator.pop(context, creada);
+    final guardada = await _vm.guardar(_nombre.text);
+    if (guardada != null && mounted) Navigator.pop(context, guardada);
   }
 
   @override
@@ -47,7 +56,7 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (!widget.tipoFijo) ...[
+            if (_mostrarTipo) ...[
               SelectorTipo(esIngreso: _vm.esIngreso, alCambiar: _vm.cambiarTipo),
               const SizedBox(height: 18),
             ],
@@ -56,7 +65,7 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
               error: _vm.errorNombre,
               child: TextField(
                 controller: _nombre,
-                autofocus: true,
+                autofocus: widget.editando == null,
                 textCapitalization: TextCapitalization.sentences,
                 // La columna del nombre es de 100 caracteres.
                 inputFormatters: [LengthLimitingTextInputFormatter(100)],
@@ -83,7 +92,7 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
               icon: _vm.guardando
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.check),
-              label: const Text('Crear categoría'),
+              label: Text(widget.editando == null ? 'Crear categoría' : 'Guardar cambios'),
             ),
           ],
         );
