@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:frontend/config/constants/api_config.dart';
 import 'package:frontend/core/errors/api_exception.dart';
+import 'package:frontend/core/storage/token_storage.dart';
 
 class ApiClient {
-  final Dio _dio = Dio(BaseOptions(baseUrl: apiBaseUrl));
+  final Dio _dio = Dio(BaseOptions(baseUrl: apiBaseUrl))
+    ..interceptors.add(TokenInterceptor(TokenStorage()));
 
   Future<dynamic> get(String path) => _enviar(() => _dio.get(path));
 
@@ -34,5 +36,19 @@ class ApiClient {
       }
       throw ApiException(respuestaError.statusCode, 'Error inesperado del servidor');
     }
+  }
+}
+
+// Antes de que salga cada pedido, le agrega el token del login (si hay uno guardado).
+class TokenInterceptor extends Interceptor {
+  TokenInterceptor(this._tokens);
+
+  final TokenStorage _tokens;
+
+  @override
+  Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    final token = await _tokens.obtenerToken();
+    if (token != null) options.headers['Authorization'] = 'Bearer $token';
+    handler.next(options);
   }
 }
