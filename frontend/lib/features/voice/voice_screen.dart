@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import '../registro/screens/register_screen.dart';
 
 class VoiceScreen extends StatefulWidget {
   const VoiceScreen({super.key});
@@ -77,20 +76,6 @@ class _VoiceScreenState extends State<VoiceScreen> {
             const SizedBox(height: 16),
             Text(_listening ? 'Escuchando...' : 'Tocá para grabar'),
           ],
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: OutlinedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RegisterScreen()),
-              );
-            },
-            child: const Text('Ir a registro'),
-          ),
         ),
       ),
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../service/auth_service.dart';
+import '../../auth/service/auth_service.dart';
 import '../models/registro_request.dart';
 
 class RegisterForm extends StatefulWidget {
