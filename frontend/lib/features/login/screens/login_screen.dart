@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/config/theme/app_theme.dart';
 import '../widgets/login_form.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -18,17 +19,13 @@ class LoginScreen extends StatelessWidget {
                 height: 72,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF4FD1C5), Color(0xFF3182CE)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: AppColors.accent,
                 ),
                 child: const Center(
                   child: Text(
                     'F',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.accentInk,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),
@@ -38,7 +35,11 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 16),
               const Text(
                 'Finza',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.text,
+                ),
               ),
               const SizedBox(height: 32),
               const LoginForm(),
