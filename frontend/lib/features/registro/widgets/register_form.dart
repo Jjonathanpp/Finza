@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/widgets/aviso_exito.dart';
+import 'package:frontend/core/widgets/campo.dart';
 import '../../auth/service/auth_service.dart';
 import '../models/registro_request.dart';
 
@@ -23,6 +26,7 @@ class _RegisterFormState extends State<RegisterForm> {
   String? _genero;
   bool _loading = false;
   bool _obscurePassword = true;
+  String? _errorGeneral;
   final _authService = AuthService();
 
   static const _generos = ['Masculino', 'Femenino', 'Otro'];
@@ -52,16 +56,13 @@ class _RegisterFormState extends State<RegisterForm> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _errorGeneral = null);
     if (_fechaNacimiento == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seleccioná tu fecha de nacimiento')),
-      );
+      setState(() => _errorGeneral = 'Seleccioná tu fecha de nacimiento');
       return;
     }
     if (_genero == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Seleccioná tu género')));
+      setState(() => _errorGeneral = 'Seleccioná tu género');
       return;
     }
 
@@ -88,15 +89,12 @@ class _RegisterFormState extends State<RegisterForm> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cuenta creada correctamente')),
-        );
+        mostrarExito(context, 'Cuenta creada correctamente');
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        setState(() => _errorGeneral = e.toString());
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -110,100 +108,120 @@ class _RegisterFormState extends State<RegisterForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextFormField(
-            controller: _nombreCtrl,
-            decoration: const InputDecoration(labelText: 'Nombre'),
-            textCapitalization: TextCapitalization.words,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Ingresá tu nombre' : null,
+          Campo(
+            etiqueta: 'Nombre',
+            child: TextFormField(
+              controller: _nombreCtrl,
+              textCapitalization: TextCapitalization.words,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Ingresá tu nombre' : null,
+            ),
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _apellidoCtrl,
-            decoration: const InputDecoration(labelText: 'Apellido'),
-            textCapitalization: TextCapitalization.words,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Ingresá tu apellido' : null,
+          Campo(
+            etiqueta: 'Apellido',
+            child: TextFormField(
+              controller: _apellidoCtrl,
+              textCapitalization: TextCapitalization.words,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Ingresá tu apellido'
+                  : null,
+            ),
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _emailCtrl,
-            decoration: const InputDecoration(labelText: 'Email'),
-            keyboardType: TextInputType.emailAddress,
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Ingresá tu email';
-              final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
-              if (!regex.hasMatch(v.trim())) return 'Email inválido';
-              return null;
-            },
+          Campo(
+            etiqueta: 'Email',
+            child: TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'Ingresá tu email';
+                final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
+                if (!regex.hasMatch(v.trim())) return 'Email inválido';
+                return null;
+              },
+            ),
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _passwordCtrl,
-            decoration: InputDecoration(
-              labelText: 'Contraseña',
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+          Campo(
+            etiqueta: 'Contraseña',
+            child: TextFormField(
+              controller: _passwordCtrl,
+              decoration: InputDecoration(
+                suffixIcon: TextButton(
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                  child: Text(_obscurePassword ? 'Ver' : 'Ocultar'),
                 ),
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+              obscureText: _obscurePassword,
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Ingresá una contraseña';
+                if (v.length < 8) return 'Mínimo 8 caracteres';
+                return null;
+              },
+            ),
+          ),
+          Campo(
+            etiqueta: 'Teléfono',
+            child: TextFormField(
+              controller: _telefonoCtrl,
+              keyboardType: TextInputType.phone,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Ingresá tu teléfono'
+                  : null,
+            ),
+          ),
+          Campo(
+            etiqueta: 'DNI',
+            child: TextFormField(
+              controller: _dniCtrl,
+              keyboardType: TextInputType.number,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Ingresá tu DNI' : null,
+            ),
+          ),
+          Campo(
+            etiqueta: 'Fecha de nacimiento',
+            child: InkWell(
+              onTap: _seleccionarFecha,
+              child: InputDecorator(
+                decoration: const InputDecoration(),
+                child: Text(
+                  _fechaNacimiento == null
+                      ? 'Seleccionar fecha'
+                      : '${_fechaNacimiento!.day}/${_fechaNacimiento!.month}/${_fechaNacimiento!.year}',
+                ),
               ),
             ),
-            obscureText: _obscurePassword,
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Ingresá una contraseña';
-              if (v.length < 8) return 'Mínimo 8 caracteres';
-              return null;
-            },
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _telefonoCtrl,
-            decoration: const InputDecoration(labelText: 'Teléfono'),
-            keyboardType: TextInputType.phone,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Ingresá tu teléfono' : null,
+          Campo(
+            etiqueta: 'Género',
+            child: DropdownButtonFormField<String>(
+              initialValue: _genero,
+              decoration: const InputDecoration(),
+              items: _generos
+                  .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                  .toList(),
+              onChanged: (v) => setState(() => _genero = v),
+            ),
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _dniCtrl,
-            decoration: const InputDecoration(labelText: 'DNI'),
-            keyboardType: TextInputType.number,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Ingresá tu DNI' : null,
-          ),
-          const SizedBox(height: 16),
-          InkWell(
-            onTap: _seleccionarFecha,
-            child: InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Fecha de nacimiento',
-              ),
+          if (_errorGeneral != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
               child: Text(
-                _fechaNacimiento == null
-                    ? 'Seleccionar fecha'
-                    : '${_fechaNacimiento!.day}/${_fechaNacimiento!.month}/${_fechaNacimiento!.year}',
+                _errorGeneral!,
+                style: const TextStyle(color: AppColors.danger, fontSize: 12.5),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: _genero,
-            decoration: const InputDecoration(labelText: 'Género'),
-            items: _generos
-                .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                .toList(),
-            onChanged: (v) => setState(() => _genero = v),
-          ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 10),
           FilledButton(
             onPressed: _loading ? null : _submit,
             child: _loading
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.accentInk,
+                    ),
                   )
                 : const Text('Registrarme'),
           ),

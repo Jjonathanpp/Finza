@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:frontend/config/theme/app_theme.dart';
+import '../../../core/widgets/app_drawer.dart';
 
 class VoiceScreen extends StatefulWidget {
   const VoiceScreen({super.key});
@@ -57,24 +59,32 @@ class _VoiceScreenState extends State<VoiceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Registro por voz')),
+      drawer: const AppDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              _text,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20),
+            Expanded(
+              child: Center(
+                child: Text(
+                  _text,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16, color: AppColors.muted),
+                ),
+              ),
             ),
-            const SizedBox(height: 48),
             FloatingActionButton.large(
               onPressed: _available ? _toggleListening : null,
-              backgroundColor: _listening ? Colors.red : null,
+              backgroundColor: _listening ? AppColors.danger : AppColors.accent,
+              foregroundColor: AppColors.accentInk,
               child: Icon(_listening ? Icons.stop : Icons.mic),
             ),
             const SizedBox(height: 16),
-            Text(_listening ? 'Escuchando...' : 'Tocá para grabar'),
+            Text(
+              _listening ? 'Escuchando...' : 'Tocá para grabar',
+              style: const TextStyle(color: AppColors.faint),
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),

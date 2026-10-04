@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/widgets/aviso_exito.dart';
+import 'package:frontend/core/widgets/campo.dart';
 import '../../auth/service/auth_service.dart';
 import '../../registro/screens/register_screen.dart';
 import '../../voice/voice_screen.dart';
@@ -19,6 +22,7 @@ class _LoginFormState extends State<LoginForm> {
 
   bool _loading = false;
   bool _obscurePassword = true;
+  String? _errorGeneral;
 
   @override
   void dispose() {
@@ -30,7 +34,10 @@ class _LoginFormState extends State<LoginForm> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _errorGeneral = null;
+    });
     try {
       await _authService.login(
         LoginRequest(
@@ -40,6 +47,7 @@ class _LoginFormState extends State<LoginForm> {
       );
 
       if (mounted) {
+        mostrarExito(context, 'Sesión iniciada');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const VoiceScreen()),
@@ -47,9 +55,7 @@ class _LoginFormState extends State<LoginForm> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        setState(() => _errorGeneral = e.toString());
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -63,40 +69,46 @@ class _LoginFormState extends State<LoginForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Email', style: TextStyle(fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _emailCtrl,
-            decoration: const InputDecoration(hintText: 'maria@correo.com'),
-            keyboardType: TextInputType.emailAddress,
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Ingresá tu email';
-              final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
-              if (!regex.hasMatch(v.trim())) return 'Email inválido';
-              return null;
-            },
+          Campo(
+            etiqueta: 'Email',
+            child: TextFormField(
+              controller: _emailCtrl,
+              decoration: const InputDecoration(hintText: 'maria@correo.com'),
+              keyboardType: TextInputType.emailAddress,
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'Ingresá tu email';
+                final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
+                if (!regex.hasMatch(v.trim())) return 'Email inválido';
+                return null;
+              },
+            ),
           ),
-          const SizedBox(height: 20),
-          const Text(
-            'Contraseña',
-            style: TextStyle(fontWeight: FontWeight.w500),
+          Campo(
+            etiqueta: 'Contraseña',
+            child: TextFormField(
+              controller: _passwordCtrl,
+              decoration: InputDecoration(
+                hintText: '••••••••',
+                suffixIcon: TextButton(
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                  child: Text(_obscurePassword ? 'Ver' : 'Ocultar'),
+                ),
+              ),
+              obscureText: _obscurePassword,
+              validator: (v) =>
+                  (v == null || v.isEmpty) ? 'Ingresá tu contraseña' : null,
+            ),
           ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _passwordCtrl,
-            decoration: InputDecoration(
-              hintText: '••••••••',
-              suffixIcon: TextButton(
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
-                child: Text(_obscurePassword ? 'Ver' : 'Ocultar'),
+          if (_errorGeneral != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Text(
+                _errorGeneral!,
+                style: const TextStyle(color: AppColors.danger, fontSize: 12.5),
               ),
             ),
-            obscureText: _obscurePassword,
-            validator: (v) =>
-                (v == null || v.isEmpty) ? 'Ingresá tu contraseña' : null,
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
           FilledButton(
             onPressed: _loading ? null : _submit,
             child: _loading
@@ -105,7 +117,7 @@ class _LoginFormState extends State<LoginForm> {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppColors.accentInk,
                     ),
                   )
                 : const Text('Ingresar'),
@@ -120,14 +132,14 @@ class _LoginFormState extends State<LoginForm> {
             ),
           ),
           const SizedBox(height: 8),
-          const Divider(),
+          const Divider(color: AppColors.line),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
+              const Text(
                 '¿Primera vez? ',
-                style: TextStyle(color: Colors.grey.shade700),
+                style: TextStyle(color: AppColors.muted),
               ),
               GestureDetector(
                 onTap: () {
@@ -140,7 +152,7 @@ class _LoginFormState extends State<LoginForm> {
                   'Creá tu cuenta',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2EC4A6),
+                    color: AppColors.accent,
                   ),
                 ),
               ),
