@@ -1,2 +1,2 @@
-// En el emulador de Android, localhost es el propio emulador: ahí va http://10.0.2.2:8080
-const String apiBaseUrl = 'http://localhost:8080';
+// Dónde está el backend. Si no se pasa nada, es esta misma PC (flutter run -d linux).
+const String apiBaseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:8080');
