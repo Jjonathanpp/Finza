@@ -14,8 +14,10 @@ import lombok.Setter;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TransaccionMPResponseDTO {
-
     private Long id;
+
+    @JsonProperty("collector_id")
+    private Long collectorId;
 
     @JsonProperty("status")
     private String estado;
