@@ -2,9 +2,7 @@ package com.finza.backend.controller.Cuenta;
 
 import com.finza.backend.dto.Response;
 import com.finza.backend.dto.login.LoginRequestDTO;
-import com.finza.backend.dto.login.LoginResponseDTO;
 import com.finza.backend.dto.registro.CuentaRegistroDTO;
-import com.finza.backend.dto.registro.CuentaResponseDTO;
 import com.finza.backend.service.CuentaService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

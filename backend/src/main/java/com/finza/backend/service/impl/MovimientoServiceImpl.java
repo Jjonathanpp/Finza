@@ -85,17 +85,19 @@ public class MovimientoServiceImpl implements MovimientoService {
         boolean esIngreso = "ingreso".equalsIgnoreCase(request.getTipo().trim());
         Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
 
-        movimiento.setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo, perfil.getCuenta()));
+        movimiento
+                .setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo, perfil.getCuenta()));
         movimiento.setMonto(new BigDecimal(request.getMonto().trim()));
         movimiento.setEsIngreso(esIngreso);
         movimiento.setFecha(parsearFecha(request.getFecha()));
         movimiento.setDescripcion(esVacio(request.getDescripcion()) ? null : request.getDescripcion().trim());
         movimiento.setEstado(Movimiento.EstadoMovimiento.APROBADO);
-        //movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL);
+        // movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL);
         if (!esVacio(request.getOrigen())) {
             movimiento.setOrigen(Movimiento.OrigenMovimiento.valueOf(request.getOrigen().toUpperCase()));
         } else {
-            movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL); // Por defecto si se carga desde el formulario normal
+            movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL); // Por defecto si se carga desde el formulario
+                                                                      // normal
         }
         movimiento.setFechaCreacion(LocalDateTime.now());
         return movimiento;
@@ -114,12 +116,38 @@ public class MovimientoServiceImpl implements MovimientoService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, LocalDate fechaInicio, LocalDate fechaFin, Long categoriaId, Boolean esIngreso, Pageable pageable) {
-        
+    public Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, LocalDate fechaInicio, LocalDate fechaFin,
+            Long categoriaId, Boolean esIngreso, Pageable pageable) {
+
         Page<Movimiento> paginaMovimientos = movimientoRepository.buscarConFiltros(
                 perfilId, fechaInicio, fechaFin, categoriaId, esIngreso, pageable);
-        
+
         return paginaMovimientos.map(MovimientoResponseDTO::new);
     }
 
+    @Override
+    @Transactional
+    public MovimientoResponseDTO actualizar(Long id, Long perfilId, MovimientoRequest request) {
+        validar(request);
+        Movimiento movimientoExistente = movimientoRepository.findByIdAndPerfilId(id, perfilId)
+                .orElseThrow(() -> new NoSuchElementException("Movimiento no encontrado"));
+
+        boolean esIngreso = "ingreso".equalsIgnoreCase(request.getTipo().trim());
+        Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
+
+        movimientoExistente.setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo,
+        movimientoExistente.getPerfil().getCuenta()));
+        movimientoExistente.setMonto(new BigDecimal(request.getMonto().trim()));
+        movimientoExistente.setEsIngreso(esIngreso);
+        movimientoExistente.setFecha(parsearFecha(request.getFecha()));
+        movimientoExistente.setDescripcion(esVacio(request.getDescripcion()) ? null : request.getDescripcion().trim());
+
+        if (!esVacio(request.getOrigen())) {
+            movimientoExistente.setOrigen(Movimiento.OrigenMovimiento.valueOf(request.getOrigen().toUpperCase()));
+        }
+
+        Movimiento movimientoActualizado = movimientoRepository.save(movimientoExistente);
+
+        return new MovimientoResponseDTO(movimientoActualizado);
+    }
 }
