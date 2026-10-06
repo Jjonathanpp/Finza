@@ -11,6 +11,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -73,7 +74,12 @@ public class GlobalExceptionHandler {
     
         if (ex instanceof ErrorResponse errorResponse) {
             HttpStatus status = HttpStatus.valueOf(errorResponse.getStatusCode().value());
-            return Response.response(status, status.getReasonPhrase(), null);
+            // Si quien la lanzó escribió un motivo (por ejemplo "Credenciales inválidas"), va ese
+            // y no el nombre genérico del código ("Unauthorized").
+            String mensaje = ex instanceof ResponseStatusException rse && rse.getReason() != null
+                    ? rse.getReason()
+                    : status.getReasonPhrase();
+            return Response.response(status, mensaje, null);
         }
         log.error("Error no controlado", ex);
         return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", null);

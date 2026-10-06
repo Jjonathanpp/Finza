@@ -97,7 +97,9 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
-          if (_vm.cargando) {
+          // La ruedita solo la primera vez: al recargar después de crear o editar, la lista
+          // queda donde estaba y se actualiza sola (si no, se arma de nuevo y vuelve arriba).
+          if (_vm.cargando && _vm.categorias.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
           final error = _vm.error;

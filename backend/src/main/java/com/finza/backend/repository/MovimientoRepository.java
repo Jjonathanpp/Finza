@@ -1,6 +1,8 @@
 package com.finza.backend.repository;
 
-import com.finza.backend.model.Movimiento;
+import java.time.LocalDate;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,9 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
-
-import java.util.Optional;
+import com.finza.backend.model.Movimiento;
 
 @Repository
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
@@ -30,6 +30,9 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
               @Param("esIngreso") Boolean esIngreso,
               Pageable pageable);
 
+       Optional<Movimiento> findByIdAndPerfilId(Long id, Long perfilId);
+
        boolean existsByExternalId(String externalId);
+
        Optional<Movimiento> findByExternalId(String externalId);
 }
