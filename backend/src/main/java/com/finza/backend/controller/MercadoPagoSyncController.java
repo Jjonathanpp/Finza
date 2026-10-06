@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import com.finza.backend.dto.mercadopago.BusquedaMPResponseDTO;
 import com.finza.backend.model.Movimiento;
@@ -33,5 +34,13 @@ public class MercadoPagoSyncController {
             @RequestParam(defaultValue = "1") Long perfilId) {
         List<Movimiento> movimientos = syncService.obtenerMovimientosMapeados(usuarioId, perfilId);
         return ResponseEntity.ok(movimientos);
+    }
+
+    @PostMapping("/sincronizar")
+    public ResponseEntity<List<Movimiento>> sincronizar(
+            @RequestParam Long usuarioId,
+            @RequestParam(defaultValue = "1") Long perfilId) {
+        List<Movimiento> guardados = syncService.sincronizarMovimientos(usuarioId, perfilId);
+        return ResponseEntity.ok(guardados);
     }
 }
