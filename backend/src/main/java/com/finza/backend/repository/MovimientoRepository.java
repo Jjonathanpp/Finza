@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 
+import java.util.Optional;
+
 @Repository
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
@@ -27,4 +29,7 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
               @Param("categoriaId") Long categoriaId,
               @Param("esIngreso") Boolean esIngreso,
               Pageable pageable);
+
+       boolean existsByExternalId(String externalId);
+       Optional<Movimiento> findByExternalId(String externalId);
 }
