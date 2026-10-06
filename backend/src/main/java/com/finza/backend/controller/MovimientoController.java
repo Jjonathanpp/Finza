@@ -48,20 +48,22 @@ public class MovimientoController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<MovimientoResponseDTO>> obtenerMovimientos(
+    public ResponseEntity<Object> obtenerMovimientos(
+            @RequestParam(name = "perfilId") Long perfilId, // Recibimos el perfil desde Flutter
             @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             @RequestParam(name = "categoriaId", required = false) Long categoriaId,
             @RequestParam(name = "esIngreso", required = false) String esIngresoStr,
             @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        Long perfilIdAutenticado = 1L; 
         Boolean esIngreso = esIngresoStr != null ? Boolean.parseBoolean(esIngresoStr) : null;
 
+        // Le pasamos el perfilId que viene por parámetro en vez del 1L hardcodeado
         Page<MovimientoResponseDTO> resultado = movimientoService.listarMovimientos(
-                perfilIdAutenticado, fechaInicio, fechaFin, categoriaId, esIngreso, pageable);
+                perfilId, fechaInicio, fechaFin, categoriaId, esIngreso, pageable);
 
-        return ResponseEntity.ok(resultado);
+        // Envolvemos el Page de Spring en tu Response estandarizado para que Flutter lo encuentre
+        return Response.response(HttpStatus.OK, "Movimientos obtenidos", resultado);
     }
 
     @PostMapping("/procesar-audio")

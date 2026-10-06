@@ -29,6 +29,18 @@ class MovimientoApi {
     return Movimiento.fromJson((data as List).first);
   }
 
+  Future<List<Movimiento>> listar({int pagina = 0, int limite = 20}) async {
+    final data = await _api.get(
+        '/api/movimientos?perfilId=$perfilIdTemporal&page=$pagina&size=$limite');
+    
+    // Si la API devuelve null (ej. no hay datos), cortamos acá y devolvemos lista vacía
+    if (data == null) return [];
+
+    // Si el backend devuelve un Page<Movimiento> de Spring, los datos están en 'content'
+    final listaJson = data is List ? data : (data['content'] as List? ?? []);
+    return listaJson.map((json) => Movimiento.fromJson(json)).toList();
+  }
+
   // El backend espera la fecha como dd-MM-yyyy (ej. 01-10-2026).
   static String _formatearFecha(DateTime fecha) {
     String dos(int n) => n.toString().padLeft(2, '0');
