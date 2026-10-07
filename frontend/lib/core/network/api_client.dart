@@ -14,6 +14,9 @@ class ApiClient {
   Future<dynamic> post(String path, Map<String, dynamic> body) =>
       _enviar(() => _dio.post(path, data: body));
 
+  Future<dynamic> postMultipart(String path, FormData body) =>
+      _enviar(() => _dio.post(path, data: body));
+
   Future<dynamic> put(String path, Map<String, dynamic> body) =>
       _enviar(() => _dio.put(path, data: body));
 
