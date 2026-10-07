@@ -19,6 +19,8 @@ import com.finza.backend.model.Usuario;
 import com.finza.backend.repository.CuentaMPRepository;
 import com.finza.backend.repository.UsuarioRepository;
 
+import com.finza.backend.exception.BadRequestException;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -96,5 +98,17 @@ public class MercadoPagoOAuthService {
             log.error("Error al intercambiar código con Mercado Pago: {}", e.getMessage());
             throw new RuntimeException("Error en la autenticación con Mercado Pago", e);
         }
+    }
+
+    public void desvincular(Long usuarioId) {
+        CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para este usuario."));
+
+        cuentaMPRepository.delete(cuentaMP);
+        log.info("Cuenta de Mercado Pago desvinculada correctamente para el usuario {}", usuarioId);
+    }
+
+    public boolean estaConectado(Long usuarioId) {
+        return cuentaMPRepository.findByUsuarioId(usuarioId).isPresent();
     }
 }
