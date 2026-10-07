@@ -32,7 +32,7 @@ public class MovimientoController {
 
     private final MovimientoService movimientoService;
     private final IAService iaService;
-    
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping
@@ -47,6 +47,16 @@ public class MovimientoController {
         return Response.response(HttpStatus.OK, "Movimiento eliminado exitosamente", null);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Object> actualizarMovimiento(
+            @PathVariable Long id,
+            @RequestBody MovimientoRequest request) {
+
+        Long perfilIdAutenticado = 1L;
+        MovimientoResponseDTO actualizado = movimientoService.actualizar(id, perfilIdAutenticado, request);
+        return Response.ok(actualizado, "Movimiento actualizado exitosamente");
+    }
+
     @GetMapping
     public ResponseEntity<Object> obtenerMovimientos(
             @RequestParam(name = "perfilId") Long perfilId, // Recibimos el perfil desde Flutter
@@ -56,6 +66,10 @@ public class MovimientoController {
             @RequestParam(name = "esIngreso", required = false) String esIngresoStr,
             @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
 
+<<<<<<< HEAD
+=======
+        Long perfilIdAutenticado = 1L;
+>>>>>>> main
         Boolean esIngreso = esIngresoStr != null ? Boolean.parseBoolean(esIngresoStr) : null;
 
         // Le pasamos el perfilId que viene por parámetro en vez del 1L hardcodeado
@@ -70,38 +84,39 @@ public class MovimientoController {
     public ResponseEntity<Object> procesarAudio(@RequestParam("audio") MultipartFile audio) {
         try {
             String jsonCrudoGemini = iaService.procesarAudio(audio);
-            
+
             JsonNode rootNode = objectMapper.readTree(jsonCrudoGemini);
             String textoDeLaIA = rootNode.path("candidates").path(0)
-                                         .path("content")
-                                         .path("parts").path(0)
-                                         .path("text").asText();
-            
+                    .path("content")
+                    .path("parts").path(0)
+                    .path("text").asText();
+
             textoDeLaIA = textoDeLaIA.replace("```json", "").replace("```", "").trim();
-            
+
             MovimientoIADTO datosExtraidos = objectMapper.readValue(textoDeLaIA, MovimientoIADTO.class);
-            
+
             return Response.response(HttpStatus.OK, "Audio procesado con éxito", datosExtraidos);
         } catch (Exception e) {
-            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, "Error procesando el audio con IA: " + e.getMessage(), null);
+            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error procesando el audio con IA: " + e.getMessage(), null);
         }
     }
 
-
-    // --- CUMPLE OPEN-CLOSED, ESTO DESPUES SE ELIMINA ES SOLO PARA LA DEMO PORQUE NO HAY FRONTEND OJOJOJOJOJO ---
+    // --- CUMPLE OPEN-CLOSED, ESTO DESPUES SE ELIMINA ES SOLO PARA LA DEMO PORQUE
+    // NO HAY FRONTEND OJOJOJOJOJO ---
     @PostMapping("/procesar-audio/demo")
     public ResponseEntity<Object> procesarAudioYGuardarDemo(@RequestParam("audio") MultipartFile audio) {
         try {
             String jsonCrudoGemini = iaService.procesarAudio(audio);
             com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(jsonCrudoGemini);
             String textoDeLaIA = rootNode.path("candidates").path(0)
-                                         .path("content")
-                                         .path("parts").path(0)
-                                         .path("text").asText();
+                    .path("content")
+                    .path("parts").path(0)
+                    .path("text").asText();
             textoDeLaIA = textoDeLaIA.replace("```json", "").replace("```", "").trim();
-            
+
             MovimientoIADTO datosExtraidos = objectMapper.readValue(textoDeLaIA, MovimientoIADTO.class);
-            
+
             MovimientoRequest requestIndividual = new MovimientoRequest();
             requestIndividual.setTipo(datosExtraidos.getTipo());
             requestIndividual.setMonto(datosExtraidos.getMonto());
@@ -110,7 +125,6 @@ public class MovimientoController {
             requestIndividual.setFecha(datosExtraidos.getFecha());
             requestIndividual.setOrigen("VOZ");
 
-            
             MovimientosRegistroRequest requestFinal = new MovimientosRegistroRequest();
             requestFinal.setPerfilId(1L); // Perfil simulado para la demo
             requestFinal.setMovimientos(java.util.Collections.singletonList(requestIndividual));
@@ -119,7 +133,8 @@ public class MovimientoController {
 
             return Response.response(HttpStatus.CREATED, "MOVIMIENTO REGISTRADO CORRECTAMENTE", creados);
         } catch (Exception e) {
-            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, "ERROR, MOVIMIENTO NO REGISTRADO: " + e.getMessage(), null);
+            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "ERROR, MOVIMIENTO NO REGISTRADO: " + e.getMessage(), null);
         }
     }
 }
