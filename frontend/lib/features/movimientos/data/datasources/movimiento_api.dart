@@ -22,28 +22,42 @@ class MovimientoApi {
           'monto': monto,
           'categoria': categoria,
           'descripcion': descripcion,
-          'fecha': _formatearFecha(fecha),
+          'fecha': _formatearFechaIso(fecha),
         },
       ],
     });
     return Movimiento.fromJson((data as List).first);
   }
 
-  Future<List<Movimiento>> listar({int pagina = 0, int limite = 20}) async {
-    final data = await _api.get(
-        '/api/movimientos?perfilId=$perfilIdTemporal&page=$pagina&size=$limite');
+  Future<(List<Movimiento>, int)> listar({
+    int pagina = 0, 
+    int limite = 12,
+    DateTime? fechaInicio,
+    DateTime? fechaFin,
+    int? categoriaId,
+    bool? esIngreso,
+  }) async {
+    String url = '/api/movimientos?perfilId=$perfilIdTemporal&page=$pagina&size=$limite';
     
-    // Si la API devuelve null (ej. no hay datos), cortamos acá y devolvemos lista vacía
-    if (data == null) return [];
+    if (fechaInicio != null) url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
+    if (fechaFin != null) url += '&fechaFin=${_formatearFechaIso(fechaFin)}';
+    if (categoriaId != null) url += '&categoriaId=$categoriaId';
+    if (esIngreso != null) url += '&esIngreso=$esIngreso';
 
-    // Si el backend devuelve un Page<Movimiento> de Spring, los datos están en 'content'
+    final data = await _api.get(url);
+    
+    if (data == null) return (<Movimiento>[], 1);
+
     final listaJson = data is List ? data : (data['content'] as List? ?? []);
-    return listaJson.map((json) => Movimiento.fromJson(json)).toList();
+    final totalPaginas = data is Map ? (data['totalPages'] as int? ?? 1) : 1;
+    
+    final movimientos = listaJson.map((json) => Movimiento.fromJson(json)).toList();
+    
+    return (movimientos, totalPaginas);
   }
 
-  // El backend espera la fecha como dd-MM-yyyy (ej. 01-10-2026).
-  static String _formatearFecha(DateTime fecha) {
+  static String _formatearFechaIso(DateTime fecha) {
     String dos(int n) => n.toString().padLeft(2, '0');
-    return '${dos(fecha.day)}-${dos(fecha.month)}-${fecha.year}';
+    return '${fecha.year}-${dos(fecha.month)}-${dos(fecha.day)}';
   }
 }

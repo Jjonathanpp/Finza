@@ -66,10 +66,6 @@ public class MovimientoController {
             @RequestParam(name = "esIngreso", required = false) String esIngresoStr,
             @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
 
-<<<<<<< HEAD
-=======
-        Long perfilIdAutenticado = 1L;
->>>>>>> main
         Boolean esIngreso = esIngresoStr != null ? Boolean.parseBoolean(esIngresoStr) : null;
 
         // Le pasamos el perfilId que viene por parámetro en vez del 1L hardcodeado
