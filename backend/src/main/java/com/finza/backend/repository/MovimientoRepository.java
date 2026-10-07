@@ -1,6 +1,7 @@
 package com.finza.backend.repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -10,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.finza.backend.dto.panel.GastoPorCategoriaDTO;
 import com.finza.backend.model.Movimiento;
 
 @Repository
@@ -35,4 +37,17 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
        boolean existsByExternalId(String externalId);
 
        Optional<Movimiento> findByExternalId(String externalId);
+
+       // Los gastos aprobados del perfil entre dos fechas, sumados por categoría, de mayor a menor.
+       // Los pendientes (de Mercado Pago) no suman hasta que el usuario los confirme.
+       @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
+              "FROM Movimiento m JOIN m.categoria c " +
+              "WHERE m.perfil.id = :perfilId AND m.esIngreso = false AND m.estado = APROBADO " +
+              "AND m.fecha BETWEEN :desde AND :hasta " +
+              "GROUP BY c.id, c.nombre, c.color " +
+              "ORDER BY SUM(m.monto) DESC")
+       List<GastoPorCategoriaDTO> sumarGastosPorCategoria(
+              @Param("perfilId") Long perfilId,
+              @Param("desde") LocalDate desde,
+              @Param("hasta") LocalDate hasta);
 }
