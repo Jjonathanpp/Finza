@@ -72,4 +72,34 @@ class MovimientosViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<String?> editar(
+    Movimiento movimiento, {
+    required bool esIngreso,
+    required String monto,
+    required String categoria,
+    String? descripcion,
+    required DateTime fecha,
+    String origen = 'MANUAL',
+  }) async {
+    try {
+      final actualizado = await _api.actualizar(
+        id: movimiento.id,
+        esIngreso: esIngreso,
+        monto: monto,
+        categoria: categoria,
+        descripcion: descripcion,
+        fecha: fecha,
+        origen: origen,
+      );
+      final index = _movimientos.indexWhere((m) => m.id == actualizado.id);
+      if (index != -1) {
+        _movimientos[index] = actualizado;
+        notifyListeners();
+      }
+      return null; // No hay error
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
 }

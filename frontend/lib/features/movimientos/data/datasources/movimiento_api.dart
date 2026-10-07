@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:frontend/config/constants/sesion_temporal.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
@@ -29,10 +31,32 @@ class MovimientoApi {
     return Movimiento.fromJson((data as List).first);
   }
 
+  Future<Movimiento> actualizar({
+    required int id,
+    required bool esIngreso,
+    required String monto,
+    required String categoria,
+    String? descripcion,
+    required DateTime fecha,
+    String origen = 'MANUAL',
+  }) async {
+    final data = await _api.put('/api/movimientos/$id', {
+      'perfilId': perfilIdTemporal,
+      'tipo': esIngreso ? 'ingreso' : 'egreso',
+      'monto': monto,
+      'categoria': categoria,
+      'descripcion': descripcion,
+      'fecha': _formatearFecha(fecha),
+      'origen': origen.toUpperCase(),
+    });
+    return Movimiento.fromJson(data);
+  }
+
   Future<List<Movimiento>> listar({int pagina = 0, int limite = 20}) async {
     final data = await _api.get(
-        '/api/movimientos?perfilId=$perfilIdTemporal&page=$pagina&size=$limite');
-    
+      '/api/movimientos?perfilId=$perfilIdTemporal&page=$pagina&size=$limite',
+    );
+
     // Si la API devuelve null (ej. no hay datos), cortamos acá y devolvemos lista vacía
     if (data == null) return [];
 
