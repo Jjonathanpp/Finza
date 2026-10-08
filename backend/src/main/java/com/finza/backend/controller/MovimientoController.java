@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.finza.backend.dto.Response;
 import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
@@ -31,19 +33,26 @@ import lombok.RequiredArgsConstructor;
 public class MovimientoController {
 
     private final MovimientoService movimientoService;
-    private final IAService iaService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    //BORRAR DESPUES OJOJOJO
+    @Autowired
+    private HttpServletRequest httpRequest;
 
+    // EXTRAEREMOS ESTO DEL TOKEN JWT MÁS ADELANTE
+    private Long obtenerCuentaAutenticada() {
+        String testId = httpRequest.getHeader("X-Test-Cuenta-Id");
+        return testId != null ? Long.parseLong(testId) : 1L; // Si no hay header, sigue siendo 1L
+    }
+    
     @PostMapping
     public ResponseEntity<Object> registrar(@RequestBody MovimientosRegistroRequest requests) {
-        List<MovimientoResponseDTO> creados = movimientoService.registrar(requests);
+        List<MovimientoResponseDTO> creados = movimientoService.registrar(requests, obtenerCuentaAutenticada());
         return Response.response(HttpStatus.CREATED, "Movimiento registrado exitosamente", creados);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> eliminar(@PathVariable Long id) {
-        movimientoService.eliminar(id);
+        movimientoService.eliminar(id, obtenerCuentaAutenticada());
         return Response.response(HttpStatus.OK, "Movimiento eliminado exitosamente", null);
     }
 
@@ -51,86 +60,44 @@ public class MovimientoController {
     public ResponseEntity<Object> actualizarMovimiento(
             @PathVariable Long id,
             @RequestBody MovimientoRequest request) {
-
-        Long perfilIdAutenticado = 1L;
-        MovimientoResponseDTO actualizado = movimientoService.actualizar(id, perfilIdAutenticado, request);
+        
+        // Asumiendo que el request trae el perfilId adentro, si no lo trae, tendrías que obtener el perfil del movimiento antes.
+        Long perfilId = 1L; // Reemplazar por request.getPerfilId() si existe en tu DTO
+        MovimientoResponseDTO actualizado = movimientoService.actualizar(id, perfilId, request, obtenerCuentaAutenticada());
         return Response.ok(actualizado, "Movimiento actualizado exitosamente");
     }
 
     @GetMapping
     public ResponseEntity<Object> obtenerMovimientos(
-            @RequestParam(name = "perfilId") Long perfilId, // Recibimos el perfil desde Flutter
+            @RequestParam(name = "perfilId") Long perfilId, 
             @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             @RequestParam(name = "categoriaId", required = false) Long categoriaId,
             @RequestParam(name = "esIngreso", required = false) String esIngresoStr,
+            @RequestParam(name = "estado", required = false) String estadoStr,
             @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Boolean esIngreso = esIngresoStr != null ? Boolean.parseBoolean(esIngresoStr) : null;
 
-        // Le pasamos el perfilId que viene por parámetro en vez del 1L hardcodeado
         Page<MovimientoResponseDTO> resultado = movimientoService.listarMovimientos(
-                perfilId, fechaInicio, fechaFin, categoriaId, esIngreso, pageable);
+                perfilId, obtenerCuentaAutenticada(), fechaInicio, fechaFin, categoriaId, esIngreso, estadoStr, pageable);
 
-        // Envolvemos el Page de Spring en tu Response estandarizado para que Flutter lo encuentre
         return Response.response(HttpStatus.OK, "Movimientos obtenidos", resultado);
     }
 
     @PostMapping("/procesar-audio")
     public ResponseEntity<Object> procesarAudio(@RequestParam("audio") MultipartFile audio) {
         try {
-            String jsonCrudoGemini = iaService.procesarAudio(audio);
-
-            JsonNode rootNode = objectMapper.readTree(jsonCrudoGemini);
-            String textoDeLaIA = rootNode.path("candidates").path(0)
-                    .path("content")
-                    .path("parts").path(0)
-                    .path("text").asText();
-
-            textoDeLaIA = textoDeLaIA.replace("```json", "").replace("```", "").trim();
-
-            MovimientoIADTO datosExtraidos = objectMapper.readValue(textoDeLaIA, MovimientoIADTO.class);
-
-            return Response.response(HttpStatus.OK, "Audio procesado con éxito", datosExtraidos);
+            Long perfilId = 1L; // Reemplazar cuando se mande desde Flutter
+            return Response.response(HttpStatus.CREATED, "Movimiento de voz procesado y registrado como PENDIENTE", 
+                    movimientoService.registrarDesdeAudio(audio, perfilId, obtenerCuentaAutenticada()));
         } catch (Exception e) {
-            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Error procesando el audio con IA: " + e.getMessage(), null);
+            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, "Error procesando el audio: " + e.getMessage(), null);
         }
     }
-
-    // --- CUMPLE OPEN-CLOSED, ESTO DESPUES SE ELIMINA ES SOLO PARA LA DEMO PORQUE
-    // NO HAY FRONTEND OJOJOJOJOJO ---
-    @PostMapping("/procesar-audio/demo")
-    public ResponseEntity<Object> procesarAudioYGuardarDemo(@RequestParam("audio") MultipartFile audio) {
-        try {
-            String jsonCrudoGemini = iaService.procesarAudio(audio);
-            com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(jsonCrudoGemini);
-            String textoDeLaIA = rootNode.path("candidates").path(0)
-                    .path("content")
-                    .path("parts").path(0)
-                    .path("text").asText();
-            textoDeLaIA = textoDeLaIA.replace("```json", "").replace("```", "").trim();
-
-            MovimientoIADTO datosExtraidos = objectMapper.readValue(textoDeLaIA, MovimientoIADTO.class);
-
-            MovimientoRequest requestIndividual = new MovimientoRequest();
-            requestIndividual.setTipo(datosExtraidos.getTipo());
-            requestIndividual.setMonto(datosExtraidos.getMonto());
-            requestIndividual.setCategoria(datosExtraidos.getCategoria());
-            requestIndividual.setDescripcion(datosExtraidos.getDescripcion());
-            requestIndividual.setFecha(datosExtraidos.getFecha());
-            requestIndividual.setOrigen("VOZ");
-
-            MovimientosRegistroRequest requestFinal = new MovimientosRegistroRequest();
-            requestFinal.setPerfilId(1L); // Perfil simulado para la demo
-            requestFinal.setMovimientos(java.util.Collections.singletonList(requestIndividual));
-
-            List<MovimientoResponseDTO> creados = movimientoService.registrar(requestFinal);
-
-            return Response.response(HttpStatus.CREATED, "MOVIMIENTO REGISTRADO CORRECTAMENTE", creados);
-        } catch (Exception e) {
-            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "ERROR, MOVIMIENTO NO REGISTRADO: " + e.getMessage(), null);
-        }
+    
+    @PutMapping("/{id}/estado")
+    public ResponseEntity<Object> cambiarEstado(@PathVariable Long id, @RequestParam("nuevoEstado") String nuevoEstado) {
+        return Response.response(HttpStatus.OK, "Estado actualizado correctamente", movimientoService.cambiarEstado(id, nuevoEstado, obtenerCuentaAutenticada()));
     }
 }

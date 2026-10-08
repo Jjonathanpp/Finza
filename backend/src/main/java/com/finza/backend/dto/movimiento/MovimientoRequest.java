@@ -15,4 +15,5 @@ public class MovimientoRequest {
     private String descripcion;
     private String fecha;
     private String origen;
+    private String estado;
 }
