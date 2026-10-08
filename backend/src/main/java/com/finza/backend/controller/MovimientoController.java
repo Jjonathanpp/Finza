@@ -69,7 +69,8 @@ public class MovimientoController {
 
     @GetMapping
     public ResponseEntity<Object> obtenerMovimientos(
-            @RequestParam(name = "perfilId") Long perfilId, 
+
+            @RequestParam(name = "perfilId") Long perfilId,
             @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             @RequestParam(name = "categoriaId", required = false) Long categoriaId,
