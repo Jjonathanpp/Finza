@@ -6,15 +6,20 @@ import 'package:frontend/features/movimientos/data/datasources/movimiento_api.da
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/alta_movimiento_view_model.dart';
 
-const _sueldo = Categoria(id: 1, nombre: 'Sueldo', tipo: 'INGRESO', esPredefinida: true);
+const _sueldo = Categoria(
+  id: 1,
+  nombre: 'Sueldo',
+  tipo: 'INGRESO',
+  esPredefinida: true,
+);
 
 class CategoriaApiDeMentira extends Fake implements CategoriaApi {
   @override
   Future<List<Categoria>> listar() async => const [
-        _sueldo,
-        Categoria(id: 6, nombre: 'Comida', tipo: 'EGRESO', esPredefinida: true),
-        Categoria(id: 9, nombre: 'Mascotas', tipo: 'EGRESO', esPredefinida: false),
-      ];
+    _sueldo,
+    Categoria(id: 6, nombre: 'Comida', tipo: 'EGRESO', esPredefinida: true),
+    Categoria(id: 9, nombre: 'Mascotas', tipo: 'EGRESO', esPredefinida: false),
+  ];
 }
 
 class MovimientoApiDeMentira implements MovimientoApi {
@@ -43,28 +48,57 @@ class MovimientoApiDeMentira implements MovimientoApi {
       perfilId: 1,
     );
   }
+
+  @override
+  Future<List<Movimiento>> listar({int pagina = 0, int limite = 20}) {
+    // TODO: implement listar
+    throw UnimplementedError();
+  }
 }
 
 void main() {
   test('muestra solo las categorías del tipo elegido', () async {
-    final vm = AltaMovimientoViewModel(CategoriaApiDeMentira(), MovimientoApiDeMentira());
+    final vm = AltaMovimientoViewModel(
+      CategoriaApiDeMentira(),
+      MovimientoApiDeMentira(),
+    );
     await vm.cargarCategorias();
 
     expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), ['Sueldo']);
     vm.cambiarTipo(false);
-    expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), ['Comida', 'Mascotas']);
+    expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), [
+      'Comida',
+      'Mascotas',
+    ]);
   });
 
-  test('la categoría creada desde el panel aparece entre las opciones y queda elegida', () async {
-    final vm = AltaMovimientoViewModel(CategoriaApiDeMentira(), MovimientoApiDeMentira());
-    await vm.cargarCategorias();
-    vm.cambiarTipo(false);
+  test(
+    'la categoría creada desde el panel aparece entre las opciones y queda elegida',
+    () async {
+      final vm = AltaMovimientoViewModel(
+        CategoriaApiDeMentira(),
+        MovimientoApiDeMentira(),
+      );
+      await vm.cargarCategorias();
+      vm.cambiarTipo(false);
 
-    vm.agregarCategoria(const Categoria(id: 20, nombre: 'Gimnasio', tipo: 'EGRESO', esPredefinida: false));
+      vm.agregarCategoria(
+        const Categoria(
+          id: 20,
+          nombre: 'Gimnasio',
+          tipo: 'EGRESO',
+          esPredefinida: false,
+        ),
+      );
 
-    expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), ['Comida', 'Mascotas', 'Gimnasio']);
-    expect(vm.categoria, 'Gimnasio');
-  });
+      expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), [
+        'Comida',
+        'Mascotas',
+        'Gimnasio',
+      ]);
+      expect(vm.categoria, 'Gimnasio');
+    },
+  );
 
   test('si el monto o la categoría están mal, no manda nada', () async {
     final api = MovimientoApiDeMentira();
@@ -86,12 +120,19 @@ void main() {
     final creado = await vm.guardar(monto: '1500,50');
 
     expect(creado, isNotNull);
-    expect(api.recibido, {'esIngreso': true, 'monto': '1500.50', 'categoria': 'Sueldo'});
+    expect(api.recibido, {
+      'esIngreso': true,
+      'monto': '1500.50',
+      'categoria': 'Sueldo',
+    });
     expect(vm.guardando, isFalse);
   });
 
   test('si la pantalla se cierra mientras guarda, no se rompe', () async {
-    final vm = AltaMovimientoViewModel(CategoriaApiDeMentira(), MovimientoApiDeMentira());
+    final vm = AltaMovimientoViewModel(
+      CategoriaApiDeMentira(),
+      MovimientoApiDeMentira(),
+    );
     vm.elegirCategoria('Sueldo');
     final guardado = vm.guardar(monto: '1500');
     vm.dispose();
@@ -99,7 +140,10 @@ void main() {
   });
 
   test('si el backend falla, queda su mensaje y deja de guardar', () async {
-    final vm = AltaMovimientoViewModel(CategoriaApiDeMentira(), MovimientoApiDeMentira(falla: true));
+    final vm = AltaMovimientoViewModel(
+      CategoriaApiDeMentira(),
+      MovimientoApiDeMentira(falla: true),
+    );
     vm.elegirCategoria('Sueldo');
 
     final creado = await vm.guardar(monto: '1500');

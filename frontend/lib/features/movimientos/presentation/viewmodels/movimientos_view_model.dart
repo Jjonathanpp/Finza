@@ -61,7 +61,9 @@ class MovimientosViewModel extends ChangeNotifier {
       categorias = await _categoriaApi.listar();
       notifyListeners();
     } catch (e) {
-      print('🔥 ERROR AL CARGAR CATEGORÍAS EN EL FILTRO: $e');
+      if (kDebugMode) {
+        print('Error al cargar categorías en filtro: $e');
+      }
     } 
   }
 
@@ -70,7 +72,7 @@ class MovimientosViewModel extends ChangeNotifier {
     hasta = nuevoHasta;
     categoriaFiltro = nuevaCategoria;
     esIngresoFiltro = nuevoEsIngreso;
-    _pagina = 0; // Al filtrar, volvemos a la página 1
+    _pagina = 0;
     _obtenerDatos();
   }
 
@@ -119,6 +121,36 @@ class MovimientosViewModel extends ChangeNotifier {
     } finally {
       _cargando = false;
       notifyListeners();
+    }
+  }
+
+  Future<String?> editar(
+    Movimiento movimiento, {
+    required bool esIngreso,
+    required String monto,
+    required String categoria,
+    String? descripcion,
+    required DateTime fecha,
+    String origen = 'MANUAL',
+  }) async {
+    try {
+      final actualizado = await _api.actualizar(
+        id: movimiento.id,
+        esIngreso: esIngreso,
+        monto: monto,
+        categoria: categoria,
+        descripcion: descripcion,
+        fecha: fecha,
+        origen: origen,
+      );
+      final index = _movimientos.indexWhere((m) => m.id == actualizado.id);
+      if (index != -1) {
+        _movimientos[index] = actualizado;
+        notifyListeners();
+      }
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
     }
   }
 }
