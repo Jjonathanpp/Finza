@@ -1,6 +1,7 @@
 package com.finza.backend.service;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Base64;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -14,12 +15,21 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import java.net.URISyntaxException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finza.backend.dto.movimiento.MovimientoIADTO;
 
 @Service
 public class IAService {
 
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Value("${gemini.api.url}")
     private String apiUrl;
+
+    @Value("${gemini.api.url.fallback}") // apuntá esto a gemini-2.5-flash-lite
+    private String apiUrlFallback;
 
     @Value("${gemini.api.key}")
     private String apiKey;
@@ -34,11 +44,10 @@ public class IAService {
         this.restTemplate = new RestTemplate(factory);
     }
 
-    public String procesarAudio(MultipartFile archivoAudio) throws Exception {
-        byte[] audioBytes = archivoAudio.getBytes();
+    public String procesarAudio(byte[] audioBytes) throws Exception {
         String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
         String fechaHoy = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-
+        
         String prompt = "Sos un asistente financiero. Hoy es " + fechaHoy + ". Escuchá este audio y extraé los datos. Devolveme ÚNICAMENTE un JSON válido con estas claves: 'tipo' (ingreso o egreso), 'monto' (solo el número), 'categoria' (inferida), 'descripcion' (breve) y 'fecha' (en formato dd-MM-yyyy, si el audio dice 'ayer' o 'el lunes' calculala, si no menciona fecha usá la de hoy). No agregues texto extra ni comillas.";
 
         String requestBody = """
@@ -51,7 +60,7 @@ public class IAService {
                     },
                     {
                       "inline_data": {
-                        "mime_type": "audio/mp3",
+                        "mime_type": "audio/mp4", 
                         "data": "%s"
                       }
                     }
@@ -69,25 +78,55 @@ public class IAService {
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         try {
-            // Intentamos pegarle a Google
-            ResponseEntity<String> response = restTemplate.postForEntity(uri, entity, String.class);
-            return response.getBody();
-            
-        } catch (ResourceAccessException e) {
-            // Atrapa cortes de internet, Docker sin red, o si se superan los 15 segundos de timeout
-            throw new RuntimeException("Sin conexión a internet o tiempo de espera agotado. Verificá tu red e intentá nuevamente.");
-            
+            return intentarLlamada(apiUrl, requestBody);
         } catch (HttpServerErrorException e) {
-            // Atrapa errores 5xx (como el 503 de alta demanda que te pasó hoy)
-            throw new RuntimeException("Los servidores de inteligencia artificial están saturados (" + e.getStatusCode() + "). Esperá unos segundos y volvé a intentar.");
-            
-        } catch (HttpClientErrorException e) {
-            // Atrapa errores 4xx (como un 401 si se te vence la API Key)
-            throw new RuntimeException("Error de autenticación con la IA o credenciales inválidas (" + e.getStatusCode() + ").");
-            
-        } catch (Exception e) {
-            // Atrapa cualquier otro problema rarísimo
-            throw new RuntimeException("Error inesperado comunicando con la IA: " + e.getMessage());
+            // El modelo principal está saturado (503) -> probamos el fallback
+            try {
+                return intentarLlamada(apiUrlFallback, requestBody);
+            } catch (Exception fallbackEx) {
+                throw new RuntimeException("Los servidores de IA están saturados incluso en el modelo de respaldo. Probá de nuevo en unos segundos.");
+            }
         }
     }
+
+
+    public MovimientoIADTO procesarAudioYExtraerDatos(byte[] audioBytes) throws Exception {
+        String jsonCrudoGemini = procesarAudio(audioBytes);
+        
+        JsonNode rootNode = objectMapper.readTree(jsonCrudoGemini);
+        String textoDeLaIA = rootNode.path("candidates").path(0)
+                                     .path("content")
+                                     .path("parts").path(0)
+                                     .path("text").asText();
+        
+        textoDeLaIA = textoDeLaIA.replace("```json", "").replace("```", "").trim();
+        return objectMapper.readValue(textoDeLaIA, MovimientoIADTO.class);
+    }
+
+    private String intentarLlamada(String urlBase, String requestBody) {
+    int intentos = 0;
+    int maxIntentos = 3;
+    while (true) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            URI uri;
+            try {
+                uri = new URI(urlBase.trim() + "?key=" + apiKey.trim());
+            } catch (URISyntaxException e) {
+                // Esto es un error de configuración, no de red. No tiene sentido reintentar.
+                throw new RuntimeException("URL de la API mal formada: " + e.getMessage(), e);
+            }
+            HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<String> response = restTemplate.postForEntity(uri, entity, String.class);
+            return response.getBody();
+        } catch (HttpServerErrorException e) {
+            intentos++;
+            if (intentos >= maxIntentos) throw e;
+            try {
+                Thread.sleep(1000L * intentos);
+            } catch (InterruptedException ignored) {}
+        }
+    }
+  }
 }

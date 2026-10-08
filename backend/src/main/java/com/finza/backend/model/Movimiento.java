@@ -41,6 +41,7 @@ public class Movimiento {
     private BigDecimal monto;
     private boolean esIngreso;
     private LocalDate fecha;
+    @Column(columnDefinition = "TEXT")
     private String descripcion;
     @Enumerated(EnumType.STRING)
     @Column(name = "estado")
@@ -49,7 +50,9 @@ public class Movimiento {
     public enum EstadoMovimiento {
         PENDIENTE,
         APROBADO,
-        RECHAZADO
+        RECHAZADO,
+        PROCESANDO_IA,
+        ERROR_IA
     }
 
     @Enumerated(EnumType.STRING)
