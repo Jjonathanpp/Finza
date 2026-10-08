@@ -7,15 +7,21 @@ import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
 import com.finza.backend.dto.movimiento.MovimientosRegistroRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.LocalDate;
 
 public interface MovimientoService {
-    List<MovimientoResponseDTO> registrar(MovimientosRegistroRequest requests);
+    List<MovimientoResponseDTO> registrar(MovimientosRegistroRequest requests, Long cuentaIdAutenticada);
 
-    void eliminar(Long id);
+    void eliminar(Long id, Long cuentaIdAutenticada);
 
-    Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, LocalDate fechaInicio, LocalDate fechaFin,
-            Long categoriaId, Boolean esIngreso, Pageable pageable);
+    MovimientoResponseDTO actualizar(Long id, Long perfilId, MovimientoRequest request, Long cuentaIdAutenticada);
 
-    MovimientoResponseDTO actualizar(Long id, Long perfilId, MovimientoRequest request);
+    Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, Long cuentaIdAutenticada, LocalDate fechaInicio, LocalDate fechaFin,
+            Long categoriaId, Boolean esIngreso, String estadoStr, Pageable pageable);
+
+    MovimientoResponseDTO cambiarEstado(Long id, String nuevoEstado, Long cuentaIdAutenticada);
+    
+    List<MovimientoResponseDTO> registrarDesdeAudio(MultipartFile audio, Long perfilId, Long cuentaIdAutenticada) throws Exception;
 }

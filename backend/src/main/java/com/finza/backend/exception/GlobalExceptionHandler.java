@@ -5,6 +5,7 @@ import com.finza.backend.dto.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -83,5 +84,10 @@ public class GlobalExceptionHandler {
         }
         log.error("Error no controlado", ex);
         return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", null);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex) {
+        return Response.response(HttpStatus.FORBIDDEN, ex.getMessage(), null);
     }
 }
