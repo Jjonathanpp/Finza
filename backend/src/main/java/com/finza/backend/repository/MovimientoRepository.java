@@ -44,9 +44,10 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
        // Los gastos aprobados del perfil entre dos fechas, sumados por categoría, de mayor a menor.
        // Los pendientes (de Mercado Pago) no suman hasta que el usuario los confirme.
+       // Monto mayor a 0: la voz guarda primero un movimiento con monto 0, y con 0 el porcentaje dividiría por cero.
        @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
               "FROM Movimiento m JOIN m.categoria c " +
-              "WHERE m.perfil.id = :perfilId AND m.esIngreso = false AND m.estado = APROBADO " +
+              "WHERE m.perfil.id = :perfilId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 " +
               "AND m.fecha BETWEEN :desde AND :hasta " +
               "GROUP BY c.id, c.nombre, c.color " +
               "ORDER BY SUM(m.monto) DESC")
