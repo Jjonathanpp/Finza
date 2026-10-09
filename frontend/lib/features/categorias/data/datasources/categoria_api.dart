@@ -1,4 +1,3 @@
-import 'package:frontend/config/constants/sesion_temporal.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 
@@ -8,7 +7,7 @@ class CategoriaApi {
   final ApiClient _api;
 
   Future<List<Categoria>> listar() async {
-    final data = await _api.get('/api/categorias?cuentaId=$cuentaIdTemporal');
+    final data = await _api.get('/api/categorias');
     return (data as List).map((json) => Categoria.fromJson(json)).toList();
   }
 
@@ -17,7 +16,7 @@ class CategoriaApi {
     required bool esIngreso,
     required String color,
   }) async {
-    final data = await _api.post('/api/categorias?cuentaId=$cuentaIdTemporal', {
+    final data = await _api.post('/api/categorias', {
       'nombre': nombre,
       'tipo': esIngreso ? 'INGRESO' : 'EGRESO',
       'color': color,
@@ -27,7 +26,7 @@ class CategoriaApi {
 
   // La respuesta no se lee: el PUT devuelve la entidad entera, con otros nombres de campos.
   Future<void> editar(Categoria categoria, {required String nombre, required String color}) async {
-    await _api.put('/api/categorias/${categoria.id}?cuentaId=$cuentaIdTemporal', {
+    await _api.put('/api/categorias/${categoria.id}', {
       'nombre': nombre,
       'color': color,
       // Hoy el PUT no lo usa, pero es el mismo pedido del alta, donde es obligatorio.
@@ -36,6 +35,6 @@ class CategoriaApi {
   }
 
   Future<void> eliminar(Categoria categoria) async {
-    await _api.delete('/api/categorias/${categoria.id}?cuentaId=$cuentaIdTemporal');
+    await _api.delete('/api/categorias/${categoria.id}');
   }
 }
