@@ -19,17 +19,21 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
        boolean existsByCategoriaId(Long categoriaId);
 
-       @Query("SELECT m FROM Movimiento m WHERE m.perfil.id = :perfilId " +
+      @Query("SELECT m FROM Movimiento m WHERE m.perfil.id = :perfilId " +
+              "AND m.perfil.cuenta.id = :cuentaId " + 
               "AND (CAST(:fechaInicio AS date) IS NULL OR m.fecha >= :fechaInicio) " +
               "AND (CAST(:fechaFin AS date) IS NULL OR m.fecha <= :fechaFin) " +
               "AND (:categoriaId IS NULL OR m.categoria.id = :categoriaId) " +
-              "AND (:esIngreso IS NULL OR m.esIngreso = :esIngreso)")
+              "AND (:esIngreso IS NULL OR m.esIngreso = :esIngreso) " +
+              "AND (:estado IS NULL OR m.estado = :estado)")
        Page<Movimiento> buscarConFiltros(
               @Param("perfilId") Long perfilId,
+              @Param("cuentaId") Long cuentaId, 
               @Param("fechaInicio") LocalDate fechaInicio,
               @Param("fechaFin") LocalDate fechaFin,
               @Param("categoriaId") Long categoriaId,
               @Param("esIngreso") Boolean esIngreso,
+              @Param("estado") Movimiento.EstadoMovimiento estado,
               Pageable pageable);
 
        Optional<Movimiento> findByIdAndPerfilId(Long id, Long perfilId);

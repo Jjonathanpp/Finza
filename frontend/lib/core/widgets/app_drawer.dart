@@ -5,6 +5,7 @@ import '../../features/login/screens/login_screen.dart';
 import '../../features/voice/voice_screen.dart';
 import '../../features/categorias/presentation/screens/categorias_screen.dart';
 import '../../features/movimientos/presentation/screens/alta_movimiento_screen.dart';
+import '../../features/movimientos/presentation/screens/movimientos_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -27,6 +28,22 @@ class AppDrawer extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(
+                Icons.list_alt,
+                color: AppColors.muted,
+              ),
+              title: const Text(
+                'Historial',
+                style: TextStyle(color: AppColors.text),
+              ),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MovimientosScreen()),
+                );
+              },
+            ),
             ListTile(
               leading: const Icon(
                 Icons.add_circle_outline,
@@ -74,8 +91,6 @@ class AppDrawer extends StatelessWidget {
                 );
               },
             ),
-            // TODO: agregar acá cada pantalla nueva que sumes
-            // (lista de movimientos, perfil, etc.)
             const Spacer(),
             const Divider(color: AppColors.line),
             ListTile(
