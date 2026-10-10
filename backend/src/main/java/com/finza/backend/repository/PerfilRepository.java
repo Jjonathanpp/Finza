@@ -11,4 +11,6 @@ import com.finza.backend.model.Perfil;
 public interface PerfilRepository extends JpaRepository<Perfil, Long> {
     @Query("SELECT p FROM Perfil p WHERE p.cuenta.usuario.id = :usuarioId AND p.esPrincipal = true")
     Optional<Perfil> findPrincipalByUsuarioId(@Param("usuarioId") Long usuarioId);
+
+    Optional<Perfil> findByCuentaIdAndEsPrincipalTrue(Long cuentaId);
 }

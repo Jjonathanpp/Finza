@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -25,8 +26,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -133,7 +136,11 @@ public class MovimientoServiceImpl implements MovimientoService {
         if (esVacio(fecha)) {
             return LocalDate.now();
         }
-        return LocalDate.parse(fecha.trim(), FORMATO_FECHA);
+        try {
+            return LocalDate.parse(fecha.trim(), FORMATO_FECHA);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestException("Error: La fecha debe tener el formato dd-MM-yyyy");
+        }
     }
 
     private boolean esVacio(String valor) {
@@ -262,6 +269,28 @@ public class MovimientoServiceImpl implements MovimientoService {
     private String truncar(String texto, int maxLength) {
         if (texto == null) return null;
         return texto.length() > maxLength ? texto.substring(0, maxLength) : texto;
+    }
+  
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<MovimientoResponseDTO> obtenerUltimosMovimientos(Long perfilId, Long cuentaIdAutenticada, int limite) {
+        return movimientoRepository.buscarUltimosMovimientos(perfilId, cuentaIdAutenticada, PageRequest.of(0, limite))
+                .stream().map(MovimientoResponseDTO::new).toList();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<MovimientoResponseDTO> obtenerUltimosIngresos(Long perfilId, Long cuentaIdAutenticada, int limite) {
+        return movimientoRepository.buscarUltimosIngresos(perfilId, cuentaIdAutenticada, PageRequest.of(0, limite))
+                .stream().map(MovimientoResponseDTO::new).toList();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<MovimientoResponseDTO> obtenerUltimosEgresos(Long perfilId, Long cuentaIdAutenticada, int limite) {
+        return movimientoRepository.buscarUltimosEgresos(perfilId, cuentaIdAutenticada, PageRequest.of(0, limite))
+                .stream().map(MovimientoResponseDTO::new).toList();
     }
 
 }

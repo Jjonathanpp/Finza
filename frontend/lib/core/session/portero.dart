@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/login/screens/login_screen.dart';
-import '../../features/voice/voice_screen.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
 import '../storage/token_storage.dart';
 import 'sesion.dart';
 
@@ -34,10 +34,14 @@ class _PorteroState extends State<Portero> {
       future: _haySesion,
       builder: (context, respuesta) {
         if (respuesta.connectionState != ConnectionState.done) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         // Si no se pudo leer el token (error), data queda vacío y va al login.
-        return respuesta.data == true ? const VoiceScreen() : const LoginScreen();
+        return respuesta.data == true
+            ? const HomeScreen()
+            : const LoginScreen();
       },
     );
   }
