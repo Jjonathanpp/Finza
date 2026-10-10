@@ -31,9 +31,11 @@ public class PanelController {
     }
 
     @GetMapping("/resumen")
-    public ResponseEntity<Object> obtenerResumen(@RequestParam(name = "perfilId") Long perfilId) {
+    public ResponseEntity<Object> obtenerResumen(
+            @RequestParam(name = "perfilId") Long perfilId,
+            @RequestParam(name = "limite", defaultValue = "5") int limite) {
             
-        var resumen = panelService.obtenerResumen(perfilId, obtenerCuentaAutenticada());
+        var resumen = panelService.obtenerResumen(perfilId, obtenerCuentaAutenticada(), limite);
         return Response.response(HttpStatus.OK, "Resumen del balance obtenido", resumen);
     }
 }
