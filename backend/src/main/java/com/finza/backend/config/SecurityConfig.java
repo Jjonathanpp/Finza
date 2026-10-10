@@ -40,10 +40,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 // Sin token válido solo se puede entrar, registrarse y ver si el backend anda.
                 // Mercado Pago queda abierto: vincular se abre en el navegador, donde no viaja el token.
+               
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/health", "/error",
                                 "/api/mercadopago/**", "/mercadopago/**").permitAll()
                         .anyRequest().authenticated())
+
+            
+            
                 // Sin token (o vencido): 401 con el formato de siempre, y la app vuelve al login (T-1.7.3).
                 .exceptionHandling(e -> e.authenticationEntryPoint((request, response, ex) -> {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
