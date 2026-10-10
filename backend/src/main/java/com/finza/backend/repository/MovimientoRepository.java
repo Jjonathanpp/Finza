@@ -9,6 +9,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.finza.backend.model.Movimiento;
 
@@ -39,4 +43,18 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
        boolean existsByExternalId(String externalId);
 
        Optional<Movimiento> findByExternalId(String externalId);
+
+       @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m " +
+           "WHERE m.perfil.id = :perfilId " +
+           "AND m.perfil.cuenta.id = :cuentaId " +
+           "AND m.esIngreso = :esIngreso " +
+           "AND (cast(:inicio as date) IS NULL OR m.fecha >= :inicio) " +
+           "AND (cast(:fin as date) IS NULL OR m.fecha <= :fin) " +
+           "AND m.estado = 'APROBADO'")
+       BigDecimal sumarMontoPorTipoYFechas(
+            @Param("perfilId") Long perfilId,
+            @Param("cuentaId") Long cuentaId,
+            @Param("esIngreso") boolean esIngreso,
+            @Param("inicio") LocalDate inicio,
+            @Param("fin") LocalDate fin);
 }
