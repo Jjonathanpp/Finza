@@ -13,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import com.finza.backend.dto.mercadopago.BusquedaMPResponseDTO;
 import com.finza.backend.dto.mercadopago.TransaccionMPResponseDTO;
+import com.finza.backend.dto.mercadopago.SincronizacionResumenDTO;
 import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.Categoria;
 import com.finza.backend.model.CuentaMP;
@@ -90,7 +91,7 @@ public class MercadoPagoSyncService {
         return movimientos;
     }
 
-    public List<Movimiento> sincronizarMovimientos(Long usuarioId, Long perfilId) {
+    public SincronizacionResumenDTO sincronizarMovimientos(Long usuarioId, Long perfilId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
 
@@ -99,7 +100,13 @@ public class MercadoPagoSyncService {
 
         BusquedaMPResponseDTO busqueda = obtenerMovimientosDesdeMP(usuarioId);
         if (busqueda == null || busqueda.getResultados() == null || busqueda.getResultados().isEmpty()) {
-            return List.of();
+            return SincronizacionResumenDTO.builder()
+                    .procesadas(0)
+                    .creadas(0)
+                    .omitidas(0)
+                    .errores(0)
+                    .movimientos(List.of())
+                    .build();
         }
 
         Long miMpUserId = cuentaMP.getMpIdUser() != null ? Long.valueOf(cuentaMP.getMpIdUser()) : null;
@@ -126,14 +133,15 @@ public class MercadoPagoSyncService {
             nuevosMovimientos.add(nuevo);
         }
 
-        log.info("Sincronización completada para usuario {}: {} nuevos guardados, {} duplicados omitidos.",
-                usuarioId, nuevosMovimientos.size(), duplicadosOmitidos);
+        List<Movimiento> guardados = nuevosMovimientos.isEmpty() ? List.of() : movimientoRepository.saveAll(nuevosMovimientos);
 
-        if (nuevosMovimientos.isEmpty()) {
-            return List.of();
-        }
-
-        return movimientoRepository.saveAll(nuevosMovimientos);
+        return SincronizacionResumenDTO.builder()
+                .procesadas(busqueda.getResultados().size())
+                .creadas(guardados.size())
+                .omitidas(duplicadosOmitidos)
+                .errores(0)
+                .movimientos(guardados)
+                .build();
     }
 
     @Scheduled(cron = "0 0 */4 * * *")
