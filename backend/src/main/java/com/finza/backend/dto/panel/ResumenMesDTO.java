@@ -16,6 +16,8 @@ public class ResumenMesDTO {
     private BigDecimal totalIngresos;
     private BigDecimal totalEgresos;
     private BigDecimal saldo;
+    // Tipo billetera: todo lo que entró menos todo lo que salió, desde el primer movimiento (no se reinicia).
+    private BigDecimal saldoTotal;
     private List<MovimientoResponseDTO> ultimosMovimientos;
     private List<MovimientoResponseDTO> ultimosIngresos;
     private List<MovimientoResponseDTO> ultimosEgresos;
