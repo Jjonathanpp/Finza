@@ -12,7 +12,7 @@ class MovimientosViewModel extends ChangeNotifier {
 
   List<Movimiento> _movimientos = [];
   List<Categoria> categorias = [];
-  
+
   bool _cargando = false;
   String? _error;
   bool _hayMas = true;
@@ -34,7 +34,11 @@ class MovimientosViewModel extends ChangeNotifier {
   bool get hayMas => _hayMas;
   bool get hayAnterior => _pagina > 0;
   int get paginaActual => _pagina + 1;
-  bool get tieneFiltrosActivos => desde != null || hasta != null || categoriaFiltro != null || esIngresoFiltro != null;
+  bool get tieneFiltrosActivos =>
+      desde != null ||
+      hasta != null ||
+      categoriaFiltro != null ||
+      esIngresoFiltro != null;
 
   @override
   void notifyListeners() {
@@ -47,12 +51,26 @@ class MovimientosViewModel extends ChangeNotifier {
     super.dispose();
   }
 
+  Future<String?> eliminar(Movimiento movimiento) async {
+    try {
+      await _api.eliminar(movimiento.id);
+    } on ApiException catch (e) {
+      return e.message;
+    }
+
+    // Si era el único movimiento de la última página, retrocedemos una
+    if (_movimientos.length == 1 && _pagina > 0) _pagina--;
+
+    await _obtenerDatos();
+    return null;
+  }
+
   Future<void> cargarInicial() async {
     _pagina = 0;
     if (categorias.isEmpty) {
-      await _cargarCategorias(); 
+      await _cargarCategorias();
     }
-    
+
     await _obtenerDatos();
   }
 
@@ -64,10 +82,15 @@ class MovimientosViewModel extends ChangeNotifier {
       if (kDebugMode) {
         print('Error al cargar categorías en filtro: $e');
       }
-    } 
+    }
   }
 
-  void aplicarFiltros({DateTime? nuevoDesde, DateTime? nuevoHasta, Categoria? nuevaCategoria, bool? nuevoEsIngreso}) {
+  void aplicarFiltros({
+    DateTime? nuevoDesde,
+    DateTime? nuevoHasta,
+    Categoria? nuevaCategoria,
+    bool? nuevoEsIngreso,
+  }) {
     desde = nuevoDesde;
     hasta = nuevoHasta;
     categoriaFiltro = nuevaCategoria;
@@ -93,7 +116,8 @@ class MovimientosViewModel extends ChangeNotifier {
   }
 
   Future<void> irAPagina(int indice) async {
-    if (_cargando || indice == _pagina || indice < 0 || indice >= _totalPaginas) return;
+    if (_cargando || indice == _pagina || indice < 0 || indice >= _totalPaginas)
+      return;
     _pagina = indice;
     await _obtenerDatos();
   }
@@ -105,19 +129,19 @@ class MovimientosViewModel extends ChangeNotifier {
 
     try {
       final (nuevos, total) = await _api.listar(
-        pagina: _pagina, 
+        pagina: _pagina,
         limite: _limite,
         fechaInicio: desde,
         fechaFin: hasta,
         categoriaId: categoriaFiltro?.id,
         esIngreso: esIngresoFiltro,
       );
-      _movimientos = nuevos; 
+      _movimientos = nuevos;
       _totalPaginas = total;
       _hayMas = _pagina + 1 < _totalPaginas;
     } on ApiException catch (e) {
       _error = e.message;
-      if (_pagina > 0) _pagina--; 
+      if (_pagina > 0) _pagina--;
     } finally {
       _cargando = false;
       notifyListeners();
