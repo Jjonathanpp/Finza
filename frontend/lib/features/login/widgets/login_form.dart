@@ -5,7 +5,7 @@ import 'package:frontend/core/widgets/campo.dart';
 import '../../auth/service/auth_service.dart';
 import '../../registro/screens/register_screen.dart';
 import '../models/login_request.dart';
-import '../../home/presentation/screens/home_screen.dart';
+import '../../home/presentation/screens/pantalla_principal.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -50,7 +50,7 @@ class _LoginFormState extends State<LoginForm> {
         mostrarExito(context, 'Sesión iniciada');
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const PantallaPrincipal()),
         );
       }
     } catch (e) {
