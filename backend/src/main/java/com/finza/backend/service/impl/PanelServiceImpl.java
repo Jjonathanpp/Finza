@@ -4,14 +4,17 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.IsoFields;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
 import com.finza.backend.dto.panel.ResumenMesDTO;
 import com.finza.backend.model.PreferenciasSistema;
 import com.finza.backend.repository.MovimientoRepository;
 import com.finza.backend.repository.PreferenciasSistemaRepository;
+import com.finza.backend.service.MovimientoService;
 import com.finza.backend.service.PanelService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,28 +25,30 @@ public class PanelServiceImpl implements PanelService {
 
     private final MovimientoRepository movimientoRepository;
     private final PreferenciasSistemaRepository preferenciasRepository;
+    private final MovimientoService movimientoService;
 
     @Override
     @Transactional(readOnly = true)
-    public ResumenMesDTO obtenerResumen(Long perfilId, Long cuentaIdAutenticada) {
+    public ResumenMesDTO obtenerResumen(Long perfilId, Long cuentaIdAutenticada, int limite) {
 
-        // 1. Buscamos la preferencia (o usamos la vista MENSUAL por defecto si no existe)
-        PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(perfilId)
-                .orElse(new PreferenciasSistema());
-        
+        // 1. Buscamos preferencias y fechas
+        PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(perfilId).orElse(new PreferenciasSistema());
         LocalDate[] rangoFechas = calcularRangoDeFechas(prefs);
 
-        // 2. Buscamos los totales directamente en la BD usando el rango
+        // 2. Totales matemáticos
         BigDecimal totalIngresos = movimientoRepository.sumarMontoPorTipoYFechas(
                 perfilId, cuentaIdAutenticada, true, rangoFechas[0], rangoFechas[1]);
-
         BigDecimal totalEgresos = movimientoRepository.sumarMontoPorTipoYFechas(
                 perfilId, cuentaIdAutenticada, false, rangoFechas[0], rangoFechas[1]);
-
-        // 3. Matemática básica
         BigDecimal saldo = totalIngresos.subtract(totalEgresos);
 
-        return new ResumenMesDTO(totalIngresos, totalEgresos, saldo);
+        // 3. Delegamos la búsqueda de las 3 listas
+        List<MovimientoResponseDTO> ultimosTodos = movimientoService.obtenerUltimosMovimientos(perfilId, cuentaIdAutenticada, limite);
+        List<MovimientoResponseDTO> ultimosIngresos = movimientoService.obtenerUltimosIngresos(perfilId, cuentaIdAutenticada, limite);
+        List<MovimientoResponseDTO> ultimosEgresos = movimientoService.obtenerUltimosEgresos(perfilId, cuentaIdAutenticada, limite);
+
+        // 4. Empaquetamos todo
+        return new ResumenMesDTO(totalIngresos, totalEgresos, saldo, ultimosTodos, ultimosIngresos, ultimosEgresos);
     }
 
     private LocalDate[] calcularRangoDeFechas(PreferenciasSistema prefs) {

@@ -1,6 +1,7 @@
 package com.finza.backend.repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -57,4 +58,33 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
             @Param("esIngreso") boolean esIngreso,
             @Param("inicio") LocalDate inicio,
             @Param("fin") LocalDate fin);
+
+       @Query("SELECT m FROM Movimiento m " +
+           "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
+           "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+       List<Movimiento> buscarUltimosMovimientos(
+            @Param("perfilId") Long perfilId, 
+            @Param("cuentaId") Long cuentaId, 
+            Pageable pageable);
+
+       // 2. Últimos 5 Ingresos (esIngreso = true)
+       @Query("SELECT m FROM Movimiento m " +
+              "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
+              "AND m.esIngreso = true " +
+              "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+       List<Movimiento> buscarUltimosIngresos(
+              @Param("perfilId") Long perfilId, 
+              @Param("cuentaId") Long cuentaId, 
+              Pageable pageable);
+
+       // 3. Últimos 5 Egresos (esIngreso = false)
+       @Query("SELECT m FROM Movimiento m " +
+              "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
+              "AND m.esIngreso = false " +
+              "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+       List<Movimiento> buscarUltimosEgresos(
+              @Param("perfilId") Long perfilId, 
+              @Param("cuentaId") Long cuentaId, 
+              Pageable pageable);
+       
 }
