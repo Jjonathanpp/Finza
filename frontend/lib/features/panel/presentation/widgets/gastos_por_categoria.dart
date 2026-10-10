@@ -19,7 +19,7 @@ class GastosPorCategoria extends StatefulWidget {
 }
 
 class _GastosPorCategoriaState extends State<GastosPorCategoria> {
-  // Se pide al abrir el panel. El menú arma el panel de nuevo cada vez, así que trae lo último cargado.
+  // Se pide al abrir el Inicio. El menú arma el Inicio de nuevo cada vez, así que trae lo último cargado.
   late final _resumen = (widget.api ?? PanelApi(ApiClient())).gastosPorCategoria();
 
   @override
