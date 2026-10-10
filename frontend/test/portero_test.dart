@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/app.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/features/login/screens/login_screen.dart';
-import 'package:frontend/features/voice/voice_screen.dart';
+import 'package:frontend/features/home/presentation/screens/home_screen.dart';
 
 import 'tokens_de_prueba.dart';
 
@@ -28,7 +28,7 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({'auth_token': tokenVigenteDePrueba()});
     await tester.pumpWidget(const App());
     await tester.pumpAndSettle();
-    expect(find.byType(VoiceScreen), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.byType(LoginScreen), findsNothing);
   });
 
@@ -43,13 +43,13 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({'auth_token': tokenVigenteDePrueba()});
     await tester.pumpWidget(const App());
     await tester.pumpAndSettle();
-    expect(find.byType(VoiceScreen), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
 
     irAlLogin();
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginScreen), findsOneWidget);
-    expect(find.byType(VoiceScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsNothing);
     expect(navegador.currentState!.canPop(), isFalse);
   });
 }

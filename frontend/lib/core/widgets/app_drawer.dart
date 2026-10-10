@@ -7,6 +7,7 @@ import '../../features/categorias/presentation/screens/categorias_screen.dart';
 import '../../features/movimientos/presentation/screens/alta_movimiento_screen.dart';
 import '../../features/movimientos/presentation/screens/movimientos_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/panel/presentation/screens/panel_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -34,6 +35,15 @@ class AppDrawer extends StatelessWidget {
               title: const Text(
                 'Inicio',
                 style: TextStyle(color: AppColors.text),
+              ),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(
                 Icons.dashboard_outlined,
                 color: AppColors.muted,
@@ -46,18 +56,6 @@ class AppDrawer extends StatelessWidget {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (_) => const PanelScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.list_alt,
-                color: AppColors.muted,
-              ),
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
                 );
               },
             ),
