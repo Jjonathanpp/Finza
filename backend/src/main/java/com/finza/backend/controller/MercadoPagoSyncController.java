@@ -10,13 +10,15 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import com.finza.backend.dto.mercadopago.BusquedaMPResponseDTO;
+import com.finza.backend.dto.mercadopago.SincronizacionResumenDTO;
+import com.finza.backend.dto.Response;
 import com.finza.backend.model.Movimiento;
 import com.finza.backend.service.MercadoPagoSyncService;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/mercadopago")
+@RequestMapping({"/api/mercadopago", "/mercadopago"})
 @RequiredArgsConstructor
 public class MercadoPagoSyncController {
 
@@ -37,10 +39,10 @@ public class MercadoPagoSyncController {
     }
 
     @PostMapping("/sincronizar")
-    public ResponseEntity<List<Movimiento>> sincronizar(
+    public ResponseEntity<Object> sincronizar(
             @RequestParam Long usuarioId,
             @RequestParam(defaultValue = "1") Long perfilId) {
-        List<Movimiento> guardados = syncService.sincronizarMovimientos(usuarioId, perfilId);
-        return ResponseEntity.ok(guardados);
+        SincronizacionResumenDTO resumen = syncService.sincronizarMovimientos(usuarioId, perfilId);
+        return Response.ok(resumen, "Sincronización completada exitosamente");
     }
 }

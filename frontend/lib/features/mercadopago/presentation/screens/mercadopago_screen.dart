@@ -5,6 +5,7 @@ import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
+import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
 import 'package:frontend/config/constants/sesion_temporal.dart';
 import 'package:frontend/config/constants/api_config.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -146,6 +147,30 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
             children: [
               if (conectado) ...[
                 _tarjetaEstadoConectado(),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    onPressed: _vm.cargando ? null : _sincronizar,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: AppColors.accentInk,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: _vm.cargando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.sync, size: 20),
+                    label: Text(
+                      _vm.cargando ? 'Importando...' : 'Importar ahora',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
                 _seccionDesvincular(),
               ] else ...[
@@ -300,5 +325,23 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
         ],
       ),
     );
+  }
+
+  Future<void> _sincronizar() async {
+    final resumen = await _vm.sincronizar();
+    if (!mounted) return;
+
+    if (resumen != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SincronizacionResumenScreen(resumen: resumen),
+        ),
+      );
+    } else if (_vm.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_vm.error!)),
+      );
+    }
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 import 'package:frontend/features/mercadopago/data/models/mercadopago_estado.dart';
+import 'package:frontend/features/mercadopago/data/models/sincronizacion_resumen.dart';
 
 class MercadoPagoViewModel extends ChangeNotifier {
   MercadoPagoViewModel(this._api);
@@ -53,6 +54,22 @@ class MercadoPagoViewModel extends ChangeNotifier {
       return null;
     } on ApiException catch (e) {
       return e.message;
+    } finally {
+      _cargando = false;
+      notifyListeners();
+    }
+  }
+
+  Future<SincronizacionResumen?> sincronizar() async {
+    _cargando = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final resumen = await _api.sincronizar();
+      return resumen;
+    } on ApiException catch (e) {
+      _error = e.message;
+      return null;
     } finally {
       _cargando = false;
       notifyListeners();
