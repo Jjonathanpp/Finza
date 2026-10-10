@@ -22,7 +22,9 @@ class CategoriaApiDeMentira extends Fake implements CategoriaApi {
   ];
 }
 
-class MovimientoApiDeMentira implements MovimientoApi {
+// extends Fake: solo hace falta escribir lo que usa el alta. Si alguien le suma otro método
+// a MovimientoApi (listar, actualizar...), este test no se rompe.
+class MovimientoApiDeMentira extends Fake implements MovimientoApi {
   MovimientoApiDeMentira({this.falla = false});
 
   final bool falla;
@@ -46,13 +48,8 @@ class MovimientoApiDeMentira implements MovimientoApi {
       estado: 'APROBADO',
       categoria: _sueldo,
       perfilId: 1,
+      origen: 'MANUAL',
     );
-  }
-
-  @override
-  Future<List<Movimiento>> listar({int pagina = 0, int limite = 20}) {
-    // TODO: implement listar
-    throw UnimplementedError();
   }
 }
 

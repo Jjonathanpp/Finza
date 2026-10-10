@@ -34,6 +34,25 @@ class AppDrawer extends StatelessWidget {
               title: const Text(
                 'Inicio',
                 style: TextStyle(color: AppColors.text),
+              leading: const Icon(
+                Icons.dashboard_outlined,
+                color: AppColors.muted,
+              ),
+              title: const Text(
+                'Panel',
+                style: TextStyle(color: AppColors.text),
+              ),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PanelScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.list_alt,
+                color: AppColors.muted,
               ),
               onTap: () {
                 Navigator.pushReplacement(

@@ -1,5 +1,7 @@
 package com.finza.backend.model;
 
+import java.time.LocalDate;
+
 import com.finza.backend.model.PreferenciasSistema.Idioma;
 import com.finza.backend.model.PreferenciasSistema.Moneda;
 
@@ -27,12 +29,12 @@ public class PreferenciasSistema {
     private Long id;
 
     @OneToOne
-    @JoinColumn(name = "cuenta_id", nullable = false, unique = true)
-    private Cuenta cuenta;
+    @JoinColumn(name = "perfil_id", nullable = false, unique = true)
+    private Perfil perfil;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "idioma")
-    private Idioma idioma;
+    private Idioma idioma = Idioma.ESPANOL;
 
     public enum Idioma {
         ESPANOL,
@@ -41,7 +43,7 @@ public class PreferenciasSistema {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "moneda")
-    private Moneda moneda;
+    private Moneda moneda = Moneda.PESO;
 
     public enum Moneda {
         PESO,
@@ -49,15 +51,34 @@ public class PreferenciasSistema {
         EURO
     }
 
-    private boolean notificacionesHabilitadas;
+    private boolean notificacionesHabilitadas = true;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tema")
-    private Tema tema;
+    private Tema tema = Tema.CLARO;
 
     public enum Tema {
         CLARO,
         OSCURO
     }
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vista_balance")
+    private VistaBalance vistaBalance = VistaBalance.MENSUAL_ACTUAL;
+
+    public enum VistaBalance {
+        MENSUAL_ACTUAL,
+        BIMESTRAL,
+        TRIMESTRAL,
+        CUATRIMESTRAL,
+        ANUAL,
+        PERSONALIZADO
+    }
+
+    @Column(name = "fecha_balance_inicio")
+    private LocalDate fechaBalanceInicio;
+
+    @Column(name = "fecha_balance_fin")
+    private LocalDate fechaBalanceFin;
 
 }
