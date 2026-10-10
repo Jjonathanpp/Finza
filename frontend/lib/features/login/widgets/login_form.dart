@@ -6,6 +6,7 @@ import '../../auth/service/auth_service.dart';
 import '../../registro/screens/register_screen.dart';
 import '../../voice/voice_screen.dart';
 import '../models/login_request.dart';
+import '../../home/presentation/screens/home_screen.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -50,7 +51,7 @@ class _LoginFormState extends State<LoginForm> {
         mostrarExito(context, 'Sesión iniciada');
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const VoiceScreen()),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     } catch (e) {
