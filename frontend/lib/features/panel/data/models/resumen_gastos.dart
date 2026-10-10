@@ -15,14 +15,12 @@ class ResumenGastos {
 
 class GastoCategoria {
   const GastoCategoria({
-    required this.id,
     required this.nombre,
     this.color,
     required this.total,
     required this.porcentaje,
   });
 
-  final int id;
   final String nombre;
   final String? color;
   final double total;
@@ -30,7 +28,6 @@ class GastoCategoria {
   final double porcentaje;
 
   factory GastoCategoria.fromJson(Map<String, dynamic> json) => GastoCategoria(
-        id: json['id'],
         nombre: json['nombre'],
         color: json['color'],
         total: (json['total'] as num).toDouble(),

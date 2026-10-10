@@ -4,7 +4,6 @@ import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/campo.dart';
 import '../../auth/service/auth_service.dart';
 import '../../registro/screens/register_screen.dart';
-import '../../voice/voice_screen.dart';
 import '../models/login_request.dart';
 import '../../home/presentation/screens/home_screen.dart';
 
