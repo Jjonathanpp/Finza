@@ -44,6 +44,9 @@ public class PanelServiceImpl implements PanelService {
         BigDecimal totalEgresos = movimientoRepository.sumarMontoPorTipoYFechas(
                 perfilId, cuentaIdAutenticada, false, rangoFechas[0], rangoFechas[1]);
         BigDecimal saldo = totalIngresos.subtract(totalEgresos);
+        // Sin fechas, la misma consulta suma todo: el saldo de la billetera.
+        BigDecimal saldoTotal = movimientoRepository.sumarMontoPorTipoYFechas(perfilId, cuentaIdAutenticada, true, null, null)
+                .subtract(movimientoRepository.sumarMontoPorTipoYFechas(perfilId, cuentaIdAutenticada, false, null, null));
 
         // 3. Delegamos la búsqueda de las 3 listas
         List<MovimientoResponseDTO> ultimosTodos = movimientoService.obtenerUltimosMovimientos(perfilId, cuentaIdAutenticada, limite);
@@ -51,7 +54,7 @@ public class PanelServiceImpl implements PanelService {
         List<MovimientoResponseDTO> ultimosEgresos = movimientoService.obtenerUltimosEgresos(perfilId, cuentaIdAutenticada, limite);
 
         // 4. Empaquetamos todo
-        return new ResumenMesDTO(totalIngresos, totalEgresos, saldo, ultimosTodos, ultimosIngresos, ultimosEgresos);
+        return new ResumenMesDTO(totalIngresos, totalEgresos, saldo, saldoTotal, ultimosTodos, ultimosIngresos, ultimosEgresos);
     }
 
     private LocalDate[] calcularRangoDeFechas(PreferenciasSistema prefs) {

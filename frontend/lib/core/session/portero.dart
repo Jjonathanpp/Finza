@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/login/screens/login_screen.dart';
-import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/home/presentation/screens/pantalla_principal.dart';
 import '../storage/token_storage.dart';
 import 'sesion.dart';
 
@@ -40,7 +40,7 @@ class _PorteroState extends State<Portero> {
         }
         // Si no se pudo leer el token (error), data queda vacío y va al login.
         return respuesta.data == true
-            ? const HomeScreen()
+            ? const PantallaPrincipal()
             : const LoginScreen();
       },
     );

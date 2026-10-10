@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
-import '../../../core/widgets/app_drawer.dart';
+import 'package:frontend/core/widgets/barra_con_volver.dart';
 
 class VoiceScreen extends StatefulWidget {
   const VoiceScreen({super.key});
@@ -112,8 +112,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registro por voz')),
-      drawer: const AppDrawer(),
+      appBar: barraConVolver(context, 'Registro por voz'),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(

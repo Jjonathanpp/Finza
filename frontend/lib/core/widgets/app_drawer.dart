@@ -3,10 +3,8 @@ import 'package:frontend/config/theme/app_theme.dart';
 import '../storage/token_storage.dart';
 import '../../features/login/screens/login_screen.dart';
 import '../../features/voice/voice_screen.dart';
-import '../../features/categorias/presentation/screens/categorias_screen.dart';
 import '../../features/movimientos/presentation/screens/alta_movimiento_screen.dart';
-import '../../features/movimientos/presentation/screens/movimientos_screen.dart';
-import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/home/presentation/screens/pantalla_principal.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -38,7 +36,7 @@ class AppDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  MaterialPageRoute(builder: (_) => const PantallaPrincipal()),
                 );
               },
             ),
@@ -51,7 +49,7 @@ class AppDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const MovimientosScreen()),
+                  MaterialPageRoute(builder: (_) => const PantallaPrincipal(pestana: 1)),
                 );
               },
             ),
@@ -83,9 +81,9 @@ class AppDrawer extends StatelessWidget {
                 style: TextStyle(color: AppColors.text),
               ),
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const CategoriasScreen()),
+                  MaterialPageRoute(builder: (_) => const PantallaPrincipal(pestana: 2)),
                 );
               },
             ),
@@ -96,7 +94,7 @@ class AppDrawer extends StatelessWidget {
                 style: TextStyle(color: AppColors.text),
               ),
               onTap: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const VoiceScreen()),
                 );
