@@ -29,6 +29,10 @@ class MovimientoApi {
     return Movimiento.fromJson((data as List).first);
   }
 
+  Future<void> eliminar(int id) async {
+    await _api.delete('/api/movimientos/$id');
+  }
+
   Future<Movimiento> actualizar({
     required int id,
     required bool esIngreso,
@@ -51,29 +55,33 @@ class MovimientoApi {
   }
 
   Future<(List<Movimiento>, int)> listar({
-    int pagina = 0, 
+    int pagina = 0,
     int limite = 12,
     DateTime? fechaInicio,
     DateTime? fechaFin,
     int? categoriaId,
     bool? esIngreso,
   }) async {
-    String url = '/api/movimientos?perfilId=$perfilIdTemporal&page=$pagina&size=$limite';
-    
-    if (fechaInicio != null) url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
+    String url =
+        '/api/movimientos?perfilId=$perfilIdTemporal&page=$pagina&size=$limite';
+
+    if (fechaInicio != null)
+      url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
     if (fechaFin != null) url += '&fechaFin=${_formatearFechaIso(fechaFin)}';
     if (categoriaId != null) url += '&categoriaId=$categoriaId';
     if (esIngreso != null) url += '&esIngreso=$esIngreso';
 
     final data = await _api.get(url);
-    
+
     if (data == null) return (<Movimiento>[], 1);
 
     final listaJson = data is List ? data : (data['content'] as List? ?? []);
     final totalPaginas = data is Map ? (data['totalPages'] as int? ?? 1) : 1;
-    
-    final movimientos = listaJson.map((json) => Movimiento.fromJson(json)).toList();
-    
+
+    final movimientos = listaJson
+        .map((json) => Movimiento.fromJson(json))
+        .toList();
+
     return (movimientos, totalPaginas);
   }
 

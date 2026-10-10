@@ -17,7 +17,10 @@ class MovimientosScreen extends StatefulWidget {
 }
 
 class _MovimientosScreenState extends State<MovimientosScreen> {
-  late final _vm = MovimientosViewModel(MovimientoApi(ApiClient()), CategoriaApi(ApiClient()));
+  late final _vm = MovimientosViewModel(
+    MovimientoApi(ApiClient()),
+    CategoriaApi(ApiClient()),
+  );
 
   @override
   void initState() {
@@ -40,6 +43,42 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     );
   }
 
+  Future<void> _confirmarEliminar(Movimiento m) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar movimiento'),
+        content: const Text('¿Estás seguro de eliminar este movimiento?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmado != true) return;
+
+    final error = await _vm.eliminar(m);
+    if (!mounted) return;
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppColors.danger),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Movimiento eliminado')));
+    }
+  }
+
   void _mostrarModalEdicion(BuildContext context, Movimiento movimiento) {
     final montoController = TextEditingController(
       text: movimiento.monto.toString(),
@@ -47,10 +86,12 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     final descripcionController = TextEditingController(
       text: movimiento.descripcion ?? '',
     );
+    final categoriaController = TextEditingController(
+      text: movimiento.categoria.nombre,
+    );
 
     bool esIngresoEdit = movimiento.esIngreso;
     DateTime fechaEdit = movimiento.fecha;
-    String categoriaEdit = movimiento.categoria.nombre;
 
     showDialog(
       context: context,
@@ -87,13 +128,14 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: montoController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: const InputDecoration(labelText: 'Monto'),
                   ),
                   const SizedBox(height: 16),
                   TextField(
-                    controller: TextEditingController(text: categoriaEdit),
-                    onChanged: (value) => categoriaEdit = value,
+                    controller: categoriaController,
                     decoration: const InputDecoration(labelText: 'Categoría'),
                   ),
                   const SizedBox(height: 16),
@@ -144,7 +186,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                     movimiento,
                     esIngreso: esIngresoEdit,
                     monto: montoController.text,
-                    categoria: categoriaEdit,
+                    categoria: categoriaController.text,
                     descripcion: descripcionController.text,
                     fecha: fechaEdit,
                     origen: movimiento.origen,
@@ -188,7 +230,9 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
             builder: (context, _) {
               return IconButton(
                 icon: Icon(
-                  _vm.tieneFiltrosActivos ? Icons.filter_alt : Icons.filter_alt_outlined,
+                  _vm.tieneFiltrosActivos
+                      ? Icons.filter_alt
+                      : Icons.filter_alt_outlined,
                   color: _vm.tieneFiltrosActivos ? AppColors.accent : null,
                 ),
                 onPressed: _abrirFiltros,
@@ -215,7 +259,10 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
 
           if (_vm.movimientos.isEmpty) {
             return const Center(
-              child: Text('No se encontraron movimientos', style: TextStyle(color: AppColors.muted)),
+              child: Text(
+                'No se encontraron movimientos',
+                style: TextStyle(color: AppColors.muted),
+              ),
             );
           }
 
@@ -228,12 +275,15 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(18),
                     itemCount: _vm.movimientos.length,
-                    separatorBuilder: (_, __) => const Divider(color: AppColors.line, height: 24),
+                    separatorBuilder: (_, __) =>
+                        const Divider(color: AppColors.line, height: 24),
                     itemBuilder: (context, i) {
                       final movimiento = _vm.movimientos[i];
                       return _FilaMovimiento(
                         movimiento,
-                        onEditar: () => _mostrarModalEdicion(context, movimiento),
+                        onEditar: () =>
+                            _mostrarModalEdicion(context, movimiento),
+                        onEliminar: () => _confirmarEliminar(movimiento),
                       );
                     },
                   ),
@@ -282,8 +332,10 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
     );
     if (elegida != null) {
       setState(() {
-        if (esDesde) desde = elegida;
-        else hasta = elegida;
+        if (esDesde)
+          desde = elegida;
+        else
+          hasta = elegida;
       });
     }
   }
@@ -297,12 +349,20 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(18, 0, 18, 18 + MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        18,
+        0,
+        18,
+        18 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Filtrar movimientos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Filtrar movimientos',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 20),
 
           Row(
@@ -311,13 +371,18 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Desde', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+                    const Text(
+                      'Desde',
+                      style: TextStyle(fontSize: 13, color: AppColors.muted),
+                    ),
                     const SizedBox(height: 4),
                     OutlinedButton.icon(
                       onPressed: () => _elegirFecha(true),
                       icon: const Icon(Icons.calendar_today, size: 16),
                       label: Text(_textoFecha(desde)),
-                      style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft),
+                      style: OutlinedButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                      ),
                     ),
                   ],
                 ),
@@ -327,13 +392,18 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Hasta', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+                    const Text(
+                      'Hasta',
+                      style: TextStyle(fontSize: 13, color: AppColors.muted),
+                    ),
                     const SizedBox(height: 4),
                     OutlinedButton.icon(
                       onPressed: () => _elegirFecha(false),
                       icon: const Icon(Icons.calendar_today, size: 16),
                       label: Text(_textoFecha(hasta)),
-                      style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft),
+                      style: OutlinedButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                      ),
                     ),
                   ],
                 ),
@@ -342,46 +412,61 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
           ),
           const SizedBox(height: 20),
 
-          const Text('Categoría', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+          const Text(
+            'Categoría',
+            style: TextStyle(fontSize: 13, color: AppColors.muted),
+          ),
           const SizedBox(height: 4),
           DropdownButtonFormField<Categoria>(
             value: categoriaSeleccionada,
             hint: const Text('Todas las categorías'),
-            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 10,
+              ),
+            ),
             items: [
               const DropdownMenuItem<Categoria>(
                 value: null,
                 child: Text('Todas las categorías'),
               ),
-              ...widget.vm.categorias.map((c) => DropdownMenuItem(
-                value: c,
-                child: Text('${c.emoji ?? ''} ${c.nombre}'),
-              )),
+              ...widget.vm.categorias.map(
+                (c) => DropdownMenuItem(
+                  value: c,
+                  child: Text('${c.emoji ?? ''} ${c.nombre}'),
+                ),
+              ),
             ],
             onChanged: (cat) => setState(() => categoriaSeleccionada = cat),
           ),
           const SizedBox(height: 20),
 
-          const Text('Tipo', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+          const Text(
+            'Tipo',
+            style: TextStyle(fontSize: 13, color: AppColors.muted),
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
               FilterChip(
                 label: const Text('Ingresos'),
                 selected: esIngreso == true,
-                onSelected: (val) => setState(() => esIngreso = val ? true : null),
+                onSelected: (val) =>
+                    setState(() => esIngreso = val ? true : null),
               ),
               const SizedBox(width: 12),
               FilterChip(
                 label: const Text('Egresos'),
                 selected: esIngreso == false,
-                onSelected: (val) => setState(() => esIngreso = val ? false : null),
+                onSelected: (val) =>
+                    setState(() => esIngreso = val ? false : null),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           Row(
             children: [
               Expanded(
@@ -390,7 +475,10 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                     widget.vm.limpiarFiltros();
                     Navigator.pop(context);
                   },
-                  child: const Text('Limpiar', style: TextStyle(color: AppColors.muted)),
+                  child: const Text(
+                    'Limpiar',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -410,7 +498,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -434,12 +522,18 @@ class _ControlesPaginacion extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            onPressed: vm.hayAnterior && !vm.cargando ? vm.paginaAnterior : null,
+            onPressed: vm.hayAnterior && !vm.cargando
+                ? vm.paginaAnterior
+                : null,
             icon: const Icon(Icons.chevron_left),
             tooltip: 'Anterior',
           ),
           if (vm.cargando)
-            const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           else
             Flexible(
               child: SingleChildScrollView(
@@ -455,16 +549,25 @@ class _ControlesPaginacion extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                         onTap: esActual ? null : () => vm.irAPagina(index),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            color: esActual ? AppColors.accent : Colors.transparent,
+                            color: esActual
+                                ? AppColors.accent
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             '$pagina',
                             style: TextStyle(
-                              color: esActual ? AppColors.surface : AppColors.text,
-                              fontWeight: esActual ? FontWeight.bold : FontWeight.w500,
+                              color: esActual
+                                  ? AppColors.surface
+                                  : AppColors.text,
+                              fontWeight: esActual
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
                             ),
                           ),
                         ),
@@ -486,10 +589,15 @@ class _ControlesPaginacion extends StatelessWidget {
 }
 
 class _FilaMovimiento extends StatelessWidget {
-  const _FilaMovimiento(this.movimiento, {required this.onEditar});
+  const _FilaMovimiento(
+    this.movimiento, {
+    required this.onEditar,
+    required this.onEliminar,
+  });
 
   final Movimiento movimiento;
   final VoidCallback onEditar;
+  final VoidCallback onEliminar;
 
   String _formatearMonto(double monto) {
     final partes = monto.toStringAsFixed(2).split('.');
@@ -576,6 +684,15 @@ class _FilaMovimiento extends StatelessWidget {
           ),
           onPressed: onEditar,
           tooltip: 'Editar movimiento',
+        ),
+        IconButton(
+          icon: const Icon(
+            Icons.delete_outline,
+            size: 20,
+            color: AppColors.danger,
+          ),
+          onPressed: onEliminar,
+          tooltip: 'Eliminar movimiento',
         ),
       ],
     );
