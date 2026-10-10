@@ -1,6 +1,7 @@
 package com.finza.backend.service.impl;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.IsoFields;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
+import com.finza.backend.dto.panel.GastoPorCategoriaDTO;
+import com.finza.backend.dto.panel.ResumenGastosDTO;
 import com.finza.backend.dto.panel.ResumenMesDTO;
 import com.finza.backend.model.PreferenciasSistema;
 import com.finza.backend.repository.MovimientoRepository;
@@ -94,5 +97,24 @@ public class PanelServiceImpl implements PanelService {
         }
         
         return new LocalDate[]{inicio, fin};
+    }
+
+    @Override
+    public ResumenGastosDTO gastosPorCategoria(Long perfilId) {
+        YearMonth mes = YearMonth.now();
+        List<GastoPorCategoriaDTO> categorias =
+                movimientoRepository.sumarGastosPorCategoria(perfilId, mes.atDay(1), mes.atEndOfMonth());
+
+        BigDecimal total = categorias.stream()
+                .map(GastoPorCategoriaDTO::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Sin gastos la lista viene vacía y no se divide nada: el total queda en 0.
+        for (GastoPorCategoriaDTO categoria : categorias) {
+            categoria.setPorcentaje(categoria.getTotal()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(total, 1, RoundingMode.HALF_UP));
+        }
+        return new ResumenGastosDTO(total, categorias);
     }
 }

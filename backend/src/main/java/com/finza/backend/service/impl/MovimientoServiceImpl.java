@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -135,7 +136,11 @@ public class MovimientoServiceImpl implements MovimientoService {
         if (esVacio(fecha)) {
             return LocalDate.now();
         }
-        return LocalDate.parse(fecha.trim(), FORMATO_FECHA);
+        try {
+            return LocalDate.parse(fecha.trim(), FORMATO_FECHA);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestException("Error: La fecha debe tener el formato dd-MM-yyyy");
+        }
     }
 
     private boolean esVacio(String valor) {
