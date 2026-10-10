@@ -58,6 +58,7 @@ class MovimientoApi {
     DateTime? fechaFin,
     int? categoriaId,
     bool? esIngreso,
+    String? estado,
   }) async {
     String url = '/api/movimientos?page=$pagina&size=$limite';
 
@@ -65,6 +66,7 @@ class MovimientoApi {
     if (fechaFin != null) url += '&fechaFin=${_formatearFechaIso(fechaFin)}';
     if (categoriaId != null) url += '&categoriaId=$categoriaId';
     if (esIngreso != null) url += '&esIngreso=$esIngreso';
+    if (estado != null) url += '&estado=$estado';
 
     final data = await _api.get(url);
 
@@ -90,5 +92,14 @@ class MovimientoApi {
   static String _formatearFechaIso(DateTime fecha) {
     String dos(int n) => n.toString().padLeft(2, '0');
     return '${fecha.year}-${dos(fecha.month)}-${dos(fecha.day)}';
+  }
+
+  /// Cambia el estado de un movimiento
+  Future<Movimiento> cambiarEstado(int id, String nuevoEstado) async {
+    final data = await _api.put(
+      '/api/movimientos/$id/estado?nuevoEstado=${nuevoEstado.toUpperCase()}', 
+      {} // El body va vacío porque no lo necesita
+    );
+    return Movimiento.fromJson(data);
   }
 }

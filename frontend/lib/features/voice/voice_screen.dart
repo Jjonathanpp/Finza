@@ -94,7 +94,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
       });
 
       // Pegamos al endpoint que ya probaste por cURL
-      await ApiClient().postMultipart('/api/movimientos/procesar-audio/demo', formData);
+      await ApiClient().postMultipart('/api/movimientos/procesar-audio', formData);
 
       if (mounted) {
         mostrarExito(context, 'Movimiento registrado correctamente');

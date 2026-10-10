@@ -8,6 +8,7 @@ import 'package:frontend/features/movimientos/data/datasources/movimiento_api.da
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/movimientos_view_model.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
+import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
 
 class MovimientosScreen extends StatefulWidget {
   const MovimientosScreen({super.key});
@@ -42,6 +43,20 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       builder: (_) => _PanelFiltros(vm: _vm),
     );
   }
+  
+  Future<void> _revisarMovimiento(Movimiento movimientoPendiente) async {
+    final modificado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RevisionMovimientoScreen(movimiento: movimientoPendiente),
+      ),
+    );
+
+    // Solo recargamos si guardó o descartó (retorna true)
+    if (modificado == true) {
+      _vm.cargarInicial();
+    }
+  }
 
   Future<void> _confirmarEliminar(Movimiento m) async {
     final confirmado = await showDialog<bool>(
@@ -73,22 +88,14 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
         SnackBar(content: Text(error), backgroundColor: AppColors.danger),
       );
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Movimiento eliminado')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Movimiento eliminado')));
     }
   }
 
   void _mostrarModalEdicion(BuildContext context, Movimiento movimiento) {
-    final montoController = TextEditingController(
-      text: movimiento.monto.toString(),
-    );
-    final descripcionController = TextEditingController(
-      text: movimiento.descripcion ?? '',
-    );
-    final categoriaController = TextEditingController(
-      text: movimiento.categoria.nombre,
-    );
+    final montoController = TextEditingController(text: movimiento.monto.toString());
+    final descripcionController = TextEditingController(text: movimiento.descripcion ?? '');
+    final categoriaController = TextEditingController(text: movimiento.categoria.nombre);
 
     bool esIngresoEdit = movimiento.esIngreso;
     DateTime fechaEdit = movimiento.fecha;
@@ -104,14 +111,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Tipo de movimiento',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.muted,
-                    ),
-                  ),
+                  const Text('Tipo de movimiento', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.muted)),
                   const SizedBox(height: 6),
                   SegmentedButton<bool>(
                     segments: const [
@@ -128,9 +128,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: montoController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Monto'),
                   ),
                   const SizedBox(height: 16),
@@ -195,18 +193,9 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   if (context.mounted) {
                     Navigator.pop(context);
                     if (error != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(error),
-                          backgroundColor: AppColors.danger,
-                        ),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error), backgroundColor: AppColors.danger));
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Movimiento actualizado con éxito'),
-                        ),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Movimiento actualizado con éxito')));
                     }
                   }
                 },
@@ -230,9 +219,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
             builder: (context, _) {
               return IconButton(
                 icon: Icon(
-                  _vm.tieneFiltrosActivos
-                      ? Icons.filter_alt
-                      : Icons.filter_alt_outlined,
+                  _vm.tieneFiltrosActivos ? Icons.filter_alt : Icons.filter_alt_outlined,
                   color: _vm.tieneFiltrosActivos ? AppColors.accent : null,
                 ),
                 onPressed: _abrirFiltros,
@@ -251,18 +238,12 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
           }
 
           if (_vm.error != null && _vm.movimientos.isEmpty) {
-            return _VistaError(
-              mensaje: _vm.error!,
-              alReintentar: _vm.cargarInicial,
-            );
+            return _VistaError(mensaje: _vm.error!, alReintentar: _vm.cargarInicial);
           }
 
           if (_vm.movimientos.isEmpty) {
             return const Center(
-              child: Text(
-                'No se encontraron movimientos',
-                style: TextStyle(color: AppColors.muted),
-              ),
+              child: Text('No se encontraron movimientos', style: TextStyle(color: AppColors.muted)),
             );
           }
 
@@ -275,15 +256,14 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(18),
                     itemCount: _vm.movimientos.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(color: AppColors.line, height: 24),
+                    separatorBuilder: (_, __) => const Divider(color: AppColors.line, height: 24),
                     itemBuilder: (context, i) {
                       final movimiento = _vm.movimientos[i];
                       return _FilaMovimiento(
                         movimiento,
-                        onEditar: () =>
-                            _mostrarModalEdicion(context, movimiento),
+                        onEditar: () => _mostrarModalEdicion(context, movimiento),
                         onEliminar: () => _confirmarEliminar(movimiento),
+                        onRevisar: () => _revisarMovimiento(movimiento),
                       );
                     },
                   ),
@@ -312,6 +292,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
   DateTime? hasta;
   Categoria? categoriaSeleccionada;
   bool? esIngreso;
+  String? estadoSeleccionado; // <-- NUEVO PARA EL ESTADO
 
   @override
   void initState() {
@@ -320,6 +301,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
     hasta = widget.vm.hasta;
     categoriaSeleccionada = widget.vm.categoriaFiltro;
     esIngreso = widget.vm.esIngresoFiltro;
+    estadoSeleccionado = widget.vm.estadoFiltro; // Si lo tenés en tu VM
   }
 
   Future<void> _elegirFecha(bool esDesde) async {
@@ -349,20 +331,12 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        18,
-        0,
-        18,
-        18 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(18, 0, 18, 18 + MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Filtrar movimientos',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          const Text('Filtrar movimientos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
 
           Row(
@@ -371,18 +345,13 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Desde',
-                      style: TextStyle(fontSize: 13, color: AppColors.muted),
-                    ),
+                    const Text('Desde', style: TextStyle(fontSize: 13, color: AppColors.muted)),
                     const SizedBox(height: 4),
                     OutlinedButton.icon(
                       onPressed: () => _elegirFecha(true),
                       icon: const Icon(Icons.calendar_today, size: 16),
                       label: Text(_textoFecha(desde)),
-                      style: OutlinedButton.styleFrom(
-                        alignment: Alignment.centerLeft,
-                      ),
+                      style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft),
                     ),
                   ],
                 ),
@@ -392,18 +361,13 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Hasta',
-                      style: TextStyle(fontSize: 13, color: AppColors.muted),
-                    ),
+                    const Text('Hasta', style: TextStyle(fontSize: 13, color: AppColors.muted)),
                     const SizedBox(height: 4),
                     OutlinedButton.icon(
                       onPressed: () => _elegirFecha(false),
                       icon: const Icon(Icons.calendar_today, size: 16),
                       label: Text(_textoFecha(hasta)),
-                      style: OutlinedButton.styleFrom(
-                        alignment: Alignment.centerLeft,
-                      ),
+                      style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft),
                     ),
                   ],
                 ),
@@ -412,55 +376,56 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
           ),
           const SizedBox(height: 20),
 
-          const Text(
-            'Categoría',
-            style: TextStyle(fontSize: 13, color: AppColors.muted),
-          ),
+          const Text('Categoría', style: TextStyle(fontSize: 13, color: AppColors.muted)),
           const SizedBox(height: 4),
           DropdownButtonFormField<Categoria>(
             value: categoriaSeleccionada,
             hint: const Text('Todas las categorías'),
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
-            ),
+            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
             items: [
-              const DropdownMenuItem<Categoria>(
-                value: null,
-                child: Text('Todas las categorías'),
-              ),
-              ...widget.vm.categorias.map(
-                (c) => DropdownMenuItem(
-                  value: c,
-                  child: Text('${c.emoji ?? ''} ${c.nombre}'),
-                ),
-              ),
+              const DropdownMenuItem<Categoria>(value: null, child: Text('Todas las categorías')),
+              ...widget.vm.categorias.map((c) => DropdownMenuItem(value: c, child: Text('${c.emoji ?? ''} ${c.nombre}'))),
             ],
             onChanged: (cat) => setState(() => categoriaSeleccionada = cat),
           ),
           const SizedBox(height: 20),
 
-          const Text(
-            'Tipo',
-            style: TextStyle(fontSize: 13, color: AppColors.muted),
+          // --- NUEVO: FILTRO DE ESTADO PENDIENTE ---
+          const Text('Estado', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              FilterChip(
+                label: const Text('Todos'),
+                selected: estadoSeleccionado == null,
+                onSelected: (val) => setState(() => estadoSeleccionado = null),
+              ),
+              const SizedBox(width: 12),
+              FilterChip(
+                label: const Text('Solo Pendientes'),
+                selected: estadoSeleccionado == 'PENDIENTE',
+                selectedColor: Colors.orange.withValues(alpha: 0.2),
+                onSelected: (val) => setState(() => estadoSeleccionado = val ? 'PENDIENTE' : null),
+              ),
+            ],
           ),
+          const SizedBox(height: 20),
+          // ------------------------------------------
+
+          const Text('Tipo', style: TextStyle(fontSize: 13, color: AppColors.muted)),
           const SizedBox(height: 8),
           Row(
             children: [
               FilterChip(
                 label: const Text('Ingresos'),
                 selected: esIngreso == true,
-                onSelected: (val) =>
-                    setState(() => esIngreso = val ? true : null),
+                onSelected: (val) => setState(() => esIngreso = val ? true : null),
               ),
               const SizedBox(width: 12),
               FilterChip(
                 label: const Text('Egresos'),
                 selected: esIngreso == false,
-                onSelected: (val) =>
-                    setState(() => esIngreso = val ? false : null),
+                onSelected: (val) => setState(() => esIngreso = val ? false : null),
               ),
             ],
           ),
@@ -475,10 +440,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                     widget.vm.limpiarFiltros();
                     Navigator.pop(context);
                   },
-                  child: const Text(
-                    'Limpiar',
-                    style: TextStyle(color: AppColors.muted),
-                  ),
+                  child: const Text('Limpiar', style: TextStyle(color: AppColors.muted)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -491,6 +453,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                       nuevoHasta: hasta,
                       nuevaCategoria: categoriaSeleccionada,
                       nuevoEsIngreso: esIngreso,
+                      nuevoEstado: estadoSeleccionado, // Asegurate de agregar esto en tu viewmodel
                     );
                     Navigator.pop(context);
                   },
@@ -514,26 +477,17 @@ class _ControlesPaginacion extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.line)),
-      ),
+      decoration: const BoxDecoration(color: AppColors.surface, border: Border(top: BorderSide(color: AppColors.line))),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            onPressed: vm.hayAnterior && !vm.cargando
-                ? vm.paginaAnterior
-                : null,
+            onPressed: vm.hayAnterior && !vm.cargando ? vm.paginaAnterior : null,
             icon: const Icon(Icons.chevron_left),
             tooltip: 'Anterior',
           ),
           if (vm.cargando)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+            const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
           else
             Flexible(
               child: SingleChildScrollView(
@@ -549,26 +503,11 @@ class _ControlesPaginacion extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                         onTap: esActual ? null : () => vm.irAPagina(index),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: esActual
-                                ? AppColors.accent
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(color: esActual ? AppColors.accent : Colors.transparent, borderRadius: BorderRadius.circular(8)),
                           child: Text(
                             '$pagina',
-                            style: TextStyle(
-                              color: esActual
-                                  ? AppColors.surface
-                                  : AppColors.text,
-                              fontWeight: esActual
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                            ),
+                            style: TextStyle(color: esActual ? AppColors.surface : AppColors.text, fontWeight: esActual ? FontWeight.bold : FontWeight.w500),
                           ),
                         ),
                       ),
@@ -593,18 +532,17 @@ class _FilaMovimiento extends StatelessWidget {
     this.movimiento, {
     required this.onEditar,
     required this.onEliminar,
+    required this.onRevisar,
   });
 
   final Movimiento movimiento;
   final VoidCallback onEditar;
   final VoidCallback onEliminar;
+  final VoidCallback onRevisar;
 
   String _formatearMonto(double monto) {
     final partes = monto.toStringAsFixed(2).split('.');
-    final entero = partes[0].replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (m) => '.',
-    );
+    final entero = partes[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.');
     return '\$ $entero,${partes[1]}';
   }
 
@@ -618,6 +556,9 @@ class _FilaMovimiento extends StatelessWidget {
     final colorCategoria = colorDesdeHex(movimiento.categoria.color);
     final colorMonto = movimiento.esIngreso ? AppColors.accent : AppColors.text;
     final signo = movimiento.esIngreso ? '+' : '-';
+    
+    // --- ESTA ES LA CLAVE PARA EL PUNTO 2 ---
+    final bool estaPendiente = movimiento.estado == 'PENDIENTE';
 
     return Row(
       children: [
@@ -625,18 +566,10 @@ class _FilaMovimiento extends StatelessWidget {
           width: 48,
           height: 48,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: colorCategoria.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(14),
-          ),
+          decoration: BoxDecoration(color: colorCategoria.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
           child: Text(
-            movimiento.categoria.emoji ??
-                movimiento.categoria.nombre.characters.first.toUpperCase(),
-            style: TextStyle(
-              fontSize: 20,
-              color: colorCategoria,
-              fontWeight: FontWeight.bold,
-            ),
+            movimiento.categoria.emoji ?? movimiento.categoria.nombre.characters.first.toUpperCase(),
+            style: TextStyle(fontSize: 20, color: colorCategoria, fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(width: 14),
@@ -648,52 +581,56 @@ class _FilaMovimiento extends StatelessWidget {
                 movimiento.categoria.nombre,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.text,
-                ),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.text),
               ),
               const SizedBox(height: 2),
-              Text(
-                movimiento.descripcion?.isNotEmpty == true
-                    ? movimiento.descripcion!
-                    : _formatearFecha(movimiento.fecha),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, color: AppColors.faint),
+              Row(
+                children: [
+                  if (estaPendiente) ...[
+                    const Icon(Icons.error_outline, size: 14, color: Colors.orange),
+                    const SizedBox(width: 4),
+                  ],
+                  Expanded(
+                    child: Text(
+                      movimiento.descripcion?.isNotEmpty == true ? movimiento.descripcion! : _formatearFecha(movimiento.fecha),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13, color: estaPendiente ? Colors.orange : AppColors.faint),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
         const SizedBox(width: 12),
-        Text(
-          '$signo ${_formatearMonto(movimiento.monto)}',
-          style: TextStyle(
-            fontSize: 15.5,
-            fontWeight: FontWeight.w700,
-            color: colorMonto,
-          ),
-        ),
+        Text('$signo ${_formatearMonto(movimiento.monto)}', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: colorMonto)),
         const SizedBox(width: 8),
-        IconButton(
-          icon: const Icon(
-            Icons.edit_outlined,
-            size: 20,
-            color: AppColors.muted,
+        
+        // --- BOTÓN VERIFICAR VS LÁPIZ ---
+        if (estaPendiente)
+          FilledButton.icon(
+            onPressed: onRevisar,
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.orange, // Naranja resalta que está pendiente
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(0, 36),
+            ),
+            icon: const Icon(Icons.fact_check_outlined, size: 16),
+            label: const Text('Verificar', style: TextStyle(fontSize: 13)),
+          )
+        else ...[
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.muted),
+            onPressed: onEditar,
+            tooltip: 'Editar',
           ),
-          onPressed: onEditar,
-          tooltip: 'Editar movimiento',
-        ),
-        IconButton(
-          icon: const Icon(
-            Icons.delete_outline,
-            size: 20,
-            color: AppColors.danger,
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+            onPressed: onEliminar,
+            tooltip: 'Eliminar',
           ),
-          onPressed: onEliminar,
-          tooltip: 'Eliminar movimiento',
-        ),
+        ],
       ],
     );
   }

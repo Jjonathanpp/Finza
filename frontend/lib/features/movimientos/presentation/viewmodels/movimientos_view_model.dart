@@ -20,6 +20,7 @@ class MovimientosViewModel extends ChangeNotifier {
   final int _limite = 12;
   bool _cerrado = false;
   int _totalPaginas = 1;
+  String? estadoFiltro;
 
   // Filtros
   DateTime? desde;
@@ -38,7 +39,8 @@ class MovimientosViewModel extends ChangeNotifier {
       desde != null ||
       hasta != null ||
       categoriaFiltro != null ||
-      esIngresoFiltro != null;
+      esIngresoFiltro != null ||
+      estadoFiltro != null;
 
   @override
   void notifyListeners() {
@@ -90,11 +92,13 @@ class MovimientosViewModel extends ChangeNotifier {
     DateTime? nuevoHasta,
     Categoria? nuevaCategoria,
     bool? nuevoEsIngreso,
+    String? nuevoEstado,
   }) {
     desde = nuevoDesde;
     hasta = nuevoHasta;
     categoriaFiltro = nuevaCategoria;
     esIngresoFiltro = nuevoEsIngreso;
+    estadoFiltro = nuevoEstado;
     _pagina = 0;
     _obtenerDatos();
   }
