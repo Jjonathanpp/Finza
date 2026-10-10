@@ -6,6 +6,7 @@ import '../../features/voice/voice_screen.dart';
 import '../../features/categorias/presentation/screens/categorias_screen.dart';
 import '../../features/movimientos/presentation/screens/alta_movimiento_screen.dart';
 import '../../features/movimientos/presentation/screens/movimientos_screen.dart';
+import '../../features/panel/presentation/screens/panel_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -28,6 +29,22 @@ class AppDrawer extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(
+                Icons.dashboard_outlined,
+                color: AppColors.muted,
+              ),
+              title: const Text(
+                'Panel',
+                style: TextStyle(color: AppColors.text),
+              ),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PanelScreen()),
+                );
+              },
+            ),
             ListTile(
               leading: const Icon(
                 Icons.list_alt,
