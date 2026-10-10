@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/widgets/app_drawer.dart';
 import 'package:frontend/features/home/presentation/widgets/acciones_rapidas.dart';
 import 'package:frontend/features/panel/presentation/widgets/gastos_por_categoria.dart';
+import 'package:frontend/features/panel/presentation/widgets/tarjeta_saldo.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -15,6 +16,8 @@ class HomeScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(18),
           children: [
+            const TarjetaSaldo(),
+            const SizedBox(height: 16),
             Container(
               height: 240,
               alignment: Alignment.center,
