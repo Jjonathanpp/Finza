@@ -60,7 +60,8 @@ class MovimientoApi {
     bool? esIngreso,
     String? estado,
   }) async {
-    String url = '/api/movimientos?page=$pagina&size=$limite';
+    // Agregamos sort=fecha,desc&sort=id,desc para que los más recientes queden arriba
+    String url = '/api/movimientos?page=$pagina&size=$limite&sort=fecha,desc&sort=id,desc';
 
     if (fechaInicio != null) url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
     if (fechaFin != null) url += '&fechaFin=${_formatearFechaIso(fechaFin)}';

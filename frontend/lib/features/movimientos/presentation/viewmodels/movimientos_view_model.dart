@@ -139,6 +139,7 @@ class MovimientosViewModel extends ChangeNotifier {
         fechaFin: hasta,
         categoriaId: categoriaFiltro?.id,
         esIngreso: esIngresoFiltro,
+        estado: estadoFiltro, // <-- AGREGÁ ESTA LÍNEA
       );
       _movimientos = nuevos;
       _totalPaginas = total;

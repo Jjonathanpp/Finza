@@ -4,6 +4,7 @@ import 'package:frontend/features/home/presentation/widgets/acciones_rapidas.dar
 import 'package:frontend/features/panel/presentation/widgets/gastos_por_categoria.dart';
 import 'package:frontend/features/panel/presentation/widgets/tarjeta_saldo.dart';
 import 'package:frontend/features/panel/presentation/widgets/grafico_balance_mes.dart';
+import 'package:frontend/features/panel/presentation/widgets/ultimos_movimientos.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -16,23 +17,19 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(18),
-          children: [
-            const TarjetaSaldo(),
-            const SizedBox(height: 16),
-            const GraficoBalanceMes(),
-            const SizedBox(height: 16),
-
-            const AccionesRapidas(),
-
-            const SizedBox(height: 16),
-            // Espacio para la lista de últimos movimientos
-            Container(
-              height: 240,
-              alignment: Alignment.center,
-              child: const Text('Últimos movimientos (próximamente)'),
-            ),
-
-            const GastosPorCategoria(),
+          children: const [
+            TarjetaSaldo(),
+            SizedBox(height: 16),
+            GraficoBalanceMes(),
+            SizedBox(height: 16),
+            
+            AccionesRapidas(),
+            SizedBox(height: 16),
+            
+            UltimosMovimientos(),
+            SizedBox(height: 16),
+            
+            GastosPorCategoria(),
           ],
         ),
       ),
