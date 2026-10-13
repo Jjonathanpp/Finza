@@ -6,8 +6,6 @@ import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
-import 'package:frontend/config/constants/sesion_temporal.dart';
-import 'package:frontend/config/constants/api_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 
@@ -101,12 +99,17 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
   }
 
   Future<void> _vincular() async {
-    final base = apiBaseUrl.endsWith('/')
-        ? apiBaseUrl.substring(0, apiBaseUrl.length - 1)
-        : apiBaseUrl;
-    final uri = Uri.parse('$base/api/mercadopago/autorizar?usuarioId=$cuentaIdTemporal');
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-    _iniciarVerificacionAutomatica();
+    try {
+      final url = await _vm.obtenerUrlAutorizacion();
+      final uri = Uri.parse(url);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      _iniciarVerificacionAutomatica();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al iniciar vinculación: $e')),
+      );
+    }
   }
 
   @override

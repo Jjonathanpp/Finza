@@ -8,7 +8,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+import com.finza.backend.model.Cuenta;
+import com.finza.backend.repository.CuentaRepository;
+import com.finza.backend.service.PerfilService;
+import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.dto.mercadopago.BusquedaMPResponseDTO;
 import com.finza.backend.dto.mercadopago.SincronizacionResumenDTO;
 import com.finza.backend.dto.Response;
@@ -23,26 +28,32 @@ import lombok.RequiredArgsConstructor;
 public class MercadoPagoSyncController {
 
     private final MercadoPagoSyncService syncService;
+    private final PerfilService perfilService;
+    private final CuentaRepository cuentaRepository;
 
     @GetMapping("/movimientos/crudos")
-    public ResponseEntity<BusquedaMPResponseDTO> obtenerMovimientosCrudos(@RequestParam Long usuarioId) {
-        BusquedaMPResponseDTO respuesta = syncService.obtenerMovimientosDesdeMP(usuarioId);
+    public ResponseEntity<BusquedaMPResponseDTO> obtenerMovimientosCrudos(@AuthenticationPrincipal Long cuentaId) {
+        Cuenta cuenta = cuentaRepository.findById(cuentaId)
+                .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
+        BusquedaMPResponseDTO respuesta = syncService.obtenerMovimientosDesdeMP(cuenta.getUsuario().getId());
         return ResponseEntity.ok(respuesta);
     }
 
     @GetMapping("/movimientos/mapeados")
-    public ResponseEntity<List<Movimiento>> obtenerMovimientosMapeados(
-            @RequestParam Long usuarioId,
-            @RequestParam(defaultValue = "1") Long perfilId) {
-        List<Movimiento> movimientos = syncService.obtenerMovimientosMapeados(usuarioId, perfilId);
+    public ResponseEntity<List<Movimiento>> obtenerMovimientosMapeados(@AuthenticationPrincipal Long cuentaId) {
+        Cuenta cuenta = cuentaRepository.findById(cuentaId)
+                .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
+        Long perfilId = perfilService.idPrincipal(cuentaId);
+        List<Movimiento> movimientos = syncService.obtenerMovimientosMapeados(cuenta.getUsuario().getId(), perfilId);
         return ResponseEntity.ok(movimientos);
     }
 
     @PostMapping("/sincronizar")
-    public ResponseEntity<Object> sincronizar(
-            @RequestParam Long usuarioId,
-            @RequestParam(defaultValue = "1") Long perfilId) {
-        SincronizacionResumenDTO resumen = syncService.sincronizarMovimientos(usuarioId, perfilId);
+    public ResponseEntity<Object> sincronizar(@AuthenticationPrincipal Long cuentaId) {
+        Cuenta cuenta = cuentaRepository.findById(cuentaId)
+                .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
+        Long perfilId = perfilService.idPrincipal(cuentaId);
+        SincronizacionResumenDTO resumen = syncService.sincronizarMovimientos(cuenta.getUsuario().getId(), perfilId);
         return Response.ok(resumen, "Sincronización completada exitosamente");
     }
 }
