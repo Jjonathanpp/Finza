@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -57,14 +58,22 @@ class _VoiceScreenState extends State<VoiceScreen> {
 
     // Si no está grabando, pedimos permiso e iniciamos
     if (await _audioRecorder.hasPermission()) {
-      final dir = await getApplicationDocumentsDirectory();
-      final filePath = '${dir.path}/finza_movimiento.m4a';
+      if (kIsWeb) {
+        // En Web se graba en memoria con Opus/WebM
+        await _audioRecorder.start(
+          const RecordConfig(encoder: AudioEncoder.opus), 
+          path: ''
+        );
+      } else {
+        // En Mobile (Android/iOS) se guarda archivo físico m4a
+        final dir = await getApplicationDocumentsDirectory();
+        final filePath = '${dir.path}/finza_movimiento.m4a';
 
-      // Iniciamos grabación en formato AAC (m4a)
-      await _audioRecorder.start(
-        const RecordConfig(encoder: AudioEncoder.aacLc), 
-        path: filePath
-      );
+        await _audioRecorder.start(
+          const RecordConfig(encoder: AudioEncoder.aacLc), 
+          path: filePath
+        );
+      }
       
       setState(() {
         _isRecording = true;
@@ -88,12 +97,31 @@ class _VoiceScreenState extends State<VoiceScreen> {
 
   Future<void> _enviarAudioABackend(String path) async {
     try {
+      final MultipartFile audioFile;
+
+      if (kIsWeb) {
+        // En Web descargamos los bytes del Blob generado en Chrome
+        final response = await Dio().get<List<int>>(
+          path,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        audioFile = MultipartFile.fromBytes(
+          response.data!,
+          filename: "movimiento.webm",
+        );
+      } else {
+        // En Mobile enviamos directamente el archivo local
+        audioFile = await MultipartFile.fromFile(
+          path,
+          filename: "movimiento.m4a",
+        );
+      }
+
       final formData = FormData.fromMap({
-        // Se manda el archivo físico tal cual lo espera el backend
-        "audio": await MultipartFile.fromFile(path, filename: "movimiento.m4a")
+        "audio": audioFile,
       });
 
-      // Pegamos al endpoint que ya probaste por cURL
+      // Enviamos al backend
       await ApiClient().postMultipart('/api/movimientos/procesar-audio', formData);
 
       if (mounted) {

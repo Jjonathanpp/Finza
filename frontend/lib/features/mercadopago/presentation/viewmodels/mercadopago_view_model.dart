@@ -75,4 +75,8 @@ class MercadoPagoViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<String> obtenerUrlAutorizacion() async {
+    return await _api.obtenerUrlAutorizacion();
+  }
 }

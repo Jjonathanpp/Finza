@@ -43,7 +43,7 @@ public class SecurityConfig {
                
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/health", "/error",
-                                "/api/mercadopago/**", "/mercadopago/**").permitAll()
+                                "/api/mercadopago/callback", "/mercadopago/callback").permitAll()
                         .anyRequest().authenticated())
 
             
