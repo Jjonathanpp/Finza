@@ -29,18 +29,8 @@ VALUES
   (3, 3, 'Perfil Principal', 'ADMIN',   NULL, TRUE, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
--- 4) CATALOGO de categorias predefinidas (cuenta_id NULL = globales)
-INSERT INTO categoria (id, cuenta_id, nombre, color, es_predefinida, tipo_categoria_predefinida)
-VALUES
-  (1, NULL, 'Sueldo',      '#22C55E', TRUE, 'INGRESO'),
-  (2, NULL, 'Freelance',   '#84CC16', TRUE, 'INGRESO'),
-  (3, NULL, 'Alquiler',    '#F59E0B', TRUE, 'INGRESO'),
-  (4, NULL, 'Inversiones', '#06B6D4', TRUE, 'INGRESO'),
-  (5, NULL, 'Otros',       '#94A3B8', TRUE, 'INGRESO'),
-  (6, NULL, 'Comida',      '#EF4444', TRUE, 'EGRESO'),
-  (7, NULL, 'Transporte',  '#8B5CF6', TRUE, 'EGRESO'),
-  (8, NULL, 'Servicios',   '#6366F1', TRUE, 'EGRESO')
-ON CONFLICT (id) DO NOTHING;
+-- 4) El catalogo de categorias predefinidas (ids 1 a 8) esta en catalogo.sql,
+-- que se carga antes que este archivo.
 
 -- 4.1) CATEGORIAS propias (cuenta_id no nulo) - creadas via POST /api/categorias (t-4.2.1),
 -- cubren los casos de negocio del endpoint: propia sin choque (9), mismo nombre que una
