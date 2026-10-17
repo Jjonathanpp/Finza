@@ -33,7 +33,7 @@ public class CategoriaService {
         if (!cuentaRepository.existsById(cuentaId)) {
             throw new BadRequestException("La cuenta indicada no existe");
         }
-        return categoriaRepository.findByCuentaIdOrCuentaIsNull(cuentaId).stream()
+        return categoriaRepository.listarPredefinidasYPropias(cuentaId).stream()
                 .map(CategoriaResponseDTO::new)
                 .toList();
     }
