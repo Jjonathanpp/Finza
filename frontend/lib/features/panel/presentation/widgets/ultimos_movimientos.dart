@@ -9,15 +9,21 @@ import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/pesos.dart';
 
 class UltimosMovimientos extends StatefulWidget {
-  const UltimosMovimientos({super.key, this.api});
+  const UltimosMovimientos({super.key, this.api, this.startDate, this.endDate});
+  
   final PanelApi? api;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   @override
   State<UltimosMovimientos> createState() => _UltimosMovimientosState();
 }
 
 class _UltimosMovimientosState extends State<UltimosMovimientos> {
-  late final _resumen = (widget.api ?? PanelApi(ApiClient())).resumen();
+  late final _resumen = (widget.api ?? PanelApi(ApiClient())).resumen(
+    startDate: widget.startDate,
+    endDate: widget.endDate,
+  );
 
   @override
   Widget build(BuildContext context) {

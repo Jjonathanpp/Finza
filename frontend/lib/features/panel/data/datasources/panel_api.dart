@@ -7,14 +7,28 @@ class PanelApi {
 
   final ApiClient _api;
 
-  // De quién son los gastos lo dice el token, que agrega el interceptor.
-  Future<ResumenGastos> gastosPorCategoria() async {
-    final data = await _api.get('/api/panel/gastos-por-categoria');
+  static String _formatearFechaIso(DateTime fecha) {
+    String dos(int n) => n.toString().padLeft(2, '0');
+    return '${fecha.year}-${dos(fecha.month)}-${dos(fecha.day)}';
+  }
+
+  Future<ResumenGastos> gastosPorCategoria({DateTime? startDate, DateTime? endDate}) async {
+    final queryParams = <String>[];
+    if (startDate != null) queryParams.add('startDate=${_formatearFechaIso(startDate)}');
+    if (endDate != null) queryParams.add('endDate=${_formatearFechaIso(endDate)}');
+    
+    final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+    final data = await _api.get('/api/panel/gastos-por-categoria$queryString');
     return ResumenGastos.fromJson(data);
   }
 
-  Future<ResumenMes> resumen() async {
-    final data = await _api.get('/api/panel/resumen');
+  Future<ResumenMes> resumen({DateTime? startDate, DateTime? endDate}) async {
+    final queryParams = <String>[];
+    if (startDate != null) queryParams.add('startDate=${_formatearFechaIso(startDate)}');
+    if (endDate != null) queryParams.add('endDate=${_formatearFechaIso(endDate)}');
+    
+    final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+    final data = await _api.get('/api/panel/resumen$queryString');
     return ResumenMes.fromJson(data);
   }
 }

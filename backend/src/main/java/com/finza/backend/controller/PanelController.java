@@ -1,5 +1,8 @@
 package com.finza.backend.controller;
 
+import java.time.LocalDate;
+
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,14 +31,20 @@ public class PanelController {
     @GetMapping("/resumen")
     public ResponseEntity<Object> obtenerResumen(
             @AuthenticationPrincipal Long cuentaId,
-            @RequestParam(name = "limite", defaultValue = "5") int limite) {
-        var resumen = panelService.obtenerResumen(perfilService.idPrincipal(cuentaId), cuentaId, limite);
+            @RequestParam(name = "limite", defaultValue = "5") int limite,
+            @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        var resumen = panelService.obtenerResumen(perfilService.idPrincipal(cuentaId), cuentaId, limite, startDate, endDate);
         return Response.response(HttpStatus.OK, "Resumen del balance obtenido", resumen);
     }
 
     // "¿En qué gastaste este mes?" (US-5.4), del perfil de la cuenta del token.
     @GetMapping("/gastos-por-categoria")
-    public ResponseEntity<Object> gastosPorCategoria(@AuthenticationPrincipal Long cuentaId) {
-        return Response.ok(panelService.gastosPorCategoria(perfilService.idPrincipal(cuentaId)), "Gastos por categoría del mes");
+    public ResponseEntity<Object> gastosPorCategoria(
+            @AuthenticationPrincipal Long cuentaId,
+            @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        
+        return Response.ok(panelService.gastosPorCategoria(perfilService.idPrincipal(cuentaId), startDate, endDate), "Gastos por categoría del período");
     }
 }

@@ -32,32 +32,58 @@ public class PanelServiceImpl implements PanelService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResumenMesDTO obtenerResumen(Long perfilId, Long cuentaIdAutenticada, int limite) {
+    public ResumenMesDTO obtenerResumen(Long perfilId, Long cuentaIdAutenticada, int limite, LocalDate startDate, LocalDate endDate) {
 
-        // 1. Buscamos preferencias y fechas
         PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(perfilId).orElse(new PreferenciasSistema());
-        LocalDate[] rangoFechas = calcularRangoDeFechas(prefs);
+        LocalDate[] rangoFechas = calcularRangoDeFechas(prefs, startDate, endDate); // <-- Todo resuelto acá
 
-        // 2. Totales matemáticos
         BigDecimal totalIngresos = movimientoRepository.sumarMontoPorTipoYFechas(
                 perfilId, cuentaIdAutenticada, true, rangoFechas[0], rangoFechas[1]);
         BigDecimal totalEgresos = movimientoRepository.sumarMontoPorTipoYFechas(
                 perfilId, cuentaIdAutenticada, false, rangoFechas[0], rangoFechas[1]);
         BigDecimal saldo = totalIngresos.subtract(totalEgresos);
-        // Sin fechas, la misma consulta suma todo: el saldo de la billetera.
+        
         BigDecimal saldoTotal = movimientoRepository.sumarMontoPorTipoYFechas(perfilId, cuentaIdAutenticada, true, null, null)
                 .subtract(movimientoRepository.sumarMontoPorTipoYFechas(perfilId, cuentaIdAutenticada, false, null, null));
 
-        // 3. Delegamos la búsqueda de las 3 listas
         List<MovimientoResponseDTO> ultimosTodos = movimientoService.obtenerUltimosMovimientos(perfilId, cuentaIdAutenticada, limite);
         List<MovimientoResponseDTO> ultimosIngresos = movimientoService.obtenerUltimosIngresos(perfilId, cuentaIdAutenticada, limite);
         List<MovimientoResponseDTO> ultimosEgresos = movimientoService.obtenerUltimosEgresos(perfilId, cuentaIdAutenticada, limite);
 
-        // 4. Empaquetamos todo
         return new ResumenMesDTO(totalIngresos, totalEgresos, saldo, saldoTotal, ultimosTodos, ultimosIngresos, ultimosEgresos);
     }
 
-    private LocalDate[] calcularRangoDeFechas(PreferenciasSistema prefs) {
+    @Override
+    public ResumenGastosDTO gastosPorCategoria(Long perfilId, LocalDate startDate, LocalDate endDate) {
+        
+        PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(perfilId).orElse(new PreferenciasSistema());
+        LocalDate[] rangoFechas = calcularRangoDeFechas(prefs, startDate, endDate); // <-- Todo resuelto acá también
+
+        List<GastoPorCategoriaDTO> categorias =
+                movimientoRepository.sumarGastosPorCategoria(perfilId, rangoFechas[0], rangoFechas[1]);
+
+        BigDecimal total = categorias.stream()
+                .map(GastoPorCategoriaDTO::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        for (GastoPorCategoriaDTO categoria : categorias) {
+            categoria.setPorcentaje(categoria.getTotal()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(total, 1, RoundingMode.HALF_UP));
+        }
+        return new ResumenGastosDTO(total, categorias);
+    }
+
+    // El método ahora maneja la prioridad (parámetros explícitos) y la validación
+    private LocalDate[] calcularRangoDeFechas(PreferenciasSistema prefs, LocalDate startDate, LocalDate endDate) {
+        
+        if (startDate != null && endDate != null) {
+            if (startDate.isAfter(endDate)) {
+                throw new IllegalArgumentException("La fecha de inicio (startDate) no puede ser posterior a la fecha de fin (endDate).");
+            }
+            return new LocalDate[]{startDate, endDate};
+        }
+
         LocalDate hoy = LocalDate.now();
         LocalDate inicio = null;
         LocalDate fin = null;
@@ -101,23 +127,5 @@ public class PanelServiceImpl implements PanelService {
         
         return new LocalDate[]{inicio, fin};
     }
-
-    @Override
-    public ResumenGastosDTO gastosPorCategoria(Long perfilId) {
-        YearMonth mes = YearMonth.now();
-        List<GastoPorCategoriaDTO> categorias =
-                movimientoRepository.sumarGastosPorCategoria(perfilId, mes.atDay(1), mes.atEndOfMonth());
-
-        BigDecimal total = categorias.stream()
-                .map(GastoPorCategoriaDTO::getTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Sin gastos la lista viene vacía y no se divide nada: el total queda en 0.
-        for (GastoPorCategoriaDTO categoria : categorias) {
-            categoria.setPorcentaje(categoria.getTotal()
-                    .multiply(BigDecimal.valueOf(100))
-                    .divide(total, 1, RoundingMode.HALF_UP));
-        }
-        return new ResumenGastosDTO(total, categorias);
-    }
 }
+
