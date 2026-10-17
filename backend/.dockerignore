@@ -1,0 +1,6 @@
+# Lo que Docker no necesita para construir el backend: el Dockerfile solo copia
+# pom.xml, mvnw, .mvn y src. Sin esto, cada build le manda tambien target/ (decenas de MB).
+target/
+.idea/
+.vscode/
+*.iml

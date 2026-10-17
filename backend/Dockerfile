@@ -4,8 +4,11 @@ WORKDIR /app
 COPY pom.xml .
 COPY mvnw .
 COPY .mvn .mvn
+# Las librerias se bajan antes de copiar el codigo: Docker reusa esta capa
+# mientras no cambie pom.xml, y un cambio en src no las vuelve a bajar
+RUN ./mvnw dependency:go-offline
 COPY src ./src
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw package -DskipTests
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
