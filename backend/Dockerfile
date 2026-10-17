@@ -8,7 +8,7 @@ COPY .mvn .mvn
 # mientras no cambie pom.xml, y un cambio en src no las vuelve a bajar
 RUN ./mvnw dependency:go-offline
 COPY src ./src
-RUN ./mvnw package -DskipTests
+RUN ./mvnw clean package -DskipTests
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine

@@ -6,16 +6,21 @@ import 'package:frontend/features/panel/data/models/resumen_mes.dart';
 import 'package:frontend/shared/utils/pesos.dart';
 
 class GraficoBalanceMes extends StatefulWidget {
-  const GraficoBalanceMes({super.key, this.api});
+  const GraficoBalanceMes({super.key, this.api, this.startDate, this.endDate});
 
   final PanelApi? api;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   @override
   State<GraficoBalanceMes> createState() => _GraficoBalanceMesState();
 }
 
 class _GraficoBalanceMesState extends State<GraficoBalanceMes> {
-  late final _resumen = (widget.api ?? PanelApi(ApiClient())).resumen();
+  late final _resumen = (widget.api ?? PanelApi(ApiClient())).resumen(
+    startDate: widget.startDate,
+    endDate: widget.endDate,
+  );
 
   @override
   Widget build(BuildContext context) {

@@ -10,10 +10,10 @@ import 'package:frontend/shared/utils/pesos.dart';
 // "En qué gastás" (US-5.4), el bloque del panel con lo gastado en el mes por categoría, como en la maqueta.
 // El orden, los totales y los porcentajes ya vienen calculados del backend (T-5.4.1).
 class GastosPorCategoria extends StatefulWidget {
-  const GastosPorCategoria({super.key, this.api});
-
-  // Solo para los tests: en la app pide los datos al backend.
+  const GastosPorCategoria({super.key, this.api, this.startDate, this.endDate});
   final PanelApi? api;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   @override
   State<GastosPorCategoria> createState() => _GastosPorCategoriaState();
@@ -21,7 +21,10 @@ class GastosPorCategoria extends StatefulWidget {
 
 class _GastosPorCategoriaState extends State<GastosPorCategoria> {
   // Se pide al abrir el Inicio. El menú arma el Inicio de nuevo cada vez, así que trae lo último cargado.
-  late final _resumen = (widget.api ?? PanelApi(ApiClient())).gastosPorCategoria();
+  late final _resumen = (widget.api ?? PanelApi(ApiClient())).gastosPorCategoria(
+    startDate: widget.startDate,
+    endDate: widget.endDate,
+  );
 
   @override
   Widget build(BuildContext context) {

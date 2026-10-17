@@ -1,11 +1,12 @@
 package com.finza.backend.service;
 
+import java.time.LocalDate;
+
 import com.finza.backend.dto.panel.ResumenGastosDTO;
 import com.finza.backend.dto.panel.ResumenMesDTO;
 
 public interface PanelService {
-    ResumenMesDTO obtenerResumen(Long perfilId, Long cuentaIdAutenticada, int limite);
+   ResumenMesDTO obtenerResumen(Long perfilId, Long cuentaIdAutenticada, int limite, LocalDate startDate, LocalDate endDate);
 
-    // Los gastos del mes actual por categoría, con qué parte del total es cada una.
-    ResumenGastosDTO gastosPorCategoria(Long perfilId);
+    ResumenGastosDTO gastosPorCategoria(Long perfilId, LocalDate startDate, LocalDate endDate);
 }

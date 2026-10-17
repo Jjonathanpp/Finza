@@ -8,18 +8,21 @@ import 'package:frontend/shared/utils/pesos.dart';
 
 // La tarjeta de arriba del Inicio: tu plata en pesos, tipo billetera, y cómo vas este mes.
 // El ojo esconde los montos, para mirar la app delante de otros.
-class TarjetaSaldo extends StatefulWidget {
-  const TarjetaSaldo({super.key, this.api});
-
-  // Solo para los tests: en la app pide los datos al backend.
+class TarjetaSaldo extends StatefulWidget { // (O GraficoBalanceMes / UltimosMovimientos)
+  const TarjetaSaldo({super.key, this.api, this.startDate, this.endDate});
   final PanelApi? api;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   @override
   State<TarjetaSaldo> createState() => _TarjetaSaldoState();
 }
 
 class _TarjetaSaldoState extends State<TarjetaSaldo> {
-  late final _resumen = (widget.api ?? PanelApi(ApiClient())).resumen();
+  late final _resumen = (widget.api ?? PanelApi(ApiClient())).resumen(
+    startDate: widget.startDate,
+    endDate: widget.endDate,
+  );
   // ponytail: no se guarda; al cambiar de pestaña vuelve a mostrarse. Guardarlo si molesta.
   bool _oculto = false;
 
@@ -92,13 +95,15 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
         const SizedBox(height: 8),
         Text.rich(
           TextSpan(
-            text: 'Este mes: ',
+            text: 'Período de informe: ',
             children: [
               TextSpan(
                 text: _oculto ? '••••' : '${mes > 0 ? '+' : ''}${pesos(mes)}',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: _oculto || mes == 0 ? AppColors.muted : (mes > 0 ? AppColors.accent : AppColors.danger),
+                  color: _oculto || mes == 0 
+                      ? AppColors.muted 
+                      : (mes > 0 ? AppColors.accent : AppColors.danger),
                 ),
               ),
             ],
