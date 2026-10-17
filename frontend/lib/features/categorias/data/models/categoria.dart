@@ -25,13 +25,18 @@ class Categoria {
       );
 }
 
+// Las del catálogo de catalogo.sql (t-4.1.3). "Otros" hay de ingreso y de egreso: comparten el emoji.
 const _emojis = {
   'sueldo': '💼',
-  'freelance': '💻',
-  'alquiler': '🏠',
   'inversiones': '📈',
   'otros': '📦',
   'comida': '🍔',
   'transporte': '🚗',
   'servicios': '💡',
+  'supermercado': '🛒',
+  'alquiler': '🏠',
+  'salud': '💊',
+  'educación': '📚',
+  'entretenimiento': '🎬',
+  'ropa': '👕',
 };

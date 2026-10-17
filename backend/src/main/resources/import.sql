@@ -29,17 +29,19 @@ VALUES
   (3, 3, 'Perfil Principal', 'ADMIN',   NULL, TRUE, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
--- 4) El catalogo de categorias predefinidas (ids 1 a 8) esta en catalogo.sql,
--- que se carga antes que este archivo.
+-- 4) El catalogo de categorias predefinidas esta en catalogo.sql, que se carga antes
+-- que este archivo. Desde t-4.1.3 solo Sueldo (1), Inversiones (4), Otros de ingreso (5),
+-- Comida (6), Transporte (7) y Servicios (8) tienen id fijo; las nuevas, no.
 
 -- 4.1) CATEGORIAS propias (cuenta_id no nulo) - creadas via POST /api/categorias (t-4.2.1),
 -- cubren los casos de negocio del endpoint: propia sin choque (9), mismo nombre que una
--- global pero tipo distinto (10), mismo nombre que otra cuenta pero cuenta distinta (11),
+-- global pero tipo distinto (10: "Alquiler" de ingreso, la global es de egreso),
+-- mismo nombre que otra cuenta pero cuenta distinta (11),
 -- y una sin movimientos asociados para poder demostrar PUT/DELETE en vivo (12).
 INSERT INTO categoria (id, cuenta_id, nombre, color, es_predefinida, tipo_categoria_predefinida)
 VALUES
   (9,  1, 'Mascotas',      '#F97316', FALSE, 'EGRESO'),
-  (10, 1, 'Alquiler',      '#EA580C', FALSE, 'EGRESO'),
+  (10, 1, 'Alquiler',      '#EA580C', FALSE, 'INGRESO'),
   (11, 2, 'Mascotas',      '#10B981', FALSE, 'EGRESO'),
   (12, 1, 'Suscripciones', '#A855F7', FALSE, 'EGRESO')
 ON CONFLICT (id) DO NOTHING;
@@ -48,7 +50,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO movimiento (id, perfil_id, categoria_id, monto, es_ingreso, fecha, descripcion, estado, origen, fecha_creacion, external_id)
 VALUES
   (1, 1, 1, 600000.00, TRUE,  '2026-08-05', 'Sueldo agosto',     'APROBADO', 'MANUAL', NOW() - INTERVAL '30 days', NULL),
-  (2, 1, 2,  28500.00, TRUE,  '2026-08-12', 'Proyecto diseno',   'APROBADO', 'MANUAL', NOW() - INTERVAL '28 days', NULL),
+  (2, 1, 5,  28500.00, TRUE,  '2026-08-12', 'Proyecto diseno',   'APROBADO', 'MANUAL', NOW() - INTERVAL '28 days', NULL),
   (3, 1, 6,   8500.00, FALSE, '2026-08-15', 'Verduleria',        'APROBADO', 'MANUAL', NOW() - INTERVAL '26 days', NULL),
   (4, 1, 7,  12000.00, FALSE, '2026-08-20', 'SUBTE y tren',      'APROBADO', 'MANUAL', NOW() - INTERVAL '20 days', NULL),
   (5, 2, 1, 600000.00, TRUE,  '2026-09-01', 'Sueldo septiembre', 'APROBADO', 'MANUAL', NOW() - INTERVAL '5 days',  NULL),
@@ -59,10 +61,13 @@ ON CONFLICT (id) DO NOTHING;
 -- regresion del bug fixeado en 93a1a54 (mismo nombre "Alquiler", tipo distinto ->
 -- categoria distinta), y el par 9/10 muestra el aislamiento por cuenta (mismo nombre
 -- "Mascotas" en cuenta 1 y cuenta 2 -> filas distintas).
+-- El 7 va al "Alquiler" propio de juan (ingreso) y el 8 al predefinido (egreso), que
+-- no tiene id fijo: se busca por nombre y tipo.
 INSERT INTO movimiento (id, perfil_id, categoria_id, monto, es_ingreso, fecha, descripcion, estado, origen, fecha_creacion, external_id)
 VALUES
-  (7,  1, 3,  18500.00, TRUE,  '2026-08-25', 'Inquilino del departamento', 'APROBADO', 'MANUAL', NOW() - INTERVAL '19 days', NULL),
-  (8,  1, 10,  9000.00, FALSE, '2026-08-27', 'Alquiler de cochera',        'APROBADO', 'MANUAL', NOW() - INTERVAL '17 days', NULL),
+  (7,  1, 10, 18500.00, TRUE,  '2026-08-25', 'Inquilino del departamento', 'APROBADO', 'MANUAL', NOW() - INTERVAL '19 days', NULL),
+  (8,  1, (SELECT id FROM categoria WHERE cuenta_id IS NULL AND nombre = 'Alquiler' AND tipo_categoria_predefinida = 'EGRESO'),
+               9000.00, FALSE, '2026-08-27', 'Alquiler de cochera',        'APROBADO', 'MANUAL', NOW() - INTERVAL '17 days', NULL),
   (9,  1, 9,  15000.00, FALSE, '2026-09-02', 'Veterinaria',                'APROBADO', 'MANUAL', NOW() - INTERVAL '11 days', NULL),
   (10, 2, 11,  9500.00, FALSE, '2026-09-05', 'Alimento para gato',         'APROBADO', 'MANUAL', NOW() - INTERVAL '8 days',  NULL),
   (11, 2, 5,   6000.00, TRUE,  '2026-09-10', 'Venta de acciones',          'APROBADO', 'MANUAL', NOW() - INTERVAL '3 days',  NULL),
