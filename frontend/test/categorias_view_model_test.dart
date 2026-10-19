@@ -38,6 +38,23 @@ void main() {
     expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Comida', 'Mascotas']);
   });
 
+  test('ocultar las predefinidas deja solo las propias, y otro toque las vuelve a mostrar', () async {
+    final vm = CategoriasViewModel(CategoriaApiDeMentira());
+    await vm.cargar();
+    expect(vm.verPredefinidas, isTrue); // por defecto se ven
+
+    vm.alternarPredefinidas();
+
+    expect(vm.verPredefinidas, isFalse);
+    expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Mascotas']);
+    expect(vm.deIngreso, isEmpty);
+
+    vm.alternarPredefinidas();
+
+    expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Comida', 'Mascotas']);
+    expect(vm.deIngreso.map((c) => c.nombre).toList(), ['Sueldo']);
+  });
+
   test('si la pantalla se cierra mientras carga, no se rompe', () async {
     final vm = CategoriasViewModel(CategoriaApiDeMentira());
     final carga = vm.cargar();
