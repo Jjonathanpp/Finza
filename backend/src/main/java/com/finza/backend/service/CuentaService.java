@@ -98,4 +98,15 @@ public class CuentaService {
 
         return new LoginResponseDTO(accessToken, refreshToken, cuenta.getEmail());
     }
+
+    /** @return true si se eliminó, false si la contraseña no coincide */
+    @Transactional
+    public boolean eliminarCuenta(Long cuentaId, String passwordActual) {
+        Cuenta cuenta = cuentaRepository.findById(cuentaId).orElse(null);
+        if (cuenta == null || !passwordEncoder.matches(passwordActual, cuenta.getPassword())) {
+            return false;
+        }
+        cuentaRepository.delete(cuenta);
+        return true;
+    }
 }
