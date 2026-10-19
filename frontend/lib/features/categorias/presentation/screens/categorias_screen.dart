@@ -109,6 +109,15 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
             children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _vm.alternarPredefinidas,
+                  style: TextButton.styleFrom(foregroundColor: AppColors.muted),
+                  icon: Icon(_vm.verPredefinidas ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
+                  label: Text(_vm.verPredefinidas ? 'Ocultar predefinidas' : 'Mostrar predefinidas'),
+                ),
+              ),
               _grupo('Egresos', _vm.deEgreso),
               _grupo('Ingresos', _vm.deIngreso),
             ],
@@ -138,6 +147,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           ),
         ),
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.surface,
@@ -146,6 +156,13 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           ),
           child: Column(
             children: [
+              // Vacío solo pasa con las predefinidas ocultas: el catálogo trae de los dos tipos.
+              if (categorias.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  child: Text('No tenés categorías propias de ${titulo.toLowerCase()}',
+                      style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+                ),
               for (var i = 0; i < categorias.length; i++) ...[
                 if (i > 0) const Divider(height: 1, thickness: 1, color: AppColors.line),
                 _fila(categorias[i]),
