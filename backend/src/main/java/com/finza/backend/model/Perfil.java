@@ -1,5 +1,9 @@
 package com.finza.backend.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,6 +13,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -27,13 +33,19 @@ public class Perfil {
     @JoinColumn(name = "cuenta_id", nullable = false)
     private Cuenta cuenta;
 
+    @OneToMany(mappedBy = "perfil", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Movimiento> movimientos = new ArrayList<>();
+
+    @OneToMany(mappedBy = "perfil", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Presupuesto> presupuestos = new ArrayList<>();
+
+    @OneToOne(mappedBy = "perfil", cascade = CascadeType.ALL, orphanRemoval = true)
+    private PreferenciasSistema preferenciasSistema;
     private String nombrePerfil;
     private String rol;
     @Column(name = "foto_url")
     private String foto;
     private boolean esPrincipal;
     private boolean esActivo;
-
-
 
 }
