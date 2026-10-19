@@ -6,6 +6,11 @@ import 'package:frontend/features/mercadopago/presentation/screens/mercadopago_s
 import 'package:frontend/features/movimientos/presentation/screens/alta_movimiento_screen.dart';
 import 'package:frontend/features/movimientos/presentation/screens/movimientos_screen.dart';
 import 'package:frontend/features/voice/voice_screen.dart';
+import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.dart';
+import 'package:frontend/features/presupuestos/presentation/screens/presupuestos_screen.dart';
+import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
+import 'package:provider/provider.dart';
 
 const _sombra = [BoxShadow(color: Color(0x14000000), blurRadius: 16, offset: Offset(0, 4))];
 
@@ -58,7 +63,15 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
           children: [
             KeyedSubtree(
               key: ValueKey(_vueltas),
-              child: [const HomeScreen(), const MovimientosScreen(), const CategoriasScreen()][_pestana],
+              child: [
+                const HomeScreen(),
+                const MovimientosScreen(),
+                const CategoriasScreen(),
+                ChangeNotifierProvider(
+                  create: (_) => PresupuestosViewModel(PresupuestoApi(ApiClient())),
+                  child: const PresupuestosScreen(),
+                ),
+              ][_pestana],
             ),
             // El fondo se oscurece un poco y, tocándolo, se cierra.
             if (_abierto)
@@ -112,6 +125,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                         _Pestana(Icons.home_rounded, 'Inicio', _pestana == 0, () => _irA(0)),
                         _Pestana(Icons.history, 'Historial', _pestana == 1, () => _irA(1)),
                         _Pestana(Icons.category_outlined, 'Categorías', _pestana == 2, () => _irA(2)),
+                        _Pestana(Icons.pie_chart_outline, 'Presupuestos', _pestana == 3, () => _irA(3)),
                       ],
                     ),
                   ),
