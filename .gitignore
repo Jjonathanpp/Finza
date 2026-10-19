@@ -21,6 +21,7 @@ frontend/.flutter-plugins-dependencies
 frontend/.packages
 frontend/.metadata
 frontend/*.iml
+frontend/android/
 frontend/ios/
 frontend/linux/
 frontend/macos/

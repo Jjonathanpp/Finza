@@ -20,7 +20,8 @@ class ApiClient {
   Future<dynamic> put(String path, Map<String, dynamic> body) =>
       _enviar(() => _dio.put(path, data: body));
 
-  Future<dynamic> delete(String path) => _enviar(() => _dio.delete(path));
+  Future<dynamic> delete(String path, [Map<String, dynamic>? body]) =>
+      _enviar(() => _dio.delete(path, data: body));
 
   Future<dynamic> _enviar(Future<Response> Function() pedido) async {
     try {
@@ -39,7 +40,10 @@ class ApiClient {
           cuerpo['data'],
         );
       }
-      throw ApiException(respuestaError.statusCode, 'Error inesperado del servidor');
+      throw ApiException(
+        respuestaError.statusCode,
+        'Error inesperado del servidor',
+      );
     }
   }
 }
@@ -54,11 +58,16 @@ class TokenInterceptor extends Interceptor {
   final void Function() alTerminarSesion;
 
   @override
-  Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     final token = await _tokens.obtenerToken();
     if (token != null && !tokenVigente(token) && !_esDeLogin(options)) {
       await _terminarSesion();
-      handler.reject(DioException(requestOptions: options, message: 'La sesión venció'));
+      handler.reject(
+        DioException(requestOptions: options, message: 'La sesión venció'),
+      );
       return;
     }
     if (token != null) options.headers['Authorization'] = 'Bearer $token';
@@ -66,7 +75,10 @@ class TokenInterceptor extends Interceptor {
   }
 
   @override
-  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
     if (err.response?.statusCode == 401 && !_esDeLogin(err.requestOptions)) {
       await _terminarSesion();
     }
@@ -79,4 +91,5 @@ class TokenInterceptor extends Interceptor {
   }
 }
 
-bool _esDeLogin(RequestOptions pedido) => pedido.uri.path.startsWith('/api/auth/');
+bool _esDeLogin(RequestOptions pedido) =>
+    pedido.uri.path.startsWith('/api/auth/');

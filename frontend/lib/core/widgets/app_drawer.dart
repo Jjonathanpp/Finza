@@ -5,6 +5,7 @@ import '../../features/login/screens/login_screen.dart';
 import '../../features/voice/voice_screen.dart';
 import '../../features/movimientos/presentation/screens/alta_movimiento_screen.dart';
 import '../../features/home/presentation/screens/pantalla_principal.dart';
+import 'package:frontend/core/widgets/eliminar_cuenta_dialog.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -17,6 +18,12 @@ class AppDrawer extends StatelessWidget {
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
     );
+  }
+
+  void _eliminarCuenta(BuildContext context) {
+    final navigator = Navigator.of(context);
+    navigator.pop(); // cierra el drawer
+    EliminarCuentaDialog.mostrar(navigator.context);
   }
 
   @override
@@ -49,7 +56,9 @@ class AppDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const PantallaPrincipal(pestana: 1)),
+                  MaterialPageRoute(
+                    builder: (_) => const PantallaPrincipal(pestana: 1),
+                  ),
                 );
               },
             ),
@@ -83,7 +92,9 @@ class AppDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const PantallaPrincipal(pestana: 2)),
+                  MaterialPageRoute(
+                    builder: (_) => const PantallaPrincipal(pestana: 2),
+                  ),
                 );
               },
             ),
@@ -101,6 +112,26 @@ class AppDrawer extends StatelessWidget {
               },
             ),
             const Spacer(),
+            const Divider(color: AppColors.line),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_forever_outlined,
+                color: AppColors.danger,
+              ),
+              title: const Text(
+                'Eliminar cuenta',
+                style: TextStyle(color: AppColors.danger),
+              ),
+              onTap: () => _eliminarCuenta(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout, color: AppColors.danger),
+              title: const Text(
+                'Cerrar sesión',
+                style: TextStyle(color: AppColors.danger),
+              ),
+              onTap: () => _cerrarSesion(context),
+            ),
             const Divider(color: AppColors.line),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.danger),
