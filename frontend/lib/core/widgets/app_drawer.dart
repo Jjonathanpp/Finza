@@ -132,15 +132,6 @@ class AppDrawer extends StatelessWidget {
               ),
               onTap: () => _cerrarSesion(context),
             ),
-            const Divider(color: AppColors.line),
-            ListTile(
-              leading: const Icon(Icons.logout, color: AppColors.danger),
-              title: const Text(
-                'Cerrar sesión',
-                style: TextStyle(color: AppColors.danger),
-              ),
-              onTap: () => _cerrarSesion(context),
-            ),
             const SizedBox(height: 8),
           ],
         ),
