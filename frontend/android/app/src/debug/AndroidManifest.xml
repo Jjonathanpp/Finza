@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Solo en desarrollo: deja usar el backend local por http (sin la "s"), por ejemplo
+         con la IP de la PC en la WiFi. La versión de producción no lo permite (T-1.8.4). -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
