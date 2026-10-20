@@ -11,6 +11,9 @@ import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.
 import 'package:frontend/features/presupuestos/presentation/screens/presupuestos_screen.dart';
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
 import 'package:provider/provider.dart';
+import 'package:frontend/core/errors/api_exception.dart';
+import 'package:frontend/features/configuracion/data/datasources/preferencias_api.dart';
+import 'package:frontend/shared/utils/importe.dart';
 
 const _sombra = [BoxShadow(color: Color(0x14000000), blurRadius: 16, offset: Offset(0, 4))];
 
@@ -31,6 +34,29 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
   bool _abierto = false;
   // Sube al volver de cargar algo: arma la pestaña de nuevo, así trae lo último (T-5.5.3).
   int _vueltas = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    monedaVista.addListener(_rearmar);
+    _cargarMoneda();
+  }
+
+  @override
+  void dispose() {
+    monedaVista.removeListener(_rearmar);
+    super.dispose();
+  }
+
+  // Cambió la moneda (al entrar, o desde Configuración): se arma la pestaña de nuevo para verla.
+  void _rearmar() => setState(() => _vueltas++);
+
+  // Si no se puede pedir, queda la que estaba (al abrir la app, pesos).
+  Future<void> _cargarMoneda() async {
+    try {
+      monedaVista.value = await PreferenciasApi(ApiClient()).moneda();
+    } on ApiException catch (_) {}
+  }
 
   void _irA(int pestana) => setState(() {
     _pestana = pestana;
