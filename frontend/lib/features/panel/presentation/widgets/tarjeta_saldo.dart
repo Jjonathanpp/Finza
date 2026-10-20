@@ -4,9 +4,9 @@ import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
-import 'package:frontend/shared/utils/pesos.dart';
+import 'package:frontend/shared/utils/importe.dart';
 
-// La tarjeta de arriba del Inicio: tu plata en pesos, tipo billetera, y cómo vas este mes.
+// La tarjeta de arriba del Inicio: tu plata (en la moneda elegida), tipo billetera, y cómo vas este mes.
 // El ojo esconde los montos, para mirar la app delante de otros.
 class TarjetaSaldo extends StatefulWidget { // (O GraficoBalanceMes / UltimosMovimientos)
   const TarjetaSaldo({super.key, this.api, this.startDate, this.endDate});
@@ -37,7 +37,7 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
         children: [
           Row(
             children: [
-              const Text('Pesos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(nombreMoneda, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               IconButton(
                 tooltip: _oculto ? 'Mostrar montos' : 'Ocultar montos',
                 icon: Icon(
@@ -70,8 +70,10 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
       );
     }
     final resumen = respuesta.data!;
-    final centavos = (resumen.saldoTotal.abs() * 100).round();
+    final total = enMonedaVista(resumen.saldoTotal);
+    final centavos = (total.abs() * 100).round();
     final mes = resumen.saldoMes;
+    final aclaracion = aclaracionCotizacion;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -80,7 +82,7 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
           TextSpan(
             children: [
               TextSpan(
-                text: _oculto ? '\$ ••••••' : '${resumen.saldoTotal < 0 ? '−' : ''}\$ ${miles(centavos ~/ 100)}',
+                text: _oculto ? '$simboloMoneda ••••••' : '${total < 0 ? '−' : ''}$simboloMoneda ${miles(centavos ~/ 100)}',
                 style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w700, height: 1.1),
               ),
               if (!_oculto)
@@ -98,7 +100,7 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
             text: 'Período de informe: ',
             children: [
               TextSpan(
-                text: _oculto ? '••••' : '${mes > 0 ? '+' : ''}${pesos(mes)}',
+                text: _oculto ? '••••' : '${mes > 0 ? '+' : ''}${importe(mes)}',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   color: _oculto || mes == 0 
@@ -110,6 +112,10 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
           ),
           style: const TextStyle(color: AppColors.muted, fontSize: 13),
         ),
+        if (aclaracion != null) ...[
+          const SizedBox(height: 4),
+          Text(aclaracion, style: const TextStyle(color: AppColors.faint, fontSize: 11.5)),
+        ],
       ],
     );
   }

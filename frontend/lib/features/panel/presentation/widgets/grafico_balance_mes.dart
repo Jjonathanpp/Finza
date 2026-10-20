@@ -3,7 +3,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
-import 'package:frontend/shared/utils/pesos.dart';
+import 'package:frontend/shared/utils/importe.dart';
 
 class GraficoBalanceMes extends StatefulWidget {
   const GraficoBalanceMes({super.key, this.api, this.startDate, this.endDate});
@@ -140,7 +140,7 @@ class _FilaBarra extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Text(
-          pesos(monto),
+          importe(monto),
           textAlign: TextAlign.right,
           style: const TextStyle(
             fontSize: 13,

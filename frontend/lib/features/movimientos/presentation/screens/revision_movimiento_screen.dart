@@ -11,6 +11,7 @@ import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/monto_formatter.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/revision_movimiento_view_model.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
+import 'package:frontend/shared/utils/importe.dart';
 
 class RevisionMovimientoScreen extends StatefulWidget {
   const RevisionMovimientoScreen({super.key, required this.movimiento});
@@ -164,6 +165,12 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(_vm.errorMonto!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+            )
+          // Con otra moneda elegida se aclara: lo que se carga son pesos (US-8.2).
+          else if (convierte)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('En pesos', style: TextStyle(color: AppColors.faint, fontSize: 12)),
             ),
         ],
       ),

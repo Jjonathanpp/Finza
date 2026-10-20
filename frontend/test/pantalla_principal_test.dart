@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/categorias/presentation/screens/categorias_screen.dart';
+import 'package:frontend/features/configuracion/presentation/screens/configuracion_screen.dart';
 import 'package:frontend/features/home/presentation/screens/home_screen.dart';
 import 'package:frontend/features/home/presentation/screens/pantalla_principal.dart';
 import 'package:frontend/features/movimientos/presentation/screens/alta_movimiento_screen.dart';
@@ -53,5 +54,19 @@ void main() {
     await tester.tap(find.text('Movimiento manual'));
     await tester.pumpAndSettle();
     expect(find.byType(AltaMovimientoScreen), findsOneWidget);
+  });
+
+  testWidgets('abajo del menú está el mail del usuario, y tocándolo se abre Configuración', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({'auth_email': 'demo@finza.local'});
+    await abrir(tester);
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    expect(find.text('Cerrar sesión'), findsOneWidget); // estaba repetido
+
+    await tester.tap(find.text('demo@finza.local'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ConfiguracionScreen), findsOneWidget);
+    expect(find.text('Dólares'), findsOneWidget);
   });
 }

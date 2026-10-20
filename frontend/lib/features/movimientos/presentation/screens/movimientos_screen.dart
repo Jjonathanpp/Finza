@@ -8,6 +8,7 @@ import 'package:frontend/features/movimientos/data/datasources/movimiento_api.da
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/movimientos_view_model.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
+import 'package:frontend/shared/utils/importe.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
 
 class MovimientosScreen extends StatefulWidget {
@@ -129,7 +130,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   TextField(
                     controller: montoController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Monto'),
+                    decoration: InputDecoration(labelText: convierte ? 'Monto en pesos' : 'Monto'),
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -540,11 +541,8 @@ class _FilaMovimiento extends StatelessWidget {
   final VoidCallback onEliminar;
   final VoidCallback onRevisar;
 
-  String _formatearMonto(double monto) {
-    final partes = monto.toStringAsFixed(2).split('.');
-    final entero = partes[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.');
-    return '\$ $entero,${partes[1]}';
-  }
+  // En la moneda elegida en Configuración (US-8.2); con pesos, igual que antes: $ 1.000,00.
+  String _formatearMonto(double monto) => importe(monto, centavos: true);
 
   String _formatearFecha(DateTime fecha) {
     String dos(int n) => n.toString().padLeft(2, '0');
