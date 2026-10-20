@@ -5,7 +5,7 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_gastos.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
-import 'package:frontend/shared/utils/pesos.dart';
+import 'package:frontend/shared/utils/importe.dart';
 
 // "En qué gastás" (US-5.4), el bloque del panel con lo gastado en el mes por categoría, como en la maqueta.
 // El orden, los totales y los porcentajes ya vienen calculados del backend (T-5.4.1).
@@ -43,7 +43,7 @@ class _GastosPorCategoriaState extends State<GastosPorCategoria> {
                     child: Text('En qué gastás', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
                   ),
                   if (resumen != null && resumen.categorias.isNotEmpty)
-                    Text('Total ${pesos(resumen.total)}', style: _numeros.copyWith(color: AppColors.muted, fontSize: 12)),
+                    Text('Total ${importe(resumen.total)}', style: _numeros.copyWith(color: AppColors.muted, fontSize: 12)),
                 ],
               ),
             ),
@@ -104,7 +104,7 @@ class _Fila extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 9),
-        Text(pesos(gasto.total), style: _numeros.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700)),
+        Text(importe(gasto.total), style: _numeros.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700)),
         SizedBox(
           width: 46,
           child: Text(

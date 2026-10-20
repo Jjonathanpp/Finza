@@ -13,6 +13,7 @@ import 'package:frontend/features/movimientos/data/datasources/movimiento_api.da
 import 'package:frontend/features/movimientos/presentation/monto_formatter.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/alta_movimiento_view_model.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
+import 'package:frontend/shared/utils/importe.dart';
 
 class AltaMovimientoScreen extends StatefulWidget {
   const AltaMovimientoScreen({super.key});
@@ -169,7 +170,8 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            error ?? (_vm.esIngreso ? 'Cuánto entró' : 'Cuánto gastaste'),
+            // Con otra moneda elegida se aclara: lo que se carga son pesos (US-8.2).
+            error ?? '${_vm.esIngreso ? 'Cuánto entró' : 'Cuánto gastaste'}${convierte ? ', en pesos' : ''}',
             style: TextStyle(fontSize: 12, color: error != null ? AppColors.danger : AppColors.faint),
           ),
         ],

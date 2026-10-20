@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
 import 'package:provider/provider.dart';
+import 'package:frontend/shared/utils/importe.dart';
 
 class PresupuestosScreen extends StatefulWidget {
   const PresupuestosScreen({super.key});
@@ -91,10 +92,10 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Gastado: \$${item.montoGastado.toStringAsFixed(2)}',
+                                      'Gastado: ${importe(item.montoGastado, centavos: true)}',
                                     ),
                                     Text(
-                                      'Máximo: \$${item.montoTope.toStringAsFixed(2)}',
+                                      'Máximo: ${importe(item.montoTope, centavos: true)}',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),

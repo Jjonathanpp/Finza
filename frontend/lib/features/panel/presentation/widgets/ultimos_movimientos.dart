@@ -6,7 +6,7 @@ import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
-import 'package:frontend/shared/utils/pesos.dart';
+import 'package:frontend/shared/utils/importe.dart';
 
 class UltimosMovimientos extends StatefulWidget {
   const UltimosMovimientos({super.key, this.api, this.startDate, this.endDate});
@@ -147,7 +147,7 @@ class _FilaMovimiento extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '$signo ${pesos(movimiento.monto)}', 
+            '$signo ${importe(movimiento.monto)}', 
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: colorMonto, fontFeatures: const [FontFeature.tabularFigures()])
           ),
         ],
