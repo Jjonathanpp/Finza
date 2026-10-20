@@ -75,3 +75,7 @@ WHERE p.cuenta_id IS NOT NULL AND g.cuenta_id IS NULL
 
 -- 5) Resincronizar la secuencia (los ids entraron a mano)
 SELECT setval(pg_get_serial_sequence('categoria', 'id'), (SELECT COALESCE(MAX(id), 1) FROM categoria));
+
+-- 6) Las preferencias pasaron de la cuenta al perfil (10/10). En las bases creadas antes quedo
+-- la columna vieja cuenta_id, obligatoria, y no deja guardar preferencias (t-8.2.1).
+ALTER TABLE preferencias_sistema DROP COLUMN IF EXISTS cuenta_id;
