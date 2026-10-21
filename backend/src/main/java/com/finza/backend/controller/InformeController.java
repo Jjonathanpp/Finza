@@ -34,4 +34,15 @@ public class InformeController {
         return Response.ok(panelService.gastosPorCategoria(perfilService.idPrincipal(cuentaId), startDate, endDate),
                 "Gastos por categoría del período");
     }
+
+    @GetMapping("/comparacion")
+    public ResponseEntity<Object> comparacion(
+            @AuthenticationPrincipal Long cuentaId,
+            @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(name = "granularidad", required = false) String granularidad) {
+        return Response.ok(
+                panelService.compararPeriodos(perfilService.idPrincipal(cuentaId), cuentaId, startDate, endDate, granularidad),
+                "Comparación de períodos");
+    }
 }
