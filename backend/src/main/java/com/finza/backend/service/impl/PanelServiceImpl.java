@@ -14,6 +14,7 @@ import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
 import com.finza.backend.dto.panel.GastoPorCategoriaDTO;
 import com.finza.backend.dto.panel.ResumenGastosDTO;
 import com.finza.backend.dto.panel.ResumenMesDTO;
+import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.PreferenciasSistema;
 import com.finza.backend.repository.MovimientoRepository;
 import com.finza.backend.repository.PreferenciasSistemaRepository;
@@ -79,7 +80,7 @@ public class PanelServiceImpl implements PanelService {
         
         if (startDate != null && endDate != null) {
             if (startDate.isAfter(endDate)) {
-                throw new IllegalArgumentException("La fecha de inicio (startDate) no puede ser posterior a la fecha de fin (endDate).");
+                throw new BadRequestException("La fecha de inicio (startDate) no puede ser posterior a la fecha de fin (endDate).");
             }
             return new LocalDate[]{startDate, endDate};
         }
