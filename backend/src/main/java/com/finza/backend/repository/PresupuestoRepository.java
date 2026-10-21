@@ -18,4 +18,12 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
             @Param("perfilId") Long perfilId,
             @Param("mes") int mes,
             @Param("anio") int anio);
+
+       // Regla de unicidad: verifica si ya existe uno activo para la misma categoría, mes y año
+    boolean existsByPerfilIdAndCategoriaIdAndMesAndAnioAndActivoTrue(
+            Long perfilId, Long categoriaId, int mes, int anio);
+
+    // Para evitar falsos positivos al editar el mismo presupuesto
+    boolean existsByPerfilIdAndCategoriaIdAndMesAndAnioAndActivoTrueAndIdNot(
+            Long perfilId, Long categoriaId, int mes, int anio, Long id);      
 }
