@@ -79,10 +79,13 @@ public class IAService {
 
         try {
             return intentarLlamada(apiUrl, requestBody);
-        } catch (HttpServerErrorException e) {
-            // El modelo principal está saturado (503) -> probamos el fallback
+        } catch (HttpServerErrorException | HttpClientErrorException.TooManyRequests | ResourceAccessException e) {
+            // El modelo principal está saturado (5xx), sin cupo (429) o no contestó -> probamos el fallback,
+            // que tiene su propio límite de pedidos
             try {
                 return intentarLlamada(apiUrlFallback, requestBody);
+            } catch (HttpClientErrorException.TooManyRequests sinCupo) {
+                throw new RuntimeException("La IA llegó a su límite de pedidos. Probá de nuevo más tarde o cargalo a mano.");
             } catch (Exception fallbackEx) {
                 throw new RuntimeException("Los servidores de IA están saturados incluso en el modelo de respaldo. Probá de nuevo en unos segundos.");
             }
