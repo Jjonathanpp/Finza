@@ -8,6 +8,7 @@ import '../../features/home/presentation/screens/pantalla_principal.dart';
 import 'package:frontend/core/widgets/eliminar_cuenta_dialog.dart';
 import 'package:frontend/core/widgets/cuenta_usuario.dart';
 import 'package:frontend/features/configuracion/presentation/screens/configuracion_screen.dart';
+import 'package:frontend/features/informes/presentation/screens/informes_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -114,6 +115,20 @@ class AppDrawer extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (_) => const PantallaPrincipal(pestana: 2),
                         ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.bar_chart, color: AppColors.muted),
+                    title: const Text(
+                      'Informes',
+                      style: TextStyle(color: AppColors.text),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context); // cierra el drawer
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const InformesScreen()),
                       );
                     },
                   ),
