@@ -95,7 +95,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                 const CategoriasScreen(),
                 ChangeNotifierProvider(
                   create: (_) => PresupuestosViewModel(PresupuestoApi(ApiClient())),
-                  child: const PresupuestosScreen(),
+                  child: PresupuestosScreen(),
                 ),
               ][_pestana],
             ),
