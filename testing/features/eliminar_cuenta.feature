@@ -23,7 +23,7 @@ Característica: Eliminación de cuenta de usuario
     Y confirma la acción de eliminación definitiva
     Entonces el sistema detecta que la contraseña no coincide con el registro
     Y la cuenta del usuario no es eliminada de la base de datos
-    Y el sistema responde con un estado HTTP 401 y un mensaje de error de credenciales
+    Y el sistema responde con un estado HTTP 400 y un mensaje de error de credenciales
 
   Escenario: Intento de eliminación sin autenticación previa
     Dado que un usuario no autenticado intenta enviar una solicitud de eliminación de cuenta
