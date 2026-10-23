@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/features/presupuestos/presentation/screens/alta_presupuestos_screen.dart'; // Nombre con "s" como lo guardaste
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/barra_progreso_presupuesto.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:provider/provider.dart';
 
@@ -188,24 +189,20 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                     ],
                   ),
                   Text(
-                    '${p.porcentajeConsumo.toStringAsFixed(1)}%',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: p.alertaAlcanzada ? AppColors.danger : AppColors.text,
-                    ),
-                  ),
+                     '${p.porcentajeConsumo.toStringAsFixed(1)}%',
+                     style: TextStyle(
+                       fontWeight: FontWeight.bold,
+                       color: p.porcentajeConsumo >= 100
+                           ? AppColors.danger
+                           : p.porcentajeConsumo >= 80
+                               ? Colors.amber
+                               : Colors.green,
+                     ),
+                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: (p.porcentajeConsumo / 100).clamp(0.0, 1.0),
-                  backgroundColor: AppColors.surface3,
-                  valueColor: AlwaysStoppedAnimation(p.alertaAlcanzada ? AppColors.danger : colorCat),
-                  minHeight: 8,
-                ),
-              ),
+              BarraProgresoPresupuesto(porcentaje: p.porcentajeConsumo),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
