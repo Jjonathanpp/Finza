@@ -1,6 +1,7 @@
 package com.finza.backend.controller.Cuenta;
 
 import com.finza.backend.dto.Response;
+import com.finza.backend.dto.cambio_contraseña.CambioPasswordRequestDTO;
 import com.finza.backend.dto.eliminacionCuenta.EliminarCuentaRequest;
 import com.finza.backend.dto.login.LoginRequestDTO;
 import com.finza.backend.dto.registro.CuentaRegistroDTO;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -57,9 +59,20 @@ public class AuthController {
 
         Long cuentaId = jwtService.extractCuentaId(token);
 
-        if (!cuentaService.eliminarCuenta(cuentaId, request.getPassword())) {
-            return Response.unauthorized("Credenciales incorrectas");
-        }
+        cuentaService.eliminarCuenta(cuentaId, request.getPassword());
         return Response.ok(null, "Cuenta eliminada correctamente");
     }
+
+    @PostMapping("/cambio-contrasena")
+    public ResponseEntity<Object> cambiarPassword(
+            @Valid @RequestBody CambioPasswordRequestDTO dto,
+            Authentication authentication) {
+
+        Long cuentaId = (Long) authentication.getPrincipal();
+
+        cuentaService.cambiarPassword(cuentaId, dto);
+
+        return Response.ok(null, "Contraseña cambiada exitosamente");
+    }
+
 }

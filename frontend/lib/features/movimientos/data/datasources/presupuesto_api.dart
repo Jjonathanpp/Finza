@@ -14,7 +14,7 @@ class PresupuestoApi {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException('Error al obtener los presupuestos: $e');
+      throw ApiException(null, 'Error al obtener los presupuestos: $e');
     }
   }
 }
