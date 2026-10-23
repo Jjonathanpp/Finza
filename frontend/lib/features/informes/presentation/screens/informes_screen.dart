@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/features/informes/data/datasources/informe_api.dart';
 import 'package:frontend/features/informes/presentation/widgets/grafico_barras_comparacion.dart';
+import 'package:frontend/features/informes/presentation/widgets/grafico_torta_categorias.dart';
 import 'package:frontend/features/panel/presentation/widgets/selector_rango_fechas.dart';
 import 'package:frontend/core/network/api_client.dart';
 
@@ -24,11 +25,12 @@ class _InformesScreenState extends State<InformesScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           SelectorRangoFechas(
+            key: const PageStorageKey('selector_rango_informes'),
             onCambio: (start, end) => setState(() {
-              _inicio = start;
-              _fin = end;
+                _inicio = start;
+                _fin = end;
             }),
-          ),
+           ),
           const SizedBox(height: 12),
           SegmentedButton<String>(
             segments: const [
@@ -45,6 +47,13 @@ class _InformesScreenState extends State<InformesScreen> {
             startDate: _inicio,
             endDate: _fin,
             granularidad: _granularidad,
+          ),
+          const SizedBox(height: 12),
+          GraficoTortaCategorias(
+            key: ValueKey('torta_$_inicio$_fin'),
+            api: InformeApi(ApiClient()),
+            startDate: _inicio,
+            endDate: _fin,
           ),
         ],
       ),
