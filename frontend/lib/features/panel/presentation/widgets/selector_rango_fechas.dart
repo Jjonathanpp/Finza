@@ -9,7 +9,7 @@ class SelectorRangoFechas extends StatefulWidget {
   State<SelectorRangoFechas> createState() => _SelectorRangoFechasState();
 }
 
-class _SelectorRangoFechasState extends State<SelectorRangoFechas> {
+class _SelectorRangoFechasState extends State<SelectorRangoFechas> with AutomaticKeepAliveClientMixin<SelectorRangoFechas> {
   String _opcionElegida = 'Mensual';
   DateTime? _inicioPersonalizado;
   DateTime? _finPersonalizado;
@@ -84,8 +84,12 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> {
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
+      super.build(context);
+      return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
