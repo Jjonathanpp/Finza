@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.finza.backend.dto.cambio_contraseña.CambioPasswordRequestDTO;
+import com.finza.backend.dto.cambio_contrasena_EnCuenta.CambioPasswordRequestDTO;
 import com.finza.backend.dto.login.LoginRequestDTO;
 import com.finza.backend.dto.login.LoginResponseDTO;
 import com.finza.backend.dto.registro.CuentaRegistroDTO;
