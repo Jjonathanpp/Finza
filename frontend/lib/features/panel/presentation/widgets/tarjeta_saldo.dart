@@ -1,3 +1,4 @@
+// lib/features/panel/presentation/widgets/tarjeta_saldo.dart
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
@@ -8,7 +9,8 @@ import 'package:frontend/shared/utils/importe.dart';
 
 // La tarjeta de arriba del Inicio: tu plata (en la moneda elegida), tipo billetera, y cómo vas este mes.
 // El ojo esconde los montos, para mirar la app delante de otros.
-class TarjetaSaldo extends StatefulWidget { // (O GraficoBalanceMes / UltimosMovimientos)
+class TarjetaSaldo extends StatefulWidget {
+  // (O GraficoBalanceMes / UltimosMovimientos)
   const TarjetaSaldo({super.key, this.api, this.startDate, this.endDate});
   final PanelApi? api;
   final DateTime? startDate;
@@ -31,17 +33,28 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(22, 10, 22, 22),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(28)),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(28),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(nombreMoneda, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(
+                nombreMoneda,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               IconButton(
                 tooltip: _oculto ? 'Mostrar montos' : 'Ocultar montos',
                 icon: Icon(
-                  _oculto ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _oculto
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: AppColors.muted,
                   size: 21,
                 ),
@@ -49,7 +62,10 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
               ),
             ],
           ),
-          FutureBuilder<ResumenMes>(future: _resumen, builder: (context, respuesta) => _contenido(respuesta)),
+          FutureBuilder<ResumenMes>(
+            future: _resumen,
+            builder: (context, respuesta) => _contenido(respuesta),
+          ),
         ],
       ),
     );
@@ -59,7 +75,12 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
     if (respuesta.connectionState != ConnectionState.done) {
       return const SizedBox(
         height: 70,
-        child: Center(child: SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))),
+        child: Center(
+          child: SizedBox.square(
+            dimension: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+        ),
       );
     }
     final error = respuesta.error;
@@ -74,21 +95,34 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
     final centavos = (total.abs() * 100).round();
     final mes = resumen.saldoMes;
     final aclaracion = aclaracionCotizacion;
+    // Rojo solo si el total es negativo y los montos están a la vista (oculto, no revela el signo).
+    final colorNegativo = (!_oculto && total < 0) ? AppColors.danger : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Como en la maqueta: los centavos más chicos y en gris.
+        // Como en la maqueta: los centavos más chicos y en gris (en rojo si el total es negativo).
         Text.rich(
           TextSpan(
             children: [
               TextSpan(
-                text: _oculto ? '$simboloMoneda ••••••' : '${total < 0 ? '−' : ''}$simboloMoneda ${miles(centavos ~/ 100)}',
-                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w700, height: 1.1),
+                text: _oculto
+                    ? '$simboloMoneda ••••••'
+                    : '${total < 0 ? '−' : ''}$simboloMoneda ${miles(centavos ~/ 100)}',
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w700,
+                  height: 1.1,
+                  color: colorNegativo,
+                ),
               ),
               if (!_oculto)
                 TextSpan(
                   text: ',${(centavos % 100).toString().padLeft(2, '0')}',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.faint),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: colorNegativo ?? AppColors.faint,
+                  ),
                 ),
             ],
           ),
@@ -103,8 +137,8 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
                 text: _oculto ? '••••' : '${mes > 0 ? '+' : ''}${importe(mes)}',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: _oculto || mes == 0 
-                      ? AppColors.muted 
+                  color: _oculto || mes == 0
+                      ? AppColors.muted
                       : (mes > 0 ? AppColors.accent : AppColors.danger),
                 ),
               ),
@@ -114,7 +148,10 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
         ),
         if (aclaracion != null) ...[
           const SizedBox(height: 4),
-          Text(aclaracion, style: const TextStyle(color: AppColors.faint, fontSize: 11.5)),
+          Text(
+            aclaracion,
+            style: const TextStyle(color: AppColors.faint, fontSize: 11.5),
+          ),
         ],
       ],
     );
