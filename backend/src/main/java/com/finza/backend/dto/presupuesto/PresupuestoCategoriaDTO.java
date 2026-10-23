@@ -15,4 +15,5 @@ public class PresupuestoCategoriaDTO {
     private final BigDecimal montoTope;
     private final BigDecimal montoGastado;
     private final BigDecimal porcentajeConsumo;
+    private final String estado;
 }

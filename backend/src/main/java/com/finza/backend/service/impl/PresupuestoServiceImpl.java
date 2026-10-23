@@ -92,6 +92,16 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         }
     }
 
+    private String calcularEstado(BigDecimal porcentaje) {
+        if (porcentaje.compareTo(BigDecimal.valueOf(100)) >= 0) {
+            return "EXCEDIDO";
+        }
+        if (porcentaje.compareTo(BigDecimal.valueOf(80)) >= 0) {
+            return "ALERTA";
+        }
+        return "OK";
+    }
+
     @Override
     @Transactional(readOnly = true)
     public PresupuestoMesDTO obtenerPresupuestosDelMes(Long perfilId, Long cuentaIdAutenticada, int mes, int anio) {
@@ -126,6 +136,8 @@ public class PresupuestoServiceImpl implements PresupuestoService {
                         .divide(tope, 1, RoundingMode.HALF_UP);
             }
 
+            String estado = calcularEstado(porcentaje);
+
             categoriasDTO.add(new PresupuestoCategoriaDTO(
                     p.getId(),
                     categoriaId,
@@ -133,7 +145,8 @@ public class PresupuestoServiceImpl implements PresupuestoService {
                     p.getCategoria().getColor(),
                     tope,
                     gastado,
-                    porcentaje
+                    porcentaje,
+                    estado
             ));
         }
 
@@ -187,6 +200,8 @@ public class PresupuestoServiceImpl implements PresupuestoService {
                 ? gastado.multiply(BigDecimal.valueOf(100)).divide(guardado.getMontoTope(), 1, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
+        String estado = calcularEstado(porcentaje);
+
         return new PresupuestoCategoriaDTO(
                 guardado.getId(),
                 categoria.getId(),
@@ -194,7 +209,8 @@ public class PresupuestoServiceImpl implements PresupuestoService {
                 categoria.getColor(),
                 guardado.getMontoTope(),
                 gastado,
-                porcentaje
+                porcentaje,
+                estado
         );
     }
 
@@ -237,6 +253,8 @@ public class PresupuestoServiceImpl implements PresupuestoService {
                 ? gastado.multiply(BigDecimal.valueOf(100)).divide(actualizado.getMontoTope(), 1, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
+        String estado = calcularEstado(porcentaje);
+
         return new PresupuestoCategoriaDTO(
                 actualizado.getId(),
                 categoria.getId(),
@@ -244,7 +262,8 @@ public class PresupuestoServiceImpl implements PresupuestoService {
                 categoria.getColor(),
                 actualizado.getMontoTope(),
                 gastado,
-                porcentaje
+                porcentaje,
+                estado
         );
     }
 
