@@ -1,7 +1,9 @@
 package com.finza.backend.controller.Cuenta;
 
 import com.finza.backend.dto.Response;
-import com.finza.backend.dto.cambio_contraseña.CambioPasswordRequestDTO;
+import com.finza.backend.dto.cambio_contrasena_EnCuenta.CambioPasswordRequestDTO;
+import com.finza.backend.dto.cambio_contrasena_Sin_Cuenta.OlvideContrasenaRequest;
+import com.finza.backend.dto.cambio_contrasena_Sin_Cuenta.RestablecerContrasenaRequest;
 import com.finza.backend.dto.eliminacionCuenta.EliminarCuentaRequest;
 import com.finza.backend.dto.login.LoginRequestDTO;
 import com.finza.backend.dto.registro.CuentaRegistroDTO;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.Authentication;
+import com.finza.backend.service.RecuperacionService;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,10 +27,12 @@ public class AuthController {
 
     private final CuentaService cuentaService;
     private final JwtService jwtService;
+    private final RecuperacionService recuperacionService;
 
-    public AuthController(CuentaService cuentaService, JwtService jwtService) {
+    public AuthController(CuentaService cuentaService, JwtService jwtService, RecuperacionService recuperacionService) {
         this.cuentaService = cuentaService;
         this.jwtService = jwtService;
+        this.recuperacionService = recuperacionService;
     }
 
     @PostMapping("/registro")
@@ -75,4 +80,15 @@ public class AuthController {
         return Response.ok(null, "Contraseña cambiada exitosamente");
     }
 
+    @PostMapping("/olvide-contrasena")
+    public ResponseEntity<Object> olvideContrasena(@Valid @RequestBody OlvideContrasenaRequest req) {
+        recuperacionService.solicitarCodigo(req.email());
+        return Response.ok(null, "Si el email está registrado, te enviamos un código");
+    }
+
+    @PostMapping("/restablecer-contrasena")
+    public ResponseEntity<Object> restablecerContrasena(@Valid @RequestBody RestablecerContrasenaRequest req) {
+        recuperacionService.restablecer(req.email(), req.codigo(), req.nuevaContrasena());
+        return Response.ok(null, "Contraseña actualizada");
+    }
 }

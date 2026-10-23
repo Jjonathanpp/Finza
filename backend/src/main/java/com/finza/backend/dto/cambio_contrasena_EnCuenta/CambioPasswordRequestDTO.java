@@ -1,4 +1,4 @@
-package com.finza.backend.dto.cambio_contraseña;
+package com.finza.backend.dto.cambio_contrasena_EnCuenta;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;

@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -32,9 +33,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> handleValidationErrors(MethodArgumentNotValidException ex) {
         Map<String, String> errores = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error ->
-            errores.put(error.getField(), error.getDefaultMessage())
-        );
+        ex.getBindingResult().getFieldErrors()
+                .forEach(error -> errores.put(error.getField(), error.getDefaultMessage()));
         return Response.error(errores, "Error de validación");
     }
 
@@ -53,7 +53,6 @@ public class GlobalExceptionHandler {
         return Response.error(null, "Falta el parámetro obligatorio '" + ex.getParameterName() + "'");
     }
 
-    
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Object> handleTipoInvalido(MethodArgumentTypeMismatchException ex) {
         return Response.error(null, "El parámetro '" + ex.getName() + "' no tiene un valor válido");
@@ -69,13 +68,13 @@ public class GlobalExceptionHandler {
         return Response.response(HttpStatus.CONFLICT, ex.getMessage(), null);
     }
 
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleNoControlado(Exception ex) {
-    
+
         if (ex instanceof ErrorResponse errorResponse) {
             HttpStatus status = HttpStatus.valueOf(errorResponse.getStatusCode().value());
-            // Si quien la lanzó escribió un motivo (por ejemplo "Credenciales inválidas"), va ese
+            // Si quien la lanzó escribió un motivo (por ejemplo "Credenciales inválidas"),
+            // va ese
             // y no el nombre genérico del código ("Unauthorized").
             String mensaje = ex instanceof ResponseStatusException rse && rse.getReason() != null
                     ? rse.getReason()
@@ -90,4 +89,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex) {
         return Response.response(HttpStatus.FORBIDDEN, ex.getMessage(), null);
     }
+
+@ExceptionHandler(EnvioCorreoException.class)
+public ResponseEntity<Object> handleEnvioCorreo(EnvioCorreoException ex) {
+    log.error("Error al enviar correo", ex);
+    return Response.response(HttpStatus.BAD_GATEWAY,
+            "No se pudo enviar el correo, intenta nuevamente", null);
+}
 }
