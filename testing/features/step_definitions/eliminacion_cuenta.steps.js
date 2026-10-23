@@ -18,7 +18,7 @@ async function registrar(email, password) {
             usuario: {
                 nombre: 'Juan',
                 apellido: 'Perez',
-                dni: ' 13579246',
+                dni: '13579246',
                 telefono: '3415550000',
                 fechaNacimiento: '1999-01-01',
                 genero: 'MASCULINO'
@@ -101,7 +101,7 @@ Then('el sistema valida que la contraseña es correcta', function () {
 });
 
 Then('el sistema detecta que la contraseña no coincide con el registro', function () {
-    assert.strictEqual(this.respuesta.status, 401);
+    assert.strictEqual(this.respuesta.status, 400);
 });
 
 Then('elimina la cuenta del usuario de la base de datos', async function () {

@@ -8,12 +8,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.finza.backend.dto.cambio_contraseña.CambioPasswordRequestDTO;
 import com.finza.backend.dto.login.LoginRequestDTO;
 import com.finza.backend.dto.login.LoginResponseDTO;
 import com.finza.backend.dto.registro.CuentaRegistroDTO;
 import com.finza.backend.dto.registro.CuentaResponseDTO;
 import com.finza.backend.dto.registro.UsuarioRegistroDTO;
-
+import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.Cuenta;
 import com.finza.backend.model.Perfil;
 import com.finza.backend.model.Usuario;
@@ -99,14 +100,32 @@ public class CuentaService {
         return new LoginResponseDTO(accessToken, refreshToken, cuenta.getEmail());
     }
 
-    /** @return true si se eliminó, false si la contraseña no coincide */
     @Transactional
-    public boolean eliminarCuenta(Long cuentaId, String passwordActual) {
-        Cuenta cuenta = cuentaRepository.findById(cuentaId).orElse(null);
-        if (cuenta == null || !passwordEncoder.matches(passwordActual, cuenta.getPassword())) {
-            return false;
+    public void cambiarPassword(Long cuentaId, CambioPasswordRequestDTO dto) {
+        Cuenta cuenta = cuentaRepository.findById(cuentaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cuenta no encontrada"));
+
+        if (!passwordEncoder.matches(dto.getContrasenaActual(), cuenta.getPassword())) {
+            throw new BadRequestException("La contraseña actual es incorrecta");
         }
+
+        if (passwordEncoder.matches(dto.getNuevaContrasena(), cuenta.getPassword())) {
+            throw new BadRequestException("La nueva contraseña debe ser distinta a la actual");
+        }
+
+        cuenta.setPassword(passwordEncoder.encode(dto.getNuevaContrasena()));
+        cuentaRepository.save(cuenta);
+    }
+
+    @Transactional
+    public void eliminarCuenta(Long cuentaId, String passwordActual) {
+        Cuenta cuenta = cuentaRepository.findById(cuentaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cuenta no encontrada"));
+
+        if (!passwordEncoder.matches(passwordActual, cuenta.getPassword())) {
+            throw new BadRequestException("La contraseña es incorrecta");
+        }
+
         cuentaRepository.delete(cuenta);
-        return true;
     }
 }
