@@ -1,9 +1,14 @@
 package com.finza.backend.service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -14,12 +19,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.finza.backend.config.MercadoPagoProperties;
 import com.finza.backend.dto.MercadoPagoTokenResponse;
+import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.CuentaMP;
 import com.finza.backend.model.Usuario;
 import com.finza.backend.repository.CuentaMPRepository;
 import com.finza.backend.repository.UsuarioRepository;
-
-import com.finza.backend.exception.BadRequestException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +35,7 @@ public class MercadoPagoOAuthService {
 
     private static final String MP_AUTH_URL = "https://auth.mercadopago.com.ar/authorization";
     private static final String MP_TOKEN_URL = "https://api.mercadopago.com/oauth/token";
+    private static final long STATE_TTL_SECONDS = 600; // 10 minutos
 
     private final MercadoPagoProperties mpProperties;
     private final CuentaMPRepository cuentaMPRepository;
@@ -42,7 +47,7 @@ public class MercadoPagoOAuthService {
     public String generarUrlAutorizacion(Long usuarioId) {
         String state = UUID.randomUUID().toString();
         stateStorage.put(state, usuarioId);
-
+        log.info("State generado: {}", state);
         return UriComponentsBuilder.fromUriString(MP_AUTH_URL)
                 .queryParam("client_id", mpProperties.getClientId())
                 .queryParam("response_type", "code")
@@ -53,6 +58,7 @@ public class MercadoPagoOAuthService {
     }
 
     public CuentaMP procesarCallback(String code, String state) {
+        log.info("Callback recibido - state: {}", state);
         Long usuarioId = stateStorage.remove(state);
         if (usuarioId == null) {
             throw new IllegalArgumentException("Parámetro 'state' inválido o expirado.");
@@ -100,11 +106,13 @@ public class MercadoPagoOAuthService {
         }
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void desvincular(Long usuarioId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para este usuario."));
 
-        cuentaMPRepository.delete(cuentaMP);
+        cuentaMPRepository.deleteByUsuarioId(usuarioId);
+        cuentaMPRepository.flush();
         log.info("Cuenta de Mercado Pago desvinculada correctamente para el usuario {}", usuarioId);
     }
 
