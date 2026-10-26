@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/features/recuperar_password/data/dataresources/recuperacion_api.dart';
+import 'package:frontend/features/recuperar_password/presentacion/screens/restablecer_password_screen.dart';
 
 class RecuperarPasswordScreen extends StatefulWidget {
   const RecuperarPasswordScreen({super.key});
@@ -14,6 +17,7 @@ class RecuperarPasswordScreen extends StatefulWidget {
 class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
+  final _api = RecuperacionApi(ApiClient());
 
   bool _loading = false;
   String? _errorGeneral;
@@ -32,18 +36,23 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
       _errorGeneral = null;
     });
     try {
-      // TODO: llamar al backend, por ejemplo:
-      // await _authService.recuperarPassword(_emailCtrl.text.trim());
-      await Future.delayed(const Duration(seconds: 1)); // simulación
+      final email = _emailCtrl.text.trim();
+      await _api.solicitarCodigo(email);
 
-      if (mounted) {
-        mostrarExito(context, 'Te enviamos un correo con las instrucciones');
-        Navigator.pop(context);
-      }
+      if (!mounted) return;
+      mostrarExito(
+        context,
+        'Si el email está registrado, te enviamos un código',
+      );
+      // pushReplacement: al volver atrás se regresa al login, no a esta pantalla
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RestablecerPasswordScreen(email: email),
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        setState(() => _errorGeneral = e.toString());
-      }
+      if (mounted) setState(() => _errorGeneral = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -63,7 +72,7 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
               children: [
                 const Text(
                   'Ingresá el email asociado a tu cuenta y te enviaremos '
-                  'las instrucciones para restablecer tu contraseña.',
+                  'un código de 6 dígitos para restablecer tu contraseña.',
                   style: TextStyle(color: AppColors.muted),
                 ),
                 const SizedBox(height: 24),
@@ -108,7 +117,7 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
                             color: AppColors.accentInk,
                           ),
                         )
-                      : const Text('Enviar instrucciones'),
+                      : const Text('Enviar código'),
                 ),
               ],
             ),

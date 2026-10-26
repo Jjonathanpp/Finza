@@ -94,5 +94,9 @@ class TokenInterceptor extends Interceptor {
 /* bool _esDeLogin(RequestOptions pedido) =>
     pedido.uri.path.startsWith('/api/auth/'); */
 
-bool _esDeLogin(RequestOptions pedido) =>
-    const ['/api/auth/login', '/api/auth/registro'].contains(pedido.uri.path);
+bool _esDeLogin(RequestOptions pedido) => const [
+  '/api/auth/login',
+  '/api/auth/registro',
+  '/api/auth/olvide-contrasena',
+  '/api/auth/restablecer-contrasena',
+].contains(pedido.uri.path);
