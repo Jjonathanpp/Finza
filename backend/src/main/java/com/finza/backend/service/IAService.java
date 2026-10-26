@@ -10,12 +10,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
-import java.net.URISyntaxException;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finza.backend.dto.movimiento.MovimientoIADTO;
@@ -23,12 +20,12 @@ import com.finza.backend.dto.movimiento.MovimientoIADTO;
 @Service
 public class IAService {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${gemini.api.url}")
     private String apiUrl;
 
-    @Value("${gemini.api.url.fallback}") // apuntá esto a gemini-2.5-flash-lite
+    @Value("${gemini.api.url.fallback}")
     private String apiUrlFallback;
 
     @Value("${gemini.api.key}")
@@ -36,19 +33,18 @@ public class IAService {
 
     private final RestTemplate restTemplate;
 
-    // Configuramos los timeouts en el constructor
     public IAService() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10000); // 5 segundos máximo para establecer conexión
-        factory.setReadTimeout(30000);   // 15 segundos máximo esperando la respuesta de Gemini
+        factory.setConnectTimeout(10000);
+        factory.setReadTimeout(30000);
         this.restTemplate = new RestTemplate(factory);
     }
 
-    public String procesarAudio(byte[] audioBytes) throws Exception {
+    public String procesarAudio(byte[] audioBytes, String categoriasDisponibles) throws Exception {
         String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
         String fechaHoy = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
         
-        String prompt = "Sos un asistente financiero. Hoy es " + fechaHoy + ". Escuchá este audio y extraé los datos. Devolveme ÚNICAMENTE un JSON válido con estas claves: 'tipo' (ingreso o egreso), 'monto' (solo el número), 'categoria' (inferida), 'descripcion' (breve) y 'fecha' (en formato dd-MM-yyyy, si el audio dice 'ayer' o 'el lunes' calculala, si no menciona fecha usá la de hoy). No agregues texto extra ni comillas.";
+        String prompt = "Sos un asistente financiero. Hoy es " + fechaHoy + ". Escuchá este audio y extraé los datos. Devolveme ÚNICAMENTE un JSON válido con estas claves: 'tipo' (ingreso o egreso), 'monto' (solo el número), 'categoria' (Elegí obligatoriamente UNA de esta lista: [" + categoriasDisponibles + "]. Si ninguna coincide, devolvé 'Otros'), 'descripcion' (breve) y 'fecha' (en formato dd-MM-yyyy, si el audio dice 'ayer' o 'el lunes' calculala, si no menciona fecha usá la de hoy). No agregues texto extra ni comillas.";
 
         String requestBody = """
             {
@@ -70,22 +66,11 @@ public class IAService {
             }
             """.formatted(prompt, base64Audio);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        
-        String urlConKey = apiUrl.trim() + "?key=" + apiKey.trim();
-        URI uri = new URI(urlConKey);
-        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
-
         try {
             return intentarLlamada(apiUrl, requestBody);
-        } catch (HttpServerErrorException | HttpClientErrorException.TooManyRequests | ResourceAccessException e) {
-            // El modelo principal está saturado (5xx), sin cupo (429) o no contestó -> probamos el fallback,
-            // que tiene su propio límite de pedidos
+        } catch (HttpServerErrorException e) {
             try {
                 return intentarLlamada(apiUrlFallback, requestBody);
-            } catch (HttpClientErrorException.TooManyRequests sinCupo) {
-                throw new RuntimeException("La IA llegó a su límite de pedidos. Probá de nuevo más tarde o cargalo a mano.");
             } catch (Exception fallbackEx) {
                 throw new RuntimeException("Los servidores de IA están saturados incluso en el modelo de respaldo. Probá de nuevo en unos segundos.");
             }
@@ -93,8 +78,8 @@ public class IAService {
     }
 
 
-    public MovimientoIADTO procesarAudioYExtraerDatos(byte[] audioBytes) throws Exception {
-        String jsonCrudoGemini = procesarAudio(audioBytes);
+    public MovimientoIADTO procesarAudioYExtraerDatos(byte[] audioBytes, String categoriasDisponibles) throws Exception {
+        String jsonCrudoGemini = procesarAudio(audioBytes, categoriasDisponibles);
         
         JsonNode rootNode = objectMapper.readTree(jsonCrudoGemini);
         String textoDeLaIA = rootNode.path("candidates").path(0)
@@ -107,29 +92,28 @@ public class IAService {
     }
 
     private String intentarLlamada(String urlBase, String requestBody) {
-    int intentos = 0;
-    int maxIntentos = 3;
-    while (true) {
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            URI uri;
+        int intentos = 0;
+        int maxIntentos = 3;
+        while (true) {
             try {
-                uri = new URI(urlBase.trim() + "?key=" + apiKey.trim());
-            } catch (URISyntaxException e) {
-                // Esto es un error de configuración, no de red. No tiene sentido reintentar.
-                throw new RuntimeException("URL de la API mal formada: " + e.getMessage(), e);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                URI uri;
+                try {
+                    uri = new URI(urlBase.trim() + "?key=" + apiKey.trim());
+                } catch (URISyntaxException e) {
+                    throw new RuntimeException("URL de la API mal formada: " + e.getMessage(), e);
+                }
+                HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+                ResponseEntity<String> response = restTemplate.postForEntity(uri, entity, String.class);
+                return response.getBody();
+            } catch (HttpServerErrorException e) {
+                intentos++;
+                if (intentos >= maxIntentos) throw e;
+                try {
+                    Thread.sleep(1000L * intentos);
+                } catch (InterruptedException ignored) {}
             }
-            HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(uri, entity, String.class);
-            return response.getBody();
-        } catch (HttpServerErrorException e) {
-            intentos++;
-            if (intentos >= maxIntentos) throw e;
-            try {
-                Thread.sleep(1000L * intentos);
-            } catch (InterruptedException ignored) {}
         }
     }
-  }
 }
