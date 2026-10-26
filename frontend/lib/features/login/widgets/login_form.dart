@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/campo.dart';
-import 'package:frontend/features/recuperar_password/screens/recuperar_password_screen.dart';
+import 'package:frontend/features/recuperar_password/presentacion/screens/recuperar_password_screen.dart';
 import '../../auth/service/auth_service.dart';
 import '../../registro/screens/register_screen.dart';
 import '../models/login_request.dart';
