@@ -51,6 +51,7 @@ public class PerfilService {
         perfil.setRol(Perfil.Rol.ADMIN);
         perfil.setEsActivo(true);
         perfilRepository.save(perfil);
+        compartida.setCreador(perfil);
 
         return Map.of("id", compartida.getId(), "nombre", compartida.getNombre(), "perfilId", perfil.getId());
     }
@@ -67,8 +68,8 @@ public class PerfilService {
                         "Solo el administrador de la cuenta compartida puede hacer esto"));
     }
 
-    // El administrador cambia el rol de otro perfil de su cuenta compartida. El suyo no: así la
-    // cuenta compartida nunca se queda sin administrador.
+    // El administrador cambia el rol de otro perfil de su cuenta compartida. El suyo y el de quien
+    // la creó no: así la cuenta compartida nunca se queda sin administrador ni sin su dueño.
     @Transactional
     public void cambiarRol(Long cuentaId, Long perfilId, Perfil.Rol rol) {
         Perfil perfil = perfilRepository.findById(perfilId)
@@ -80,6 +81,10 @@ public class PerfilService {
         Perfil admin = exigirAdmin(cuentaId, perfil.getCuentaCompartida().getId());
         if (admin.getId().equals(perfil.getId())) {
             throw new BadRequestException("No podés cambiar tu propio rol");
+        }
+        // Mismo objeto: en una transacción, Hibernate carga una sola vez cada perfil.
+        if (perfil.equals(perfil.getCuentaCompartida().getCreador())) {
+            throw new BadRequestException("No se le puede cambiar el rol a quien creó la cuenta compartida");
         }
 
         perfil.setRol(rol);
