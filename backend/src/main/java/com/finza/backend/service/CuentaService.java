@@ -80,6 +80,7 @@ public class CuentaService {
         perfil.setNombrePerfil(usuario.getNombre());
         perfil.setEsPrincipal(true);
         perfil.setEsActivo(true);
+        perfil.setRol(Perfil.Rol.ADMIN);
         perfilRepository.save(perfil);
 
         return new CuentaResponseDTO(cuenta, perfil);
@@ -126,6 +127,8 @@ public class CuentaService {
             throw new BadRequestException("La contraseña es incorrecta");
         }
 
+        // Sus perfiles de cuentas compartidas no se borran: lo que cargó queda en esas cuentas.
+        perfilRepository.desvincularPerfilesCompartidos(cuentaId);
         cuentaRepository.delete(cuenta);
     }
 }

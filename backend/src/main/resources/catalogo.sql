@@ -79,3 +79,12 @@ SELECT setval(pg_get_serial_sequence('categoria', 'id'), (SELECT COALESCE(MAX(id
 -- 6) Las preferencias pasaron de la cuenta al perfil (10/10). En las bases creadas antes quedo
 -- la columna vieja cuenta_id, obligatoria, y no deja guardar preferencias (t-8.2.1).
 ALTER TABLE preferencias_sistema DROP COLUMN IF EXISTS cuenta_id;
+
+-- 7) El rol del perfil paso a ser ADMIN o MIEMBRO (t-11.3.1). Antes nadie lo cargaba (o en los
+-- datos de prueba decia USUARIO): el perfil principal de cada cuenta es el administrador.
+UPDATE perfil SET rol = 'ADMIN'
+WHERE es_principal AND (rol IS NULL OR rol NOT IN ('ADMIN', 'MIEMBRO'));
+
+-- 8) El perfil de una cuenta compartida queda en ella aunque su dueno se de de baja (t-11.3.1).
+-- En las bases creadas antes, cuenta_id era obligatoria (Hibernate no saca el NOT NULL solo).
+ALTER TABLE perfil ALTER COLUMN cuenta_id DROP NOT NULL;
