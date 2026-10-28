@@ -25,7 +25,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO perfil (id, cuenta_id, nombre_perfil, rol, foto_url, es_principal, es_activo)
 VALUES
   (1, 1, 'Perfil Principal', 'ADMIN',   NULL, TRUE, TRUE),
-  (2, 2, 'Perfil Principal', 'USUARIO', NULL, TRUE, TRUE),
+  (2, 2, 'Perfil Principal', 'ADMIN',   NULL, TRUE, TRUE),
   (3, 3, 'Perfil Principal', 'ADMIN',   NULL, TRUE, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
