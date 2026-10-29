@@ -45,7 +45,8 @@ FROM (VALUES
 ) AS nueva (orden, nombre, color, tipo)
 WHERE NOT EXISTS (
   SELECT 1 FROM categoria c
-  WHERE c.cuenta_id IS NULL AND c.nombre = nueva.nombre AND c.tipo_categoria_predefinida = nueva.tipo
+  WHERE c.cuenta_id IS NULL AND c.cuenta_compartida_id IS NULL
+    AND c.nombre = nueva.nombre AND c.tipo_categoria_predefinida = nueva.tipo
 )
 ORDER BY nueva.orden;
 
@@ -53,23 +54,24 @@ ORDER BY nueva.orden;
 -- sus movimientos y presupuestos pasan a la global y la propia se borra. Por ejemplo, el
 -- "Otros" de egreso que la sincronizacion de Mercado Pago creaba en cada cuenta.
 -- Compara como CategoriaRepository.buscarPropiaOGlobal (sin mayusculas ni espacios de mas).
+-- Global = sin cuenta ni cuenta compartida: las de una cuenta compartida tampoco tienen cuenta (t-13.1.1).
 UPDATE movimiento m SET categoria_id = g.id
 FROM categoria p, categoria g
 WHERE m.categoria_id = p.id
-  AND p.cuenta_id IS NOT NULL AND g.cuenta_id IS NULL
+  AND p.cuenta_id IS NOT NULL AND g.cuenta_id IS NULL AND g.cuenta_compartida_id IS NULL
   AND LOWER(TRIM(p.nombre)) = LOWER(g.nombre)
   AND p.tipo_categoria_predefinida = g.tipo_categoria_predefinida;
 
 UPDATE presupuestos ps SET categoria_id = g.id
 FROM categoria p, categoria g
 WHERE ps.categoria_id = p.id
-  AND p.cuenta_id IS NOT NULL AND g.cuenta_id IS NULL
+  AND p.cuenta_id IS NOT NULL AND g.cuenta_id IS NULL AND g.cuenta_compartida_id IS NULL
   AND LOWER(TRIM(p.nombre)) = LOWER(g.nombre)
   AND p.tipo_categoria_predefinida = g.tipo_categoria_predefinida;
 
 DELETE FROM categoria p
 USING categoria g
-WHERE p.cuenta_id IS NOT NULL AND g.cuenta_id IS NULL
+WHERE p.cuenta_id IS NOT NULL AND g.cuenta_id IS NULL AND g.cuenta_compartida_id IS NULL
   AND LOWER(TRIM(p.nombre)) = LOWER(g.nombre)
   AND p.tipo_categoria_predefinida = g.tipo_categoria_predefinida;
 
@@ -88,3 +90,12 @@ WHERE es_principal AND (rol IS NULL OR rol NOT IN ('ADMIN', 'MIEMBRO'));
 -- 8) El perfil de una cuenta compartida queda en ella aunque su dueno se de de baja (t-11.3.1).
 -- En las bases creadas antes, cuenta_id era obligatoria (Hibernate no saca el NOT NULL solo).
 ALTER TABLE perfil ALTER COLUMN cuenta_id DROP NOT NULL;
+
+-- 9) Un presupuesto puede ser de una cuenta compartida en vez de un perfil (t-13.1.1): o uno o
+-- el otro, nunca los dos ni ninguno. Y en la cuenta compartida, uno activo por categoria y mes.
+ALTER TABLE presupuestos ALTER COLUMN perfil_id DROP NOT NULL;
+ALTER TABLE presupuestos DROP CONSTRAINT IF EXISTS presupuestos_perfil_o_cuenta_compartida;
+ALTER TABLE presupuestos ADD CONSTRAINT presupuestos_perfil_o_cuenta_compartida
+  CHECK ((perfil_id IS NULL) <> (cuenta_compartida_id IS NULL));
+CREATE UNIQUE INDEX IF NOT EXISTS presupuestos_compartido_unico
+  ON presupuestos (cuenta_compartida_id, categoria_id, mes, anio) WHERE activo;

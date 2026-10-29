@@ -10,6 +10,7 @@ import com.finza.backend.dto.CategoriaResponseDTO;
 import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.Categoria;
 import com.finza.backend.model.Cuenta;
+import com.finza.backend.model.CuentaCompartida;
 import com.finza.backend.repository.CategoriaRepository;
 import com.finza.backend.repository.CuentaRepository;
 import com.finza.backend.repository.MovimientoRepository;
@@ -20,13 +21,16 @@ public class CategoriaService {
     private final CategoriaRepository categoriaRepository;
     private final MovimientoRepository movimientoRepository;
     private final CuentaRepository cuentaRepository;
+    private final PerfilService perfilService;
 
     public CategoriaService(CategoriaRepository categoriaRepository,
                              MovimientoRepository movimientoRepository,
-                             CuentaRepository cuentaRepository) {
+                             CuentaRepository cuentaRepository,
+                             PerfilService perfilService) {
         this.categoriaRepository = categoriaRepository;
         this.movimientoRepository = movimientoRepository;
         this.cuentaRepository = cuentaRepository;
+        this.perfilService = perfilService;
     }
 
     public List<CategoriaResponseDTO> listarCategorias(Long cuentaId) {
@@ -49,8 +53,33 @@ public class CategoriaService {
             throw new IllegalArgumentException("Ya existe una categoría con ese nombre para el tipo indicado");
         }
 
-        Categoria categoria = crearYGuardar(cuenta, nombreLimpio, request.getColor(), request.getTipo());
+        Categoria categoria = crearYGuardar(cuenta, null, nombreLimpio, request.getColor(), request.getTipo());
         return new CategoriaResponseDTO(categoria);
+    }
+
+    // Las categorías de una cuenta compartida: las ve cualquier integrante.
+    public List<CategoriaResponseDTO> listarCategoriasDeCuentaCompartida(Long cuentaId, Long cuentaCompartidaId) {
+        perfilService.exigirMiembro(cuentaId, cuentaCompartidaId);
+        return categoriaRepository.listarPredefinidasYDeCuentaCompartida(cuentaCompartidaId).stream()
+                .map(CategoriaResponseDTO::new)
+                .toList();
+    }
+
+    // Solo el administrador crea categorías en la cuenta compartida. El nombre no puede repetir
+    // una predefinida ni otra de la misma cuenta compartida, del mismo tipo.
+    @Transactional
+    public CategoriaResponseDTO crearCategoriaDeCuentaCompartida(Long cuentaId, Long cuentaCompartidaId, CategoriaRequest request) {
+        CuentaCompartida compartida = perfilService.exigirAdmin(cuentaId, cuentaCompartidaId).getCuentaCompartida();
+        String nombreLimpio = request.getNombre().trim();
+
+        boolean repetido = categoriaRepository.listarPredefinidasYDeCuentaCompartida(cuentaCompartidaId).stream()
+                .anyMatch(otra -> otra.getTipoCategoriaPredefinida() == request.getTipo()
+                        && otra.getNombre().trim().equalsIgnoreCase(nombreLimpio));
+        if (repetido) {
+            throw new IllegalArgumentException("Ya existe una categoría con ese nombre para el tipo indicado");
+        }
+
+        return new CategoriaResponseDTO(crearYGuardar(null, compartida, nombreLimpio, request.getColor(), request.getTipo()));
     }
 
     // Usado por MovimientoServiceImpl. Recibe la Cuenta ya resuelta para no repetir
@@ -60,14 +89,17 @@ public class CategoriaService {
         String nombreLimpio = nombre.trim();
         return categoriaRepository.buscarPropiaOGlobal(nombreLimpio, tipo, cuenta.getId()).stream()
                 .findFirst()
-                .orElseGet(() -> crearYGuardar(cuenta, nombreLimpio, null, tipo));
+                .orElseGet(() -> crearYGuardar(cuenta, null, nombreLimpio, null, tipo));
     }
 
     // Arma y persiste la entidad. Compartido por el alta explícita (POST /api/categorias,
-    // con color) y el find-or-create implícito de movimientos (sin color).
-    private Categoria crearYGuardar(Cuenta cuenta, String nombre, String color, Categoria.TipoCategoria tipo) {
+    // con color), el find-or-create implícito de movimientos (sin color) y el alta en una
+    // cuenta compartida. Va una de las dos: la cuenta o la cuenta compartida.
+    private Categoria crearYGuardar(Cuenta cuenta, CuentaCompartida compartida, String nombre, String color,
+                                    Categoria.TipoCategoria tipo) {
         Categoria categoria = new Categoria();
         categoria.setCuenta(cuenta);
+        categoria.setCuentaCompartida(compartida);
         categoria.setNombre(nombre);
         categoria.setColor(color);
         categoria.setTipoCategoriaPredefinida(tipo);

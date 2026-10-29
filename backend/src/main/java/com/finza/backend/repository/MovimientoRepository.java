@@ -57,6 +57,18 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
               @Param("desde") LocalDate desde,
               @Param("hasta") LocalDate hasta);
 
+       // Lo mismo, sumando todos los perfiles de una cuenta compartida (también los de quienes se dieron de baja).
+       @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
+              "FROM Movimiento m JOIN m.categoria c " +
+              "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 " +
+              "AND m.fecha BETWEEN :desde AND :hasta " +
+              "GROUP BY c.id, c.nombre, c.color " +
+              "ORDER BY SUM(m.monto) DESC")
+       List<GastoPorCategoriaDTO> sumarGastosPorCategoriaDeCuentaCompartida(
+              @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+              @Param("desde") LocalDate desde,
+              @Param("hasta") LocalDate hasta);
+
        @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m " +
            "WHERE m.perfil.id = :perfilId " +
            "AND m.perfil.cuenta.id = :cuentaId " +
