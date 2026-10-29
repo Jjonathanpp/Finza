@@ -60,8 +60,10 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         return perfil;
     }
 
+    // Solo los presupuestos personales: para estos endpoints, el de una cuenta compartida no existe.
     private Presupuesto obtenerPresupuestoValidado(Long presupuestoId, Long cuentaIdAutenticada) {
         Presupuesto presupuesto = presupuestoRepository.findById(presupuestoId)
+                .filter(p -> p.getPerfil() != null)
                 .orElseThrow(() -> new NoSuchElementException("Presupuesto no encontrado"));
 
         if (!presupuesto.getPerfil().getCuenta().getId().equals(cuentaIdAutenticada)) {
@@ -74,7 +76,9 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         Categoria categoria = categoriaRepository.findById(categoriaId)
                 .orElseThrow(() -> new NoSuchElementException("La categoría indicada no existe"));
 
-        if (categoria.getCuenta() != null && !categoria.getCuenta().getId().equals(cuentaIdAutenticada)) {
+        // Las de una cuenta compartida no van en presupuestos personales
+        if (categoria.getCuentaCompartida() != null
+                || (categoria.getCuenta() != null && !categoria.getCuenta().getId().equals(cuentaIdAutenticada))) {
             throw new AccessDeniedException("No tenés permiso para usar esta categoría");
         }
         return categoria;
@@ -168,6 +172,10 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         }
 
         Perfil perfil = obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
+        // Los presupuestos de una cuenta compartida cuelgan de la cuenta, no del perfil de un miembro
+        if (perfil.getCuentaCompartida() != null) {
+            throw new BadRequestException("Los presupuestos de una cuenta compartida se crean en la cuenta, no en un perfil");
+        }
         Categoria categoria = obtenerCategoriaValidada(request.getCategoriaId(), cuentaIdAutenticada);
 
         // Regla de unicidad: una sola categoría por mes y año activa

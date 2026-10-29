@@ -56,16 +56,23 @@ public class PerfilService {
         return Map.of("id", compartida.getId(), "nombre", compartida.getNombre(), "perfilId", perfil.getId());
     }
 
-    // Para las acciones que solo puede hacer el administrador de una cuenta compartida (invitar,
-    // cambiar roles, editar el presupuesto compartido). Devuelve el perfil ADMIN de la cuenta del
-    // token en esa cuenta compartida; si no tiene perfil ahí, es MIEMBRO o no vino la cuenta
+    // Para lo que puede ver cualquier integrante de una cuenta compartida. Devuelve el perfil de la
+    // cuenta del token en esa cuenta compartida; si no tiene perfil ahí o no vino la cuenta
     // compartida, 403. (Con null, Spring buscaría "IS NULL" y encontraría el perfil personal.)
-    public Perfil exigirAdmin(Long cuentaId, Long cuentaCompartidaId) {
+    public Perfil exigirMiembro(Long cuentaId, Long cuentaCompartidaId) {
         return Optional.ofNullable(cuentaCompartidaId)
                 .flatMap(id -> perfilRepository.findByCuentaIdAndCuentaCompartidaId(cuentaId, id))
-                .filter(perfil -> perfil.getRol() == Perfil.Rol.ADMIN)
-                .orElseThrow(() -> new AccessDeniedException(
-                        "Solo el administrador de la cuenta compartida puede hacer esto"));
+                .orElseThrow(() -> new AccessDeniedException("No sos parte de esta cuenta compartida"));
+    }
+
+    // Para las acciones que solo puede hacer el administrador de una cuenta compartida (invitar,
+    // cambiar roles, crear categorías, editar el presupuesto compartido). Si es MIEMBRO, 403.
+    public Perfil exigirAdmin(Long cuentaId, Long cuentaCompartidaId) {
+        Perfil perfil = exigirMiembro(cuentaId, cuentaCompartidaId);
+        if (perfil.getRol() != Perfil.Rol.ADMIN) {
+            throw new AccessDeniedException("Solo el administrador de la cuenta compartida puede hacer esto");
+        }
+        return perfil;
     }
 
     // El administrador cambia el rol de otro perfil de su cuenta compartida. El suyo y el de quien

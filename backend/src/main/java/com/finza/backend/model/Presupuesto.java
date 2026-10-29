@@ -27,9 +27,15 @@ public class Presupuesto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Un presupuesto es de un perfil personal o de una cuenta compartida, nunca de los dos
+    // (regla CHECK en catalogo.sql).
     @ManyToOne
-    @JoinColumn(name = "perfil_id", nullable = false)
+    @JoinColumn(name = "perfil_id")
     private Perfil perfil;
+
+    @ManyToOne
+    @JoinColumn(name = "cuenta_compartida_id")
+    private CuentaCompartida cuentaCompartida;
 
     @ManyToOne
     @JoinColumn(name = "categoria_id", nullable = false)
