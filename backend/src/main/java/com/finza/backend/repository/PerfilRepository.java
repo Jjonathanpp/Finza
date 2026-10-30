@@ -1,5 +1,6 @@
 package com.finza.backend.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,6 +17,10 @@ public interface PerfilRepository extends JpaRepository<Perfil, Long> {
     Optional<Perfil> findByCuentaIdAndEsPrincipalTrue(Long cuentaId);
 
     Optional<Perfil> findByCuentaIdAndCuentaCompartidaId(Long cuentaId, Long cuentaCompartidaId);
+
+    Optional<Perfil> findByIdAndCuentaId(Long id, Long cuentaId);
+
+    List<Perfil> findByCuentaIdAndCuentaCompartidaIsNotNull(Long cuentaId);
 
     // Cuando alguien se da de baja, sus perfiles de cuentas compartidas quedan en ellas (con lo que
     // cargó), pero ya sin nadie que los use.

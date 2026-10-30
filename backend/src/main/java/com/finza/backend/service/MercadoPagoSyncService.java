@@ -82,7 +82,7 @@ public class MercadoPagoSyncService {
         for (TransaccionMPResponseDTO dto : busqueda.getResultados()) {
             boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
             Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
-            Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil.getCuenta());
+            Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
 
             Movimiento movimiento = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
             movimientos.add(movimiento);
@@ -127,7 +127,7 @@ public class MercadoPagoSyncService {
 
             boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
             Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
-            Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil.getCuenta());
+            Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
 
             Movimiento nuevo = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
             nuevosMovimientos.add(nuevo);

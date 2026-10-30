@@ -10,11 +10,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.finza.backend.dto.CategoriaRequest;
 import com.finza.backend.dto.Response;
 import com.finza.backend.dto.cuentaCompartida.CuentaCompartidaRequestDTO;
 import com.finza.backend.dto.cuentaCompartida.RolRequestDTO;
-import com.finza.backend.service.CategoriaService;
 import com.finza.backend.service.PerfilService;
 
 import jakarta.validation.Valid;
@@ -26,7 +24,12 @@ import lombok.RequiredArgsConstructor;
 public class CuentaCompartidaController {
 
     private final PerfilService perfilService;
-    private final CategoriaService categoriaService;
+
+    // Para el selector de cuenta de la app.
+    @GetMapping
+    public ResponseEntity<Object> listarMias(@AuthenticationPrincipal Long cuentaId) {
+        return Response.ok(perfilService.misCuentasCompartidas(cuentaId), "Cuentas compartidas obtenidas");
+    }
 
     @PostMapping
     public ResponseEntity<Object> crear(@AuthenticationPrincipal Long cuentaId,
@@ -43,19 +46,4 @@ public class CuentaCompartidaController {
         return Response.ok(null, "Rol actualizado");
     }
 
-    // Predefinidas + las propias de la cuenta compartida. Cualquier integrante.
-    @GetMapping("/{id}/categorias")
-    public ResponseEntity<Object> listarCategorias(@PathVariable Long id, @AuthenticationPrincipal Long cuentaId) {
-        return Response.ok(categoriaService.listarCategoriasDeCuentaCompartida(cuentaId, id),
-                "Categorías obtenidas correctamente");
-    }
-
-    // Solo el administrador.
-    @PostMapping("/{id}/categorias")
-    public ResponseEntity<Object> crearCategoria(@PathVariable Long id,
-            @AuthenticationPrincipal Long cuentaId,
-            @Valid @RequestBody CategoriaRequest request) {
-        return Response.created(categoriaService.crearCategoriaDeCuentaCompartida(cuentaId, id, request),
-                "Categoría creada correctamente");
-    }
 }

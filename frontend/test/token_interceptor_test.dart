@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/storage/token_storage.dart';
 
 import 'tokens_de_prueba.dart';
@@ -46,6 +47,7 @@ Future<Map<String, dynamic>?> _encabezadosDeUnPedido() async {
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  tearDown(() => cuentaActiva.value = null);
 
   test('con sesión iniciada, cada pedido lleva el token', () async {
     final token = tokenVigenteDePrueba();
@@ -133,5 +135,46 @@ void main() {
     await expectLater(pedido, throwsA(isA<DioException>()));
     expect(await TokenStorage().obtenerToken(), token);
     expect(fueAlLogin, isFalse);
+  });
+
+  // Selector de cuenta (t-13.1.2)
+  const casa = {'id': 5, 'nombre': 'Casa', 'rol': 'MIEMBRO', 'perfilId': 12};
+
+  test('en una cuenta compartida, cada pedido lleva su perfil en X-Perfil-Id', () async {
+    await TokenStorage().guardar(token: tokenVigenteDePrueba(), refreshToken: 'r', email: 'a@b.com');
+    await TokenStorage().guardarCuentaActiva(casa);
+
+    final encabezados = await _encabezadosDeUnPedido();
+
+    expect(encabezados?['X-Perfil-Id'], '12');
+  });
+
+  test('en la cuenta personal, el pedido sale sin X-Perfil-Id', () async {
+    await TokenStorage().guardar(token: tokenVigenteDePrueba(), refreshToken: 'r', email: 'a@b.com');
+
+    final encabezados = await _encabezadosDeUnPedido();
+
+    expect(encabezados?.containsKey('X-Perfil-Id'), isFalse);
+  });
+
+  test('la cuenta elegida sigue al volver a abrir la app', () async {
+    await TokenStorage().guardarCuentaActiva(casa);
+    cuentaActiva.value = null; // como recién abierta
+
+    await TokenStorage().cargarCuentaActiva();
+
+    expect(cuentaActiva.value, casa);
+  });
+
+  test('cerrar sesión e iniciarla de nuevo vuelve a la cuenta personal', () async {
+    await TokenStorage().guardarCuentaActiva(casa);
+    await TokenStorage().limpiar();
+    expect(cuentaActiva.value, isNull);
+
+    await TokenStorage().guardarCuentaActiva(casa);
+    await TokenStorage().guardar(token: tokenVigenteDePrueba(), refreshToken: 'r', email: 'otro@b.com');
+    expect(cuentaActiva.value, isNull);
+    await TokenStorage().cargarCuentaActiva();
+    expect(cuentaActiva.value, isNull, reason: 'tampoco queda guardada');
   });
 }

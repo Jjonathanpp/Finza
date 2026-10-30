@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/widgets/app_drawer.dart';
 import 'package:frontend/features/home/presentation/widgets/acciones_rapidas.dart';
 import 'package:frontend/features/panel/presentation/widgets/gastos_por_categoria.dart';
@@ -30,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final recargaKey = ValueKey('${_startDate?.toIso8601String()}_${_endDate?.toIso8601String()}');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Finza')),
+      appBar: AppBar(title: Text(conCuentaActiva('Finza'))),
       drawer: const AppDrawer(),
       body: SafeArea(
         child: ListView(

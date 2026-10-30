@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/core/widgets/boton_icono.dart';
@@ -11,14 +12,16 @@ import 'package:frontend/features/categorias/presentation/widgets/formulario_cat
 import 'package:frontend/shared/utils/color_hex.dart';
 
 class CategoriasScreen extends StatefulWidget {
-  const CategoriasScreen({super.key});
+  const CategoriasScreen({super.key, this.api});
+
+  final CategoriaApi? api; // para los tests
 
   @override
   State<CategoriasScreen> createState() => _CategoriasScreenState();
 }
 
 class _CategoriasScreenState extends State<CategoriasScreen> {
-  final _vm = CategoriasViewModel(CategoriaApi(ApiClient()));
+  late final _vm = CategoriasViewModel(widget.api ?? CategoriaApi(ApiClient()));
 
   @override
   void initState() {
@@ -89,9 +92,11 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categorías'),
+        title: Text(conCuentaActiva('Categorías')),
+        // En una cuenta compartida, las crea solo el admin (t-13.1.2)
         actions: [
-          BotonIcono(icono: Icons.add, tamanio: 34, ayuda: 'Nueva categoría', alTocar: _abrirFormulario),
+          if (esAdminDeCuentaActiva)
+            BotonIcono(icono: Icons.add, tamanio: 34, ayuda: 'Nueva categoría', alTocar: _abrirFormulario),
         ],
       ),
       body: ListenableBuilder(
@@ -196,7 +201,8 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
               ],
             ),
           ),
-          if (!categoria.esPredefinida) ...[
+          // Las de una cuenta compartida todavía no se editan ni se borran (el backend no lo deja)
+          if (!categoria.esPredefinida && cuentaActiva.value == null) ...[
             BotonIcono(icono: Icons.edit_outlined, tamanio: 28, ayuda: 'Editar', alTocar: () => _abrirFormulario(editando: categoria)),
             const SizedBox(width: 4),
             BotonIcono(icono: Icons.delete_outline, tamanio: 28, ayuda: 'Eliminar', alTocar: () => _eliminar(categoria)),

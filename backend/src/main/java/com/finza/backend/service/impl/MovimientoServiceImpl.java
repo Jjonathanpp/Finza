@@ -16,7 +16,6 @@ import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.Categoria;
 import com.finza.backend.model.Movimiento;
 import com.finza.backend.model.Perfil;
-import com.finza.backend.repository.CategoriaRepository;
 import com.finza.backend.repository.MovimientoRepository;
 import com.finza.backend.repository.PerfilRepository;
 import com.finza.backend.service.CategoriaService;
@@ -39,7 +38,6 @@ public class MovimientoServiceImpl implements MovimientoService {
 
     private final MovimientoRepository movimientoRepository;
     private final CategoriaService categoriaService;
-    private final CategoriaRepository categoriaRepository; // Agregado para buscar sin crear
     private final PerfilRepository perfilRepository;
     private final IAService iaService;
 
@@ -113,7 +111,7 @@ public class MovimientoServiceImpl implements MovimientoService {
         Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
 
         movimiento
-                .setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo, perfil.getCuenta()));
+                .setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo, perfil));
         movimiento.setMonto(new BigDecimal(request.getMonto().trim()));
         movimiento.setEsIngreso(esIngreso);
         movimiento.setFecha(parsearFecha(request.getFecha()));
@@ -161,7 +159,7 @@ public class MovimientoServiceImpl implements MovimientoService {
         Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
 
         movimientoExistente.setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo,
-        movimientoExistente.getPerfil().getCuenta()));
+        movimientoExistente.getPerfil()));
         movimientoExistente.setMonto(new BigDecimal(request.getMonto().trim()));
         movimientoExistente.setEsIngreso(esIngreso);
         movimientoExistente.setFecha(parsearFecha(request.getFecha()));
@@ -206,19 +204,17 @@ public class MovimientoServiceImpl implements MovimientoService {
     public List<MovimientoResponseDTO> registrarDesdeAudio(MultipartFile audio, Long perfilId, Long cuentaIdAutenticada) throws Exception {
         final byte[] audioBytes = audio.getBytes();
         Perfil perfil = obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
-        Long idCuenta = perfil.getCuenta().getId();
 
-        // 1. Obtenemos el listado de categorías disponibles y lo convertimos a un String para el prompt
-        String categoriasDisponibles = categoriaRepository.listarPredefinidasYPropias(idCuenta)
+        // 1. Obtenemos el listado de categorías disponibles y lo convertimos a un String para el prompt.
+        // Son las del perfil: en una cuenta compartida, las predefinidas y las de esa cuenta (t-13.1.2).
+        String categoriasDisponibles = categoriaService.listarDelPerfil(perfil)
                 .stream()
                 .map(Categoria::getNombre)
                 .distinct()
                 .collect(java.util.stream.Collectors.joining(", "));
 
         // 2. Buscamos la categoría "Otros" (por defecto EGRESO para el placeholder)
-        Categoria categoriaOtrosEsqueleto = categoriaRepository.buscarPropiaOGlobal("Otros", Categoria.TipoCategoria.EGRESO, idCuenta)
-                .stream()
-                .findFirst()
+        Categoria categoriaOtrosEsqueleto = categoriaService.buscar("Otros", Categoria.TipoCategoria.EGRESO, perfil)
                 .orElseThrow(() -> new IllegalStateException("Falta categoría 'Otros' de egreso (T-4.1.3)"));
 
         // 3. Creamos el movimiento "Placeholder" usando "Otros" (sin crear "Procesando...")
@@ -248,12 +244,8 @@ public class MovimientoServiceImpl implements MovimientoService {
                 Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
                 
                 // Mapeo seguro: si Gemini inventó algo que no existe, forzamos a que use "Otros" del tipo correspondiente.
-                Categoria catFinal = categoriaRepository.buscarPropiaOGlobal(datosExtraidos.getCategoria().trim(), tipo, idCuenta)
-                        .stream()
-                        .findFirst()
-                        .orElseGet(() -> categoriaRepository.buscarPropiaOGlobal("Otros", tipo, idCuenta)
-                                .stream()
-                                .findFirst()
+                Categoria catFinal = categoriaService.buscar(datosExtraidos.getCategoria().trim(), tipo, perfil)
+                        .orElseGet(() -> categoriaService.buscar("Otros", tipo, perfil)
                                 .orElseThrow(() -> new IllegalStateException("Falta categoría 'Otros' de " + tipo)));
                 
                 aActualizar.setCategoria(catFinal);
