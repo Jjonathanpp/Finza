@@ -7,9 +7,11 @@ import 'package:frontend/core/widgets/cuenta_usuario.dart';
 import 'package:frontend/features/configuracion/data/datasources/preferencias_api.dart';
 import 'package:frontend/features/configuracion/presentation/screens/cambiar_password_screen.dart';
 import 'package:frontend/features/configuracion/presentation/viewmodels/configuracion_view_model.dart';
+import 'package:frontend/features/cuentas_compartidas/presentation/widgets/selector_de_cuenta.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
-// Se abre tocando el usuario, abajo del menú lateral. Tiene la moneda (US-8.2) y el cambio de contraseña.
+// Se abre tocando el usuario, abajo del menú lateral. Tiene la cuenta (personal o compartida, t-13.1.2),
+// la moneda (US-8.2) y el cambio de contraseña.
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({super.key, this.api});
 
@@ -45,6 +47,8 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             padding: const EdgeInsets.only(bottom: 24),
             children: [
               const CuentaUsuario(),
+              const Divider(color: AppColors.line),
+              const SelectorDeCuenta(),
               const Divider(color: AppColors.line),
               const Padding(
                 padding: EdgeInsets.fromLTRB(18, 12, 18, 4),

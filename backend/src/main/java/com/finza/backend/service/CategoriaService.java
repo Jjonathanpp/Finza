@@ -2,6 +2,7 @@ package com.finza.backend.service;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +12,7 @@ import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.Categoria;
 import com.finza.backend.model.Cuenta;
 import com.finza.backend.model.CuentaCompartida;
+import com.finza.backend.model.Perfil;
 import com.finza.backend.repository.CategoriaRepository;
 import com.finza.backend.repository.CuentaRepository;
 import com.finza.backend.repository.MovimientoRepository;
@@ -33,63 +35,74 @@ public class CategoriaService {
         this.perfilService = perfilService;
     }
 
+    // Las de la cuenta activa (t-13.1.2): en el perfil personal, las predefinidas y las propias;
+    // en una cuenta compartida, las predefinidas y las de esa cuenta compartida.
     public List<CategoriaResponseDTO> listarCategorias(Long cuentaId) {
         if (!cuentaRepository.existsById(cuentaId)) {
             throw new BadRequestException("La cuenta indicada no existe");
         }
-        return categoriaRepository.listarPredefinidasYPropias(cuentaId).stream()
+        return listarDelPerfil(perfilService.perfilActivo(cuentaId)).stream()
                 .map(CategoriaResponseDTO::new)
                 .toList();
     }
 
+    // Las que puede usar el perfil: las predefinidas y las propias de su cuenta o, si es de una cuenta
+    // compartida, las de esa cuenta compartida. También la usa la voz para armar la lista de la IA.
+    public List<Categoria> listarDelPerfil(Perfil perfil) {
+        CuentaCompartida compartida = perfil.getCuentaCompartida();
+        return compartida == null
+                ? categoriaRepository.listarPredefinidasYPropias(perfil.getCuenta().getId())
+                : categoriaRepository.listarPredefinidasYDeCuentaCompartida(compartida.getId());
+    }
+
+    // En una cuenta compartida la crea solo el administrador, y queda de la cuenta compartida.
     @Transactional
     public CategoriaResponseDTO crearCategoria(Long cuentaId, CategoriaRequest request) {
         Cuenta cuenta = cuentaRepository.findById(cuentaId)
                 .orElseThrow(() -> new BadRequestException("La cuenta indicada no existe"));
+        Perfil activo = perfilService.perfilActivo(cuentaId);
+        CuentaCompartida compartida = activo.getCuentaCompartida();
+        if (compartida != null) {
+            perfilService.exigirAdmin(cuentaId, compartida.getId());
+        }
 
         String nombreLimpio = request.getNombre().trim();
 
-        if (!categoriaRepository.buscarPropiaOGlobal(nombreLimpio, request.getTipo(), cuentaId).isEmpty()) {
+        if (buscar(nombreLimpio, request.getTipo(), activo).isPresent()) {
             throw new IllegalArgumentException("Ya existe una categoría con ese nombre para el tipo indicado");
         }
 
-        Categoria categoria = crearYGuardar(cuenta, null, nombreLimpio, request.getColor(), request.getTipo());
+        Categoria categoria = crearYGuardar(compartida == null ? cuenta : null, compartida, nombreLimpio,
+                request.getColor(), request.getTipo());
         return new CategoriaResponseDTO(categoria);
     }
 
-    // Las categorías de una cuenta compartida: las ve cualquier integrante.
-    public List<CategoriaResponseDTO> listarCategoriasDeCuentaCompartida(Long cuentaId, Long cuentaCompartidaId) {
-        perfilService.exigirMiembro(cuentaId, cuentaCompartidaId);
-        return categoriaRepository.listarPredefinidasYDeCuentaCompartida(cuentaCompartidaId).stream()
-                .map(CategoriaResponseDTO::new)
-                .toList();
-    }
-
-    // Solo el administrador crea categorías en la cuenta compartida. El nombre no puede repetir
-    // una predefinida ni otra de la misma cuenta compartida, del mismo tipo.
-    @Transactional
-    public CategoriaResponseDTO crearCategoriaDeCuentaCompartida(Long cuentaId, Long cuentaCompartidaId, CategoriaRequest request) {
-        CuentaCompartida compartida = perfilService.exigirAdmin(cuentaId, cuentaCompartidaId).getCuentaCompartida();
-        String nombreLimpio = request.getNombre().trim();
-
-        boolean repetido = categoriaRepository.listarPredefinidasYDeCuentaCompartida(cuentaCompartidaId).stream()
-                .anyMatch(otra -> otra.getTipoCategoriaPredefinida() == request.getTipo()
-                        && otra.getNombre().trim().equalsIgnoreCase(nombreLimpio));
-        if (repetido) {
-            throw new IllegalArgumentException("Ya existe una categoría con ese nombre para el tipo indicado");
-        }
-
-        return new CategoriaResponseDTO(crearYGuardar(null, compartida, nombreLimpio, request.getColor(), request.getTipo()));
-    }
-
-    // Usado por MovimientoServiceImpl. Recibe la Cuenta ya resuelta para no repetir
-    // la consulta que el caller ya hizo al buscar el perfil. Corre dentro de la
-    // transacción de MovimientoServiceImpl.registrar.
-    public Categoria buscarOCrearCategoria(String nombre, Categoria.TipoCategoria tipo, Cuenta cuenta) {
+    // Usado por MovimientoServiceImpl y MercadoPagoSyncService, dentro de su transacción. Recibe el
+    // perfil del movimiento: en una cuenta compartida busca entre las predefinidas y las de la cuenta
+    // compartida, y si no existe la crea solo el administrador (un miembro recibe 400).
+    public Categoria buscarOCrearCategoria(String nombre, Categoria.TipoCategoria tipo, Perfil perfil) {
         String nombreLimpio = nombre.trim();
-        return categoriaRepository.buscarPropiaOGlobal(nombreLimpio, tipo, cuenta.getId()).stream()
-                .findFirst()
-                .orElseGet(() -> crearYGuardar(cuenta, null, nombreLimpio, null, tipo));
+        CuentaCompartida compartida = perfil.getCuentaCompartida();
+        return buscar(nombreLimpio, tipo, perfil).orElseGet(() -> {
+            if (compartida != null && perfil.getRol() != Perfil.Rol.ADMIN) {
+                throw new BadRequestException(
+                        "La categoría " + nombreLimpio + " no existe en " + compartida.getNombre());
+            }
+            return crearYGuardar(compartida == null ? perfil.getCuenta() : null, compartida, nombreLimpio, null, tipo);
+        });
+    }
+
+    // La que puede usar el perfil con ese nombre y tipo, sin crearla: una predefinida o una propia (de su
+    // cuenta, o de su cuenta compartida si el perfil es de una). Si una carrera dejó un duplicado, la más
+    // vieja. También la usa la voz, que nunca crea categorías (T-3.1.6).
+    public Optional<Categoria> buscar(String nombre, Categoria.TipoCategoria tipo, Perfil perfil) {
+        CuentaCompartida compartida = perfil.getCuentaCompartida();
+        if (compartida == null) {
+            return categoriaRepository.buscarPropiaOGlobal(nombre, tipo, perfil.getCuenta().getId()).stream().findFirst();
+        }
+        return listarDelPerfil(perfil).stream()
+                .filter(otra -> otra.getTipoCategoriaPredefinida() == tipo && otra.getNombre().trim().equalsIgnoreCase(nombre))
+                .findFirst();
     }
 
     // Arma y persiste la entidad. Compartido por el alta explícita (POST /api/categorias,

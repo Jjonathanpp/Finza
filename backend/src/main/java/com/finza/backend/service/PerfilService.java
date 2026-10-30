@@ -1,5 +1,6 @@
 package com.finza.backend.service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -7,6 +8,8 @@ import java.util.Optional;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.CuentaCompartida;
@@ -25,12 +28,41 @@ public class PerfilService {
         this.cuentaCompartidaRepository = cuentaCompartidaRepository;
     }
 
-    // El perfil con el que trabaja la cuenta del token. En la Fase 1 cada cuenta tiene uno solo,
-    // el principal, que se crea al registrarse.
+    // El perfil con el que trabaja el pedido. Se sigue llamando así para no tocar los controllers
+    // que lo usan, pero devuelve el perfil activo (ver perfilActivo).
     public Long idPrincipal(Long cuentaId) {
-        return perfilRepository.findByCuentaIdAndEsPrincipalTrue(cuentaId)
-                .orElseThrow(() -> new NoSuchElementException("La cuenta no tiene un perfil principal"))
-                .getId();
+        return perfilActivo(cuentaId).getId();
+    }
+
+    // El perfil que eligió la app en el selector de cuenta (header X-Perfil-Id, t-13.1.2): el personal
+    // o el de una cuenta compartida. Tiene que ser de la cuenta del token (si no, 403). Sin el header,
+    // el principal, como antes.
+    public Perfil perfilActivo(Long cuentaId) {
+        String elegido = RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes pedido
+                ? pedido.getRequest().getHeader("X-Perfil-Id")
+                : null;
+        if (elegido == null) {
+            return perfilRepository.findByCuentaIdAndEsPrincipalTrue(cuentaId)
+                    .orElseThrow(() -> new NoSuchElementException("La cuenta no tiene un perfil principal"));
+        }
+        try {
+            return perfilRepository.findByIdAndCuentaId(Long.valueOf(elegido.trim()), cuentaId)
+                    .orElseThrow(() -> new AccessDeniedException("Ese perfil no es de tu cuenta"));
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("El perfil elegido no es válido");
+        }
+    }
+
+    // Para el selector de cuenta: las cuentas compartidas en las que está la cuenta del token, con su
+    // perfil ahí (el que la app manda en X-Perfil-Id) y su rol.
+    public List<Map<String, Object>> misCuentasCompartidas(Long cuentaId) {
+        return perfilRepository.findByCuentaIdAndCuentaCompartidaIsNotNull(cuentaId).stream()
+                .map(perfil -> Map.<String, Object>of(
+                        "id", perfil.getCuentaCompartida().getId(),
+                        "nombre", perfil.getCuentaCompartida().getNombre(),
+                        "rol", perfil.getRol(),
+                        "perfilId", perfil.getId()))
+                .toList();
     }
 
     // Crea la cuenta compartida y, en la cuenta de quien la crea, un perfil ADMIN para ella
@@ -56,23 +88,16 @@ public class PerfilService {
         return Map.of("id", compartida.getId(), "nombre", compartida.getNombre(), "perfilId", perfil.getId());
     }
 
-    // Para lo que puede ver cualquier integrante de una cuenta compartida. Devuelve el perfil de la
-    // cuenta del token en esa cuenta compartida; si no tiene perfil ahí o no vino la cuenta
-    // compartida, 403. (Con null, Spring buscaría "IS NULL" y encontraría el perfil personal.)
-    public Perfil exigirMiembro(Long cuentaId, Long cuentaCompartidaId) {
+    // Para las acciones que solo puede hacer el administrador de una cuenta compartida (invitar,
+    // cambiar roles, crear categorías, crear y editar el presupuesto compartido). Devuelve el perfil
+    // ADMIN de la cuenta del token en esa cuenta compartida; si no tiene perfil ahí, es MIEMBRO o no
+    // vino la cuenta compartida, 403. (Con null, Spring buscaría "IS NULL" y encontraría el perfil personal.)
+    public Perfil exigirAdmin(Long cuentaId, Long cuentaCompartidaId) {
         return Optional.ofNullable(cuentaCompartidaId)
                 .flatMap(id -> perfilRepository.findByCuentaIdAndCuentaCompartidaId(cuentaId, id))
-                .orElseThrow(() -> new AccessDeniedException("No sos parte de esta cuenta compartida"));
-    }
-
-    // Para las acciones que solo puede hacer el administrador de una cuenta compartida (invitar,
-    // cambiar roles, crear categorías, editar el presupuesto compartido). Si es MIEMBRO, 403.
-    public Perfil exigirAdmin(Long cuentaId, Long cuentaCompartidaId) {
-        Perfil perfil = exigirMiembro(cuentaId, cuentaCompartidaId);
-        if (perfil.getRol() != Perfil.Rol.ADMIN) {
-            throw new AccessDeniedException("Solo el administrador de la cuenta compartida puede hacer esto");
-        }
-        return perfil;
+                .filter(perfil -> perfil.getRol() == Perfil.Rol.ADMIN)
+                .orElseThrow(() -> new AccessDeniedException(
+                        "Solo el administrador de la cuenta compartida puede hacer esto"));
     }
 
     // El administrador cambia el rol de otro perfil de su cuenta compartida. El suyo y el de quien
