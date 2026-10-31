@@ -7,6 +7,7 @@ import '../../auth/service/auth_service.dart';
 import '../../registro/screens/register_screen.dart';
 import '../models/login_request.dart';
 import '../../home/presentation/screens/pantalla_principal.dart';
+import 'package:frontend/core/session/deep_link_service.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -52,6 +53,10 @@ class _LoginFormState extends State<LoginForm> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const PantallaPrincipal()),
+        );
+        // Si el usuario llegó desde un link de invitación, se abre ahora que ya hay sesión
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => abrirInvitacionPendiente(),
         );
       }
     } catch (e) {
