@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.finza.backend.dto.panel.GastoPorCategoriaDTO;
+import com.finza.backend.dto.presupuesto.GastoDePerfilDTO;
 import com.finza.backend.dto.presupuesto.PresupuestoCategoriaDTO;
 import com.finza.backend.dto.presupuesto.PresupuestoMesDTO;
 import com.finza.backend.dto.presupuesto.PresupuestoRequest;
@@ -128,6 +130,22 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         }
     }
 
+    // Cuánto gastó cada integrante en la categoría, de mayor a menor (t-13.2.1): los actuales aunque
+    // sea $0; los que se dieron de baja (perfil inactivo), solo si gastaron.
+    private List<GastoDePerfilDTO> porPerfil(List<Perfil> integrantes, Map<Long, BigDecimal> gastos, BigDecimal tope) {
+        return integrantes.stream()
+                .filter(integrante -> integrante.isEsActivo() || gastos.containsKey(integrante.getId()))
+                .map(integrante -> {
+                    BigDecimal gastado = gastos.getOrDefault(integrante.getId(), BigDecimal.ZERO);
+                    BigDecimal porcentaje = tope.signum() > 0
+                            ? gastado.multiply(BigDecimal.valueOf(100)).divide(tope, 1, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO;
+                    return new GastoDePerfilDTO(integrante.getId(), integrante.getNombrePerfil(), gastado, porcentaje);
+                })
+                .sorted(Comparator.comparing(GastoDePerfilDTO::gastado).reversed().thenComparing(GastoDePerfilDTO::perfilId))
+                .toList();
+    }
+
     private String calcularEstado(BigDecimal porcentaje) {
         if (porcentaje.compareTo(BigDecimal.valueOf(100)) >= 0) {
             return "EXCEDIDO";
@@ -157,6 +175,14 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         Map<Long, BigDecimal> gastosPorCatMap = gastos.stream()
                 .collect(Collectors.toMap(GastoPorCategoriaDTO::getId, GastoPorCategoriaDTO::getTotal));
 
+        // En una cuenta compartida, lo que gastó cada integrante en cada categoría (t-13.2.1)
+        Map<Long, Map<Long, BigDecimal>> gastosPorCategoriaYPerfil = compartida == null ? Map.of()
+                : movimientoRepository.sumarGastosPorCategoriaYPerfilDeCuentaCompartida(compartida.getId(), desde, hasta)
+                        .stream()
+                        .collect(Collectors.groupingBy(fila -> (Long) fila[0],
+                                Collectors.toMap(fila -> (Long) fila[1], fila -> (BigDecimal) fila[2])));
+        List<Perfil> integrantes = compartida == null ? List.of() : perfilRepository.findByCuentaCompartidaId(compartida.getId());
+
         List<PresupuestoCategoriaDTO> categoriasDTO = new ArrayList<>();
         BigDecimal totalPresupuestado = BigDecimal.ZERO;
         BigDecimal totalGastado = BigDecimal.ZERO;
@@ -177,7 +203,7 @@ public class PresupuestoServiceImpl implements PresupuestoService {
 
             String estado = calcularEstado(porcentaje);
 
-            categoriasDTO.add(new PresupuestoCategoriaDTO(
+            PresupuestoCategoriaDTO dto = new PresupuestoCategoriaDTO(
                     p.getId(),
                     categoriaId,
                     p.getCategoria().getNombre(),
@@ -186,7 +212,11 @@ public class PresupuestoServiceImpl implements PresupuestoService {
                     gastado,
                     porcentaje,
                     estado
-            ));
+            );
+            if (compartida != null) {
+                dto.setPorPerfil(porPerfil(integrantes, gastosPorCategoriaYPerfil.getOrDefault(categoriaId, Map.of()), tope));
+            }
+            categoriasDTO.add(dto);
         }
 
         BigDecimal porcentajeTotal = BigDecimal.ZERO;
