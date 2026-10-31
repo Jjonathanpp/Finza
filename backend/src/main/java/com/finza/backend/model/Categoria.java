@@ -28,9 +28,14 @@ public class Categoria {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Predefinida: sin cuenta ni cuenta compartida. Propia: de una cuenta o de una cuenta compartida.
     @ManyToOne
     @JoinColumn(name = "cuenta_id", nullable = true)
     private Cuenta cuenta;
+
+    @ManyToOne
+    @JoinColumn(name = "cuenta_compartida_id")
+    private CuentaCompartida cuentaCompartida;
 
     private String nombre;
     private String color;

@@ -17,6 +17,15 @@ void irAlLogin() {
   );
 }
 
+// Se cambió de cuenta en el selector (t-13.1.2): arma la pantalla principal de cero, así todas las
+// pestañas vuelven a pedir sus datos, ahora de la cuenta elegida.
+void irAlInicio() {
+  navegador.currentState?.pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const PantallaPrincipal()),
+    (_) => false,
+  );
+}
+
 // Lo primero que se ve al abrir la app: con una sesión que sirve entra directo, si no va al login.
 class Portero extends StatefulWidget {
   const Portero({super.key});
@@ -26,7 +35,14 @@ class Portero extends StatefulWidget {
 }
 
 class _PorteroState extends State<Portero> {
-  final _haySesion = TokenStorage().obtenerToken().then(tokenVigente);
+  final _haySesion = _arrancar();
+
+  // Antes de mostrar nada, la cuenta en la que se estaba: así los primeros pedidos ya van con ella.
+  static Future<bool> _arrancar() async {
+    final tokens = TokenStorage();
+    await tokens.cargarCuentaActiva();
+    return tokenVigente(await tokens.obtenerToken());
+  }
 
   @override
   Widget build(BuildContext context) {

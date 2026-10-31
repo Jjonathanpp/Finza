@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:frontend/config/constants/api_config.dart';
 import 'package:frontend/core/errors/api_exception.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/session/sesion.dart';
 import 'package:frontend/core/storage/token_storage.dart';
@@ -48,7 +49,8 @@ class ApiClient {
   }
 }
 
-// Antes de que salga cada pedido, le agrega el token del login (si hay uno guardado).
+// Antes de que salga cada pedido, le agrega el token del login (si hay uno guardado) y, si se eligió
+// una cuenta compartida en el selector, su perfil en X-Perfil-Id (t-13.1.2).
 // Si el token venció (el pedido no sale) o el backend responde 401, termina la sesión.
 // Menos en login y registro: ahí no hay sesión, y una contraseña equivocada también da 401.
 class TokenInterceptor extends Interceptor {
@@ -71,6 +73,8 @@ class TokenInterceptor extends Interceptor {
       return;
     }
     if (token != null) options.headers['Authorization'] = 'Bearer $token';
+    final cuenta = cuentaActiva.value;
+    if (cuenta != null) options.headers['X-Perfil-Id'] = '${cuenta['perfilId']}';
     handler.next(options);
   }
 

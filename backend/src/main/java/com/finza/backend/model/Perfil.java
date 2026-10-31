@@ -29,9 +29,16 @@ public class Perfil {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // La cuenta con la que inicia sesión el dueño del perfil. Solo queda vacía en el perfil de una
+    // cuenta compartida cuyo dueño se dio de baja.
     @ManyToOne
-    @JoinColumn(name = "cuenta_id", nullable = false)
+    @JoinColumn(name = "cuenta_id")
     private Cuenta cuenta;
+
+    // Vacía en el perfil personal; en los demás, la cuenta compartida a la que pertenece el perfil.
+    @ManyToOne
+    @JoinColumn(name = "cuenta_compartida_id")
+    private CuentaCompartida cuentaCompartida;
 
     @OneToMany(mappedBy = "perfil", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Movimiento> movimientos = new ArrayList<>();
@@ -42,10 +49,17 @@ public class Perfil {
     @OneToOne(mappedBy = "perfil", cascade = CascadeType.ALL, orphanRemoval = true)
     private PreferenciasSistema preferenciasSistema;
     private String nombrePerfil;
-    private String rol;
+    // El perfil personal es ADMIN. En una cuenta compartida, ADMIN el que la creó y MIEMBRO los invitados.
+    @Enumerated(EnumType.STRING)
+    private Rol rol;
     @Column(name = "foto_url")
     private String foto;
     private boolean esPrincipal;
     private boolean esActivo;
+
+    public enum Rol {
+        ADMIN,
+        MIEMBRO
+    }
 
 }

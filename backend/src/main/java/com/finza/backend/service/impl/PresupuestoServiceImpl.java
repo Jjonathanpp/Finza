@@ -20,12 +20,14 @@ import com.finza.backend.dto.presupuesto.PresupuestoMesDTO;
 import com.finza.backend.dto.presupuesto.PresupuestoRequest;
 import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.Categoria;
+import com.finza.backend.model.CuentaCompartida;
 import com.finza.backend.model.Perfil;
 import com.finza.backend.model.Presupuesto;
 import com.finza.backend.repository.CategoriaRepository;
 import com.finza.backend.repository.MovimientoRepository;
 import com.finza.backend.repository.PerfilRepository;
 import com.finza.backend.repository.PresupuestoRepository;
+import com.finza.backend.service.PerfilService;
 import com.finza.backend.service.PresupuestoService;
 
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class PresupuestoServiceImpl implements PresupuestoService {
     private final MovimientoRepository movimientoRepository;
     private final PerfilRepository perfilRepository;
     private final CategoriaRepository categoriaRepository;
+    private final PerfilService perfilService;
     /* 
     private Perfil obtenerPerfilValidado(Long perfilId, Long cuentaIdAutenticada) {
         Perfil perfil = perfilRepository.findById(perfilId)
@@ -60,8 +63,10 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         return perfil;
     }
 
+    // Solo los presupuestos personales: para estos endpoints, el de una cuenta compartida no existe.
     private Presupuesto obtenerPresupuestoValidado(Long presupuestoId, Long cuentaIdAutenticada) {
         Presupuesto presupuesto = presupuestoRepository.findById(presupuestoId)
+                .filter(p -> p.getPerfil() != null)
                 .orElseThrow(() -> new NoSuchElementException("Presupuesto no encontrado"));
 
         if (!presupuesto.getPerfil().getCuenta().getId().equals(cuentaIdAutenticada)) {
@@ -70,11 +75,42 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         return presupuesto;
     }
 
-    private Categoria obtenerCategoriaValidada(Long categoriaId, Long cuentaIdAutenticada) {
+    // El presupuesto que edita o desactiva el perfil activo. Personal: como siempre. En una cuenta
+    // compartida (t-13.1.2): solo el administrador, y solo los de esa cuenta compartida (si no, 404).
+    private Presupuesto obtenerPresupuestoDelPerfil(Long presupuestoId, Perfil perfil, Long cuentaIdAutenticada) {
+        CuentaCompartida compartida = perfil.getCuentaCompartida();
+        if (compartida == null) {
+            Presupuesto presupuesto = obtenerPresupuestoValidado(presupuestoId, cuentaIdAutenticada);
+            if (!presupuesto.getPerfil().getId().equals(perfil.getId())) {
+                throw new BadRequestException("El presupuesto no pertenece al perfil indicado");
+            }
+            return presupuesto;
+        }
+        perfilService.exigirAdmin(cuentaIdAutenticada, compartida.getId());
+        return presupuestoRepository.findById(presupuestoId)
+                .filter(p -> p.getCuentaCompartida() != null && p.getCuentaCompartida().getId().equals(compartida.getId()))
+                .orElseThrow(() -> new NoSuchElementException("Presupuesto no encontrado"));
+    }
+
+    // El gasto por categoría del período: del perfil o, en una cuenta compartida, de todos sus perfiles.
+    private List<GastoPorCategoriaDTO> gastosDelPeriodo(Perfil perfil, LocalDate desde, LocalDate hasta) {
+        CuentaCompartida compartida = perfil.getCuentaCompartida();
+        return compartida == null
+                ? movimientoRepository.sumarGastosPorCategoria(perfil.getId(), desde, hasta)
+                : movimientoRepository.sumarGastosPorCategoriaDeCuentaCompartida(compartida.getId(), desde, hasta);
+    }
+
+    // Personal: una predefinida o una propia. En una cuenta compartida: una predefinida o una de esa
+    // cuenta compartida (las personales de cada integrante no). Si no, 403.
+    private Categoria obtenerCategoriaValidada(Long categoriaId, Long cuentaIdAutenticada, CuentaCompartida compartida) {
         Categoria categoria = categoriaRepository.findById(categoriaId)
                 .orElseThrow(() -> new NoSuchElementException("La categoría indicada no existe"));
 
-        if (categoria.getCuenta() != null && !categoria.getCuenta().getId().equals(cuentaIdAutenticada)) {
+        boolean predefinida = categoria.getCuenta() == null && categoria.getCuentaCompartida() == null;
+        boolean propia = compartida == null
+                ? categoria.getCuenta() != null && categoria.getCuenta().getId().equals(cuentaIdAutenticada)
+                : categoria.getCuentaCompartida() != null && categoria.getCuentaCompartida().getId().equals(compartida.getId());
+        if (!predefinida && !propia) {
             throw new AccessDeniedException("No tenés permiso para usar esta categoría");
         }
         return categoria;
@@ -105,15 +141,18 @@ public class PresupuestoServiceImpl implements PresupuestoService {
     @Override
     @Transactional(readOnly = true)
     public PresupuestoMesDTO obtenerPresupuestosDelMes(Long perfilId, Long cuentaIdAutenticada, int mes, int anio) {
-        obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
-
-        List<Presupuesto> presupuestos = presupuestoRepository.buscarActivosDelMes(perfilId, mes, anio);
+        Perfil perfil = obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
+        // En una cuenta compartida, los de la cuenta compartida: los ve cualquier integrante
+        CuentaCompartida compartida = perfil.getCuentaCompartida();
+        List<Presupuesto> presupuestos = compartida == null
+                ? presupuestoRepository.buscarActivosDelMes(perfilId, mes, anio)
+                : presupuestoRepository.buscarActivosDelMesDeCuentaCompartida(compartida.getId(), mes, anio);
 
         YearMonth yearMonth = YearMonth.of(anio, mes);
         LocalDate desde = yearMonth.atDay(1);
         LocalDate hasta = yearMonth.atEndOfMonth();
 
-        List<GastoPorCategoriaDTO> gastos = movimientoRepository.sumarGastosPorCategoria(perfilId, desde, hasta);
+        List<GastoPorCategoriaDTO> gastos = gastosDelPeriodo(perfil, desde, hasta);
         
         Map<Long, BigDecimal> gastosPorCatMap = gastos.stream()
                 .collect(Collectors.toMap(GastoPorCategoriaDTO::getId, GastoPorCategoriaDTO::getTotal));
@@ -168,16 +207,26 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         }
 
         Perfil perfil = obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
-        Categoria categoria = obtenerCategoriaValidada(request.getCategoriaId(), cuentaIdAutenticada);
+        // En una cuenta compartida el presupuesto es de la cuenta compartida y lo crea solo el administrador
+        CuentaCompartida compartida = perfil.getCuentaCompartida();
+        if (compartida != null) {
+            perfilService.exigirAdmin(cuentaIdAutenticada, compartida.getId());
+        }
+        Categoria categoria = obtenerCategoriaValidada(request.getCategoriaId(), cuentaIdAutenticada, compartida);
 
         // Regla de unicidad: una sola categoría por mes y año activa
-        if (presupuestoRepository.existsByPerfilIdAndCategoriaIdAndMesAndAnioAndActivoTrue(
-                perfilId, categoria.getId(), request.getMes(), request.getAnio())) {
+        boolean repetido = compartida == null
+                ? presupuestoRepository.existsByPerfilIdAndCategoriaIdAndMesAndAnioAndActivoTrue(
+                        perfilId, categoria.getId(), request.getMes(), request.getAnio())
+                : presupuestoRepository.existsByCuentaCompartidaIdAndCategoriaIdAndMesAndAnioAndActivoTrue(
+                        compartida.getId(), categoria.getId(), request.getMes(), request.getAnio());
+        if (repetido) {
             throw new BadRequestException("Ya existe un presupuesto activo para esta categoría en el período indicado");
         }
 
         Presupuesto presupuesto = new Presupuesto();
-        presupuesto.setPerfil(perfil);
+        presupuesto.setPerfil(compartida == null ? perfil : null);
+        presupuesto.setCuentaCompartida(compartida);
         presupuesto.setCategoria(categoria);
         presupuesto.setMontoTope(request.getMontoTope());
         presupuesto.setMes(request.getMes());
@@ -188,8 +237,7 @@ public class PresupuestoServiceImpl implements PresupuestoService {
 
         // Consultamos gastos actuales para responder con el DTO completo
         YearMonth ym = YearMonth.of(request.getAnio(), request.getMes());
-        List<GastoPorCategoriaDTO> gastos = movimientoRepository.sumarGastosPorCategoria(
-                perfilId, ym.atDay(1), ym.atEndOfMonth());
+        List<GastoPorCategoriaDTO> gastos = gastosDelPeriodo(perfil, ym.atDay(1), ym.atEndOfMonth());
         
         BigDecimal gastado = gastos.stream()
                 .filter(g -> g.getId().equals(categoria.getId()))
@@ -219,17 +267,20 @@ public class PresupuestoServiceImpl implements PresupuestoService {
     public PresupuestoCategoriaDTO editarPresupuesto(Long id, Long perfilId, Long cuentaIdAutenticada, PresupuestoRequest request) {
         validarDatos(request);
 
-        Presupuesto presupuesto = obtenerPresupuestoValidado(id, cuentaIdAutenticada);
-        if (!presupuesto.getPerfil().getId().equals(perfilId)) {
-            throw new BadRequestException("El presupuesto no pertenece al perfil indicado");
-        }
+        Perfil perfil = obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
+        CuentaCompartida compartida = perfil.getCuentaCompartida();
+        Presupuesto presupuesto = obtenerPresupuestoDelPerfil(id, perfil, cuentaIdAutenticada);
 
         Long categoriaIdFinal = request.getCategoriaId() != null ? request.getCategoriaId() : presupuesto.getCategoria().getId();
-        Categoria categoria = obtenerCategoriaValidada(categoriaIdFinal, cuentaIdAutenticada);
+        Categoria categoria = obtenerCategoriaValidada(categoriaIdFinal, cuentaIdAutenticada, compartida);
 
         // Validar unicidad excluyendo el propio ID
-        if (presupuestoRepository.existsByPerfilIdAndCategoriaIdAndMesAndAnioAndActivoTrueAndIdNot(
-                perfilId, categoria.getId(), request.getMes(), request.getAnio(), id)) {
+        boolean repetido = compartida == null
+                ? presupuestoRepository.existsByPerfilIdAndCategoriaIdAndMesAndAnioAndActivoTrueAndIdNot(
+                        perfilId, categoria.getId(), request.getMes(), request.getAnio(), id)
+                : presupuestoRepository.existsByCuentaCompartidaIdAndCategoriaIdAndMesAndAnioAndActivoTrueAndIdNot(
+                        compartida.getId(), categoria.getId(), request.getMes(), request.getAnio(), id);
+        if (repetido) {
             throw new BadRequestException("Ya existe otro presupuesto activo para esta categoría en el período indicado");
         }
 
@@ -241,8 +292,7 @@ public class PresupuestoServiceImpl implements PresupuestoService {
         Presupuesto actualizado = presupuestoRepository.save(presupuesto);
 
         YearMonth ym = YearMonth.of(request.getAnio(), request.getMes());
-        List<GastoPorCategoriaDTO> gastos = movimientoRepository.sumarGastosPorCategoria(
-                perfilId, ym.atDay(1), ym.atEndOfMonth());
+        List<GastoPorCategoriaDTO> gastos = gastosDelPeriodo(perfil, ym.atDay(1), ym.atEndOfMonth());
 
         BigDecimal gastado = gastos.stream()
                 .filter(g -> g.getId().equals(categoria.getId()))
@@ -270,10 +320,8 @@ public class PresupuestoServiceImpl implements PresupuestoService {
     @Override
     @Transactional
     public void desactivarPresupuesto(Long id, Long perfilId, Long cuentaIdAutenticada) {
-        Presupuesto presupuesto = obtenerPresupuestoValidado(id, cuentaIdAutenticada);
-        if (!presupuesto.getPerfil().getId().equals(perfilId)) {
-            throw new BadRequestException("El presupuesto no pertenece al perfil indicado");
-        }
+        Perfil perfil = obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
+        Presupuesto presupuesto = obtenerPresupuestoDelPerfil(id, perfil, cuentaIdAutenticada);
 
         presupuesto.setActivo(false);
         presupuestoRepository.save(presupuesto);

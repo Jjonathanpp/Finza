@@ -40,10 +40,7 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
       await _api.solicitarCodigo(email);
 
       if (!mounted) return;
-      mostrarExito(
-        context,
-        'Si el email está registrado, te enviamos un código',
-      );
+      mostrarExito(context, 'Te enviamos un código a tu email');
       // pushReplacement: al volver atrás se regresa al login, no a esta pantalla
       Navigator.pushReplacement(
         context,

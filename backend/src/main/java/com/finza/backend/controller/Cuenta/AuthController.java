@@ -83,7 +83,7 @@ public class AuthController {
     @PostMapping("/olvide-contrasena")
     public ResponseEntity<Object> olvideContrasena(@Valid @RequestBody OlvideContrasenaRequest req) {
         recuperacionService.solicitarCodigo(req.email());
-        return Response.ok(null, "Si el email está registrado, te enviamos un código");
+        return Response.ok(null, "Te enviamos un código a tu email");
     }
 
     @PostMapping("/restablecer-contrasena")

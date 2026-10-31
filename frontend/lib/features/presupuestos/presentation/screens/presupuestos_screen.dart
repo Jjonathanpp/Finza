@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/screens/alta_presupuestos_screen.dart'; // Nombre con "s" como lo guardaste
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/barra_progreso_presupuesto.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/editar_presupuesto_sheet.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:provider/provider.dart';
 
@@ -48,7 +51,7 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Presupuestos'),
+        title: Text(conCuentaActiva('Presupuestos')),
         elevation: 0,
       ),
       body: Consumer<PresupuestosViewModel>(
@@ -77,34 +80,43 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                 ),
               ),
 
-              // 2. Botón Grande "Agregar presupuesto"
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add_circle_outline, size: 22),
-                    label: const Text('Agregar presupuesto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
+              // 2. Botón Grande "Agregar presupuesto". En una cuenta compartida, solo para el admin (t-13.1.2)
+              if (!esAdminDeCuentaActiva)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  child: Text(
+                    'Solo los administradores de ${cuentaActiva.value!['nombre']} pueden agregar o cambiar presupuestos.',
+                    style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.add_circle_outline, size: 22),
+                      label: const Text('Agregar presupuesto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                      ),
+                      onPressed: () async {
+                        final creado = await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AltaPresupuestoScreen()),
+                        );
+                        // Si se creó uno, recargamos la vista del mes actual
+                        if (creado == true && mounted) {
+                          vm.cargarPresupuestos();
+                        }
+                      },
                     ),
-                    onPressed: () async {
-                      final creado = await Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AltaPresupuestoScreen()),
-                      );
-                      // Si se creó uno, recargamos la vista del mes actual
-                      if (creado == true && mounted) {
-                        vm.cargarPresupuestos();
-                      }
-                    },
                   ),
                 ),
-              ),
               
               const SizedBox(height: 12),
 
@@ -148,7 +160,9 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
             const Icon(Icons.pie_chart_outline, size: 64, color: AppColors.faint),
             const SizedBox(height: 16),
             Text(
-              'No hay presupuestos en ${_meses[vm.mesActual]}',
+              cuentaActiva.value == null
+                  ? 'No hay presupuestos en ${_meses[vm.mesActual]}'
+                  : '${cuentaActiva.value!['nombre']} no tiene presupuestos en ${_meses[vm.mesActual]}',
               style: const TextStyle(color: AppColors.muted, fontSize: 16),
             ),
           ],
@@ -163,58 +177,77 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
       itemBuilder: (context, index) {
         final p = vm.presupuestos[index];
         final colorCat = colorDesdeHex(p.categoriaColor);
+        final editable = cuentaActiva.value != null && esAdminDeCuentaActiva;
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 2))],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(color: colorCat, shape: BoxShape.circle),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(p.categoriaNombre, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                    ],
-                  ),
-                  Text(
-                     '${p.porcentajeConsumo.toStringAsFixed(1)}%',
-                     style: TextStyle(
-                       fontWeight: FontWeight.bold,
-                       color: p.porcentajeConsumo >= 100
-                           ? AppColors.danger
-                           : p.porcentajeConsumo >= 80
-                               ? Colors.amber
-                               : Colors.green,
+        return InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: editable ? () => _editar(vm, p) : null,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 2))],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(color: colorCat, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(p.categoriaNombre, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                      ],
+                    ),
+                    Text(
+                       '${p.porcentajeConsumo.toStringAsFixed(1)}%',
+                       style: TextStyle(
+                         fontWeight: FontWeight.bold,
+                         color: p.porcentajeConsumo >= 100
+                             ? AppColors.danger
+                             : p.porcentajeConsumo >= 80
+                                 ? Colors.amber
+                                 : Colors.green,
+                       ),
                      ),
-                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              BarraProgresoPresupuesto(porcentaje: p.porcentajeConsumo),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Gastado: \$${_formatoMonto(p.montoGastado)}', style: const TextStyle(color: AppColors.muted, fontSize: 13)),
-                  Text('Tope: \$${_formatoMonto(p.montoTope)}', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                ],
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                BarraProgresoPresupuesto(porcentaje: p.porcentajeConsumo),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Gastado: \$${_formatoMonto(p.montoGastado)}', style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+                    Text('Tope: \$${_formatoMonto(p.montoTope)}', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  void _editar(PresupuestosViewModel vm, Presupuesto p) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true, // sube con el teclado
+      builder: (_) => EditarPresupuestoSheet(
+        presupuesto: p,
+        periodo: '${_meses[vm.mesActual]} ${vm.anioActual}',
+        cuenta: cuentaActiva.value!['nombre'] as String,
+        alGuardar: (tope) => vm.editarTope(p, tope),
+        alDesactivar: () => vm.desactivar(p),
+      ),
     );
   }
 }

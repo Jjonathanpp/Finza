@@ -43,6 +43,23 @@ class PresupuestoApi {
     }
   }
 
+  // Editar y desactivar (t-13.1.2): las mismas rutas que los personales. En una cuenta compartida,
+  // el backend solo se lo deja al admin (403 si no).
+  Future<void> editarPresupuesto({
+    required int id,
+    required int categoriaId,
+    required double montoTope,
+    required int mes,
+    required int anio,
+  }) => _client.put('/api/presupuestos/$id', {
+        'categoriaId': categoriaId,
+        'montoTope': montoTope,
+        'mes': mes,
+        'anio': anio,
+      });
+
+  Future<void> desactivarPresupuesto(int id) => _client.delete('/api/presupuestos/$id');
+
   Future<List<Map<String, dynamic>>> obtenerCategoriasEgreso() async {
     try {
       final response = await _client.get('/api/categorias');

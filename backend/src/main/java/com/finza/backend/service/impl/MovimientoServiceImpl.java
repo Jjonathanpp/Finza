@@ -29,7 +29,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -112,7 +111,7 @@ public class MovimientoServiceImpl implements MovimientoService {
         Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
 
         movimiento
-                .setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo, perfil.getCuenta()));
+                .setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo, perfil));
         movimiento.setMonto(new BigDecimal(request.getMonto().trim()));
         movimiento.setEsIngreso(esIngreso);
         movimiento.setFecha(parsearFecha(request.getFecha()));
@@ -125,8 +124,7 @@ public class MovimientoServiceImpl implements MovimientoService {
         if (!esVacio(request.getOrigen())) {
             movimiento.setOrigen(Movimiento.OrigenMovimiento.valueOf(request.getOrigen().toUpperCase()));
         } else {
-            movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL); // Por defecto si se carga desde el formulario
-                                                                      // normal
+            movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL); 
         }
         movimiento.setFechaCreacion(LocalDateTime.now());
         return movimiento;
@@ -161,7 +159,7 @@ public class MovimientoServiceImpl implements MovimientoService {
         Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
 
         movimientoExistente.setCategoria(categoriaService.buscarOCrearCategoria(request.getCategoria(), tipo,
-        movimientoExistente.getPerfil().getCuenta()));
+        movimientoExistente.getPerfil()));
         movimientoExistente.setMonto(new BigDecimal(request.getMonto().trim()));
         movimientoExistente.setEsIngreso(esIngreso);
         movimientoExistente.setFecha(parsearFecha(request.getFecha()));
@@ -204,46 +202,57 @@ public class MovimientoServiceImpl implements MovimientoService {
     @Override
     @Transactional
     public List<MovimientoResponseDTO> registrarDesdeAudio(MultipartFile audio, Long perfilId, Long cuentaIdAutenticada) throws Exception {
-        // 1. Extraemos los bytes del audio INMEDIATAMENTE antes de que Spring destruya la petición
         final byte[] audioBytes = audio.getBytes();
-        
-        // 2. Buscamos el perfil
         Perfil perfil = obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
 
-        // 3. Creamos el movimiento "Placeholder" o Esqueleto
+        // 1. Obtenemos el listado de categorías disponibles y lo convertimos a un String para el prompt.
+        // Son las del perfil: en una cuenta compartida, las predefinidas y las de esa cuenta (t-13.1.2).
+        String categoriasDisponibles = categoriaService.listarDelPerfil(perfil)
+                .stream()
+                .map(Categoria::getNombre)
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(", "));
+
+        // 2. Buscamos la categoría "Otros" (por defecto EGRESO para el placeholder)
+        Categoria categoriaOtrosEsqueleto = categoriaService.buscar("Otros", Categoria.TipoCategoria.EGRESO, perfil)
+                .orElseThrow(() -> new IllegalStateException("Falta categoría 'Otros' de egreso (T-4.1.3)"));
+
+        // 3. Creamos el movimiento "Placeholder" usando "Otros" (sin crear "Procesando...")
         Movimiento placeholder = new Movimiento();
         placeholder.setPerfil(perfil);
-        placeholder.setMonto(BigDecimal.ZERO); // Monto en 0 temporalmente
+        placeholder.setMonto(BigDecimal.ZERO);
         placeholder.setDescripcion("🤖 Analizando audio con IA...");
         placeholder.setFecha(LocalDate.now());
-        placeholder.setEsIngreso(false); // Asumimos egreso por defecto
-        placeholder.setEstado(Movimiento.EstadoMovimiento.PROCESANDO_IA); // Estado temporal
+        placeholder.setEsIngreso(false);
+        placeholder.setEstado(Movimiento.EstadoMovimiento.PROCESANDO_IA);
         placeholder.setOrigen(Movimiento.OrigenMovimiento.VOZ);
         placeholder.setFechaCreacion(LocalDateTime.now());
-        
-        // Le asignamos una categoría temporal genérica para que la base de datos no rechace el null
-        Categoria catTemp = categoriaService.buscarOCrearCategoria("Procesando...", Categoria.TipoCategoria.EGRESO, perfil.getCuenta());
-        placeholder.setCategoria(catTemp);
+        placeholder.setCategoria(categoriaOtrosEsqueleto);
 
-        // Guardamos el esqueleto en la base de datos para obtener su ID
         final Movimiento movimientoGuardado = movimientoRepository.save(placeholder);
         final Long idMovimiento = movimientoGuardado.getId();
 
-        // 4. DISPARAMOS EL HILO EN SEGUNDO PLANO (Asíncrono)
+        // 4. DISPARAMOS EL HILO EN SEGUNDO PLANO
         java.util.concurrent.CompletableFuture.runAsync(() -> {
-        try {
-                var datosExtraidos = iaService.procesarAudioYExtraerDatos(audioBytes);
+            try {
+                // Ahora le mandamos la lista de categorías a Gemini
+                var datosExtraidos = iaService.procesarAudioYExtraerDatos(audioBytes, categoriasDisponibles);
                 
                 Movimiento aActualizar = movimientoRepository.findById(idMovimiento).orElseThrow();
                 
                 boolean esIngreso = "ingreso".equalsIgnoreCase(datosExtraidos.getTipo().trim());
                 Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
                 
-                aActualizar.setCategoria(categoriaService.buscarOCrearCategoria(datosExtraidos.getCategoria(), tipo, perfil.getCuenta()));
+                // Mapeo seguro: si Gemini inventó algo que no existe, forzamos a que use "Otros" del tipo correspondiente.
+                Categoria catFinal = categoriaService.buscar(datosExtraidos.getCategoria().trim(), tipo, perfil)
+                        .orElseGet(() -> categoriaService.buscar("Otros", tipo, perfil)
+                                .orElseThrow(() -> new IllegalStateException("Falta categoría 'Otros' de " + tipo)));
+                
+                aActualizar.setCategoria(catFinal);
                 aActualizar.setMonto(new BigDecimal(datosExtraidos.getMonto().trim()));
                 aActualizar.setEsIngreso(esIngreso);
                 aActualizar.setFecha(parsearFecha(datosExtraidos.getFecha()));
-                aActualizar.setDescripcion(truncar(datosExtraidos.getDescripcion(), 250)); // <-- truncado defensivo
+                aActualizar.setDescripcion(truncar(datosExtraidos.getDescripcion(), 250));
                 aActualizar.setEstado(Movimiento.EstadoMovimiento.PENDIENTE);
                 
                 movimientoRepository.save(aActualizar);
@@ -252,17 +261,16 @@ public class MovimientoServiceImpl implements MovimientoService {
                 try {
                     movimientoRepository.findById(idMovimiento).ifPresent(aActualizar -> {
                         String msg = e.getMessage() != null ? e.getMessage() : "Error desconocido";
-                        aActualizar.setDescripcion(truncar("❌ Error de IA: " + msg, 250)); // <-- truncado defensivo acá también
+                        aActualizar.setDescripcion(truncar("❌ Error de IA: " + msg, 250));
                         aActualizar.setEstado(Movimiento.EstadoMovimiento.ERROR_IA);
                         movimientoRepository.save(aActualizar);
                     });
                 } catch (Exception errorAlGuardarError) {
-                    // Si ESTO también falla, al menos lo vas a ver en los logs en vez de perderlo en silencio
                     System.err.println("No se pudo guardar el estado de error para el movimiento " + idMovimiento + ": " + errorAlGuardarError.getMessage());
                 }
             }
         });
-        // 5. Devolvemos el esqueleto al Controller de forma instantánea. El usuario no espera a la IA.
+        
         return java.util.Collections.singletonList(new MovimientoResponseDTO(movimientoGuardado));
     }
 
@@ -292,7 +300,7 @@ public class MovimientoServiceImpl implements MovimientoService {
         return movimientoRepository.buscarUltimosEgresos(perfilId, cuentaIdAutenticada, PageRequest.of(0, limite))
                 .stream().map(MovimientoResponseDTO::new).toList();
     }
-
+    
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<MovimientoResponseDTO> obtenerPendientesMercadoPago(Long perfilId, Long cuentaIdAutenticada) {

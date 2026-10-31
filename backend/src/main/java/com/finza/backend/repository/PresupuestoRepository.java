@@ -25,5 +25,19 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
 
     // Para evitar falsos positivos al editar el mismo presupuesto
     boolean existsByPerfilIdAndCategoriaIdAndMesAndAnioAndActivoTrueAndIdNot(
-            Long perfilId, Long categoriaId, int mes, int anio, Long id);      
+            Long perfilId, Long categoriaId, int mes, int anio, Long id);
+
+    // Lo mismo para los presupuestos de una cuenta compartida (t-13.1.2)
+    @Query("SELECT p FROM Presupuesto p JOIN FETCH p.categoria " +
+           "WHERE p.cuentaCompartida.id = :cuentaCompartidaId AND p.mes = :mes AND p.anio = :anio AND p.activo = true")
+    List<Presupuesto> buscarActivosDelMesDeCuentaCompartida(
+            @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+            @Param("mes") int mes,
+            @Param("anio") int anio);
+
+    boolean existsByCuentaCompartidaIdAndCategoriaIdAndMesAndAnioAndActivoTrue(
+            Long cuentaCompartidaId, Long categoriaId, int mes, int anio);
+
+    boolean existsByCuentaCompartidaIdAndCategoriaIdAndMesAndAnioAndActivoTrueAndIdNot(
+            Long cuentaCompartidaId, Long categoriaId, int mes, int anio, Long id);
 }
