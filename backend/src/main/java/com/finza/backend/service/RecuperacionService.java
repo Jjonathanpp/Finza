@@ -2,6 +2,7 @@ package com.finza.backend.service;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.NoSuchElementException;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,9 +29,9 @@ public class RecuperacionService {
     private final EmailService emailService;
 
     public RecuperacionService(CuentaRepository cuentaRepository,
-                               CodigoRecuperacionRepository codigoRepository,
-                               PasswordEncoder passwordEncoder,
-                               EmailService emailService) {
+            CodigoRecuperacionRepository codigoRepository,
+            PasswordEncoder passwordEncoder,
+            EmailService emailService) {
         this.cuentaRepository = cuentaRepository;
         this.codigoRepository = codigoRepository;
         this.passwordEncoder = passwordEncoder;
@@ -39,19 +40,20 @@ public class RecuperacionService {
 
     @Transactional
     public void solicitarCodigo(String email) {
-        cuentaRepository.findByEmail(email).ifPresent(cuenta -> {
-            codigoRepository.deleteByCuenta(cuenta); // invalida códigos anteriores
+        Cuenta cuenta = cuentaRepository.findByEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("No existe una cuenta con ese email"));
 
-            String codigo = String.format("%06d", random.nextInt(1_000_000));
+        codigoRepository.deleteByCuenta(cuenta); // invalida códigos anteriores
 
-            CodigoRecuperacion cr = new CodigoRecuperacion();
-            cr.setCuenta(cuenta);
-            cr.setCodigoHash(passwordEncoder.encode(codigo));
-            cr.setExpiraEn(LocalDateTime.now().plusMinutes(EXPIRACION_MINUTOS));
-            codigoRepository.save(cr);
+        String codigo = String.format("%06d", random.nextInt(1_000_000));
 
-            emailService.enviarCodigoRecuperacion(cuenta.getEmail(), codigo);
-        });
+        CodigoRecuperacion cr = new CodigoRecuperacion();
+        cr.setCuenta(cuenta);
+        cr.setCodigoHash(passwordEncoder.encode(codigo));
+        cr.setExpiraEn(LocalDateTime.now().plusMinutes(EXPIRACION_MINUTOS));
+        codigoRepository.save(cr);
+
+        emailService.enviarCodigoRecuperacion(cuenta.getEmail(), codigo);
     }
 
     @Transactional(dontRollbackOn = BadRequestException.class)
