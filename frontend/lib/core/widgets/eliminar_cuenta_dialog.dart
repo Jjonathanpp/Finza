@@ -25,9 +25,12 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
 
   bool _ocultarPassword = true;
   bool _cargando = false;
+  bool _aceptoTerminos = false; // Estado para el checkbox
   String? _error;
 
-  bool get _puedeEliminar => _passwordController.text.isNotEmpty && !_cargando;
+  // Se habilita solo si hay contraseña, el checkbox está marcado y no está cargando
+  bool get _puedeEliminar =>
+      _passwordController.text.isNotEmpty && _aceptoTerminos && !_cargando;
 
   @override
   void dispose() {
@@ -88,12 +91,40 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Esta acción es definitiva: se eliminarán tu cuenta, tus perfiles, '
-              'movimientos, presupuestos y categorías. No se puede deshacer.',
-              style: TextStyle(color: AppColors.muted),
+            // 1. Banner de advertencia visual con contenedor y fondo sutil
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color.fromARGB(255, 214, 23, 23),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: const Text(
+                      'Esta acción es definitiva: se eliminarán tu cuenta, tus perfiles, '
+                      'movimientos, presupuestos y categorías. No se puede deshacer.',
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 214, 23, 23),
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
+
+            // 2. Campo de contraseña
             TextField(
               controller: _passwordController,
               obscureText: _ocultarPassword,
@@ -113,6 +144,22 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
                       setState(() => _ocultarPassword = !_ocultarPassword),
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // 3. Casilla de verificación (Checkbox) para aceptar el riesgo
+            CheckboxListTile(
+              value: _aceptoTerminos,
+              onChanged: _cargando
+                  ? null
+                  : (valor) => setState(() => _aceptoTerminos = valor ?? false),
+              title: const Text(
+                'Entiendo que perderé todos mis datos y no podré recuperar la cuenta.',
+                style: TextStyle(color: AppColors.text, fontSize: 13),
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppColors.danger,
             ),
           ],
         ),
