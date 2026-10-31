@@ -293,4 +293,16 @@ public class MovimientoServiceImpl implements MovimientoService {
                 .stream().map(MovimientoResponseDTO::new).toList();
     }
 
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<MovimientoResponseDTO> obtenerPendientesMercadoPago(Long perfilId, Long cuentaIdAutenticada) {
+        obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
+        List<Movimiento> pendientes = movimientoRepository.findPendientesMercadoPago(
+                perfilId,
+                Movimiento.OrigenMovimiento.MERCADOPAGO,
+                Movimiento.EstadoMovimiento.PENDIENTE);
+        return pendientes.stream()
+                .map(MovimientoResponseDTO::new)
+                .toList();
+    }
 }

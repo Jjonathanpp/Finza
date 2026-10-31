@@ -3,6 +3,7 @@ import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 import 'package:frontend/features/mercadopago/data/models/mercadopago_estado.dart';
 import 'package:frontend/features/mercadopago/data/models/sincronizacion_resumen.dart';
+import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 
 class MercadoPagoViewModel extends ChangeNotifier {
   MercadoPagoViewModel(this._api);
@@ -13,6 +14,7 @@ class MercadoPagoViewModel extends ChangeNotifier {
   String? _error;
   MercadoPagoEstado? _estado;
   bool _cerrado = false;
+  List<Movimiento> _pendientes = [];
 
   @override
   void notifyListeners() {
@@ -29,6 +31,7 @@ class MercadoPagoViewModel extends ChangeNotifier {
   String? get error => _error;
   MercadoPagoEstado? get estado => _estado;
   bool get estaConectado => _estado?.conectado ?? false;
+  List<Movimiento> get pendientes => _pendientes;
 
   Future<void> cargar() async {
     _cargando = true;
@@ -74,6 +77,11 @@ class MercadoPagoViewModel extends ChangeNotifier {
       _cargando = false;
       notifyListeners();
     }
+  }
+
+  Future<void> cargarPendientes() async {
+    _pendientes = await _api.obtenerPendientesMercadoPago();
+    notifyListeners();
   }
 
   Future<String> obtenerUrlAutorizacion() async {

@@ -6,6 +6,7 @@ import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
+import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 
@@ -25,6 +26,9 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _vm.cargar();
+    if (_vm.estaConectado) {
+      _vm.cargarPendientes();
+    }
   }
 
   @override
@@ -39,6 +43,9 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _vm.cargar();
+      if (_vm.estaConectado) {
+        _vm.cargarPendientes();
+      }
     }
   }
 
@@ -48,8 +55,19 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
     _timerVerificacion = Timer.periodic(const Duration(seconds: 2), (timer) async {
       intentos++;
       await _vm.cargar();
-      if (_vm.estaConectado || intentos >= 30) {
+      if (_vm.estaConectado) {
         timer.cancel();
+        if (mounted) setState(() {});
+      } else if (intentos >= 30) {
+        timer.cancel();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tiempo de espera agotado. Verificá que completaste la vinculación en Mercado Pago.'),
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
       }
     });
   }
@@ -120,7 +138,16 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
         listenable: _vm,
         builder: (context, _) {
           if (_vm.cargando && _vm.estado == null) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 12),
+                  Text('Esperando vinculación de Mercado Pago...', style: TextStyle(color: AppColors.muted)),
+                ],
+              ),
+            );
           }
 
           final error = _vm.error;
@@ -151,6 +178,15 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
               if (conectado) ...[
                 _tarjetaEstadoConectado(),
                 const SizedBox(height: 16),
+                if (_vm.pendientes.isNotEmpty) ...[
+                  const Text(
+                    'Pendientes de confirmar',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.muted),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._vm.pendientes.map((m) => _filaPendiente(m)).toList(),
+                  const SizedBox(height: 24),
+                ],
                 SizedBox(
                   width: double.infinity,
                   height: 46,
@@ -324,6 +360,43 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
               ),
               child: const Text('Vincular cuenta', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filaPendiente(Movimiento m) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.pending_actions, size: 20, color: Colors.orange),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  m.descripcion ?? 'Movimiento Mercado Pago',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${m.fecha.day}/${m.fecha.month}/${m.fecha.year}',
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '\$${m.monto.toStringAsFixed(2)}',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/mercadopago/data/models/mercadopago_estado.dart';
 import 'package:frontend/features/mercadopago/data/models/sincronizacion_resumen.dart';
+import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 
 class MercadoPagoApi {
   MercadoPagoApi(this._api);
@@ -32,5 +33,15 @@ class MercadoPagoApi {
   Future<SincronizacionResumen> sincronizar() async {
     final data = await _api.post('/api/mercadopago/sincronizar', {});
     return SincronizacionResumen.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<List<Movimiento>> obtenerPendientesMercadoPago() async {
+    final data = await _api.get('/api/movimientos/pendientes-mercadopago');
+    if (data is List) {
+      return (data as List)
+          .map((json) => Movimiento.fromJson(json as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
   }
 }

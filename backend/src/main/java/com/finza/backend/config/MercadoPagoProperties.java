@@ -13,4 +13,5 @@ public class MercadoPagoProperties {
     private String clientId;
     private String clientSecret;
     private String redirectUri;
+    private String webhookSecret;
 }
