@@ -28,4 +28,5 @@ public interface MovimientoService {
     List<MovimientoResponseDTO> obtenerUltimosMovimientos(Long perfilId, Long cuentaIdAutenticada, int limite);
     List<MovimientoResponseDTO> obtenerUltimosIngresos(Long perfilId, Long cuentaIdAutenticada, int limite);
     List<MovimientoResponseDTO> obtenerUltimosEgresos(Long perfilId, Long cuentaIdAutenticada, int limite);
+    List<MovimientoResponseDTO> obtenerPendientesMercadoPago(Long perfilId, Long cuentaIdAutenticada);
 }

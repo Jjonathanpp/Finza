@@ -110,4 +110,10 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
               @Param("perfilId") Long perfilId, 
               @Param("cuentaId") Long cuentaId, 
               Pageable pageable);
+
+       @Query("SELECT m FROM Movimiento m WHERE m.perfil.id = :perfilId AND m.origen = :origen AND m.estado = :estado ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+       List<Movimiento> findPendientesMercadoPago(
+              @Param("perfilId") Long perfilId,
+              @Param("origen") Movimiento.OrigenMovimiento origen,
+              @Param("estado") Movimiento.EstadoMovimiento estado);
 }

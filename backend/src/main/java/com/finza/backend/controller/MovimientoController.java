@@ -77,6 +77,13 @@ public class MovimientoController {
         return Response.response(HttpStatus.OK, "Movimientos obtenidos", resultado);
     }
 
+    @GetMapping("/pendientes-mercadopago")
+    public ResponseEntity<Object> obtenerPendientesMercadoPago(@AuthenticationPrincipal Long cuentaId) {
+        Long perfilId = perfilService.idPrincipal(cuentaId);
+        List<MovimientoResponseDTO> pendientes = movimientoService.obtenerPendientesMercadoPago(perfilId, cuentaId);
+        return Response.ok(pendientes, "Movimientos pendientes de Mercado Pago obtenidos");
+    }
+
     @PostMapping("/procesar-audio")
     public ResponseEntity<Object> procesarAudio(@RequestParam("audio") MultipartFile audio,
             @AuthenticationPrincipal Long cuentaId) {
