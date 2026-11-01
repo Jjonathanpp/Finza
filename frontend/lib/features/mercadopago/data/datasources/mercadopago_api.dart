@@ -38,7 +38,7 @@ class MercadoPagoApi {
   Future<List<Movimiento>> obtenerPendientesMercadoPago() async {
     final data = await _api.get('/api/movimientos/pendientes-mercadopago');
     if (data is List) {
-      return (data as List)
+      return data
           .map((json) => Movimiento.fromJson(json as Map<String, dynamic>))
           .toList();
     }

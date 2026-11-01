@@ -184,7 +184,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.muted),
                   ),
                   const SizedBox(height: 8),
-                  ..._vm.pendientes.map((m) => _filaPendiente(m)).toList(),
+                  ..._vm.pendientes.map((m) => _filaPendiente(m)),
                   const SizedBox(height: 24),
                 ],
                 SizedBox(
