@@ -5,8 +5,11 @@ import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/screens/alta_presupuestos_screen.dart'; // Nombre con "s" como lo guardaste
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/barra_progreso_presupuesto.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/desglose_integrantes.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/editar_presupuesto_sheet.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/tarjetas_cargando.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
+import 'package:frontend/shared/utils/importe.dart';
 import 'package:provider/provider.dart';
 
 class PresupuestosScreen extends StatefulWidget {
@@ -22,6 +25,9 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
+  // En una cuenta compartida, el presupuesto cuya tarjeta está abierta (una a la vez, t-13.2.2).
+  int? _abierto;
+
   @override
   void initState() {
     super.initState();
@@ -30,11 +36,8 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
     });
   }
 
-  String _formatoMonto(double monto) {
-    return monto.toStringAsFixed(2);
-  }
-
   void _cambiarMes(PresupuestosViewModel vm, int delta) {
+    setState(() => _abierto = null);
     int m = vm.mesActual + delta;
     int a = vm.anioActual;
     if (m < 1) {
@@ -133,7 +136,7 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
 
   Widget _construirContenido(PresupuestosViewModel vm) {
     if (vm.cargando) {
-      return const Center(child: CircularProgressIndicator());
+      return const TarjetasCargando();
     }
 
     if (vm.error != null) {
@@ -165,6 +168,19 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                   : '${cuentaActiva.value!['nombre']} no tiene presupuestos en ${_meses[vm.mesActual]}',
               style: const TextStyle(color: AppColors.muted, fontSize: 16),
             ),
+            if (cuentaActiva.value != null) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  esAdminDeCuentaActiva
+                      ? 'Cuando agregues uno, acá vas a ver cuánto gastó cada integrante.'
+                      : 'Cuando un administrador agregue uno, acá vas a ver cuánto gastó cada integrante.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.45),
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -173,61 +189,97 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
       itemCount: vm.presupuestos.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      separatorBuilder: (_, _) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final p = vm.presupuestos[index];
         final colorCat = colorDesdeHex(p.categoriaColor);
-        final editable = cuentaActiva.value != null && esAdminDeCuentaActiva;
+        // En una cuenta compartida la tarjeta se abre y muestra cuánto gastó cada integrante; si sos
+        // admin, desde ahí se edita el tope (t-13.2.2). En la personal no se abre.
+        final enCompartida = cuentaActiva.value != null;
+        final abierta = enCompartida && _abierto == p.presupuestoId;
 
-        return InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: editable ? () => _editar(vm, p) : null,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 2))],
-            ),
+        return Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 2))],
+          ),
+          child: Material(
+            type: MaterialType.transparency,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(color: colorCat, shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(p.categoriaNombre, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                      ],
+                Semantics(
+                  expanded: enCompartida ? abierta : null,
+                  child: InkWell(
+                    onTap: enCompartida ? () => setState(() => _abierto = abierta ? null : p.presupuestoId) : null,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 14,
+                                    height: 14,
+                                    decoration: BoxDecoration(color: colorCat, shape: BoxShape.circle),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(p.categoriaNombre, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    '${p.porcentajeConsumo.toStringAsFixed(1)}%',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: p.porcentajeConsumo >= 100
+                                          ? AppColors.danger
+                                          : p.porcentajeConsumo >= 80
+                                              ? AppColors.warning
+                                              : AppColors.success,
+                                    ),
+                                  ),
+                                  if (enCompartida) ...[
+                                    const SizedBox(width: 4),
+                                    Icon(abierta ? Icons.expand_less : Icons.expand_more, size: 20, color: AppColors.muted),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          BarraProgresoPresupuesto(porcentaje: p.porcentajeConsumo),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Gastado: ${importe(p.montoGastado)}', style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+                              Text('Tope: ${importe(p.montoTope)}', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    Text(
-                       '${p.porcentajeConsumo.toStringAsFixed(1)}%',
-                       style: TextStyle(
-                         fontWeight: FontWeight.bold,
-                         color: p.porcentajeConsumo >= 100
-                             ? AppColors.danger
-                             : p.porcentajeConsumo >= 80
-                                 ? Colors.amber
-                                 : Colors.green,
-                       ),
-                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                BarraProgresoPresupuesto(porcentaje: p.porcentajeConsumo),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Gastado: \$${_formatoMonto(p.montoGastado)}', style: const TextStyle(color: AppColors.muted, fontSize: 13)),
-                    Text('Tope: \$${_formatoMonto(p.montoTope)}', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                  ],
+                AnimatedSize(
+                  duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  alignment: Alignment.topCenter,
+                  child: abierta
+                      ? DesgloseIntegrantes(
+                          presupuesto: p,
+                          miPerfilId: cuentaActiva.value!['perfilId'] as int?,
+                          alEditar: esAdminDeCuentaActiva ? () => _editar(vm, p) : null,
+                        )
+                      : const SizedBox(width: double.infinity),
                 ),
               ],
             ),

@@ -140,7 +140,8 @@ public class PresupuestoServiceImpl implements PresupuestoService {
                     BigDecimal porcentaje = tope.signum() > 0
                             ? gastado.multiply(BigDecimal.valueOf(100)).divide(tope, 1, RoundingMode.HALF_UP)
                             : BigDecimal.ZERO;
-                    return new GastoDePerfilDTO(integrante.getId(), integrante.getNombrePerfil(), gastado, porcentaje);
+                    return new GastoDePerfilDTO(integrante.getId(), integrante.getNombrePerfil(), gastado, porcentaje,
+                            integrante.isEsActivo());
                 })
                 .sorted(Comparator.comparing(GastoDePerfilDTO::gastado).reversed().thenComparing(GastoDePerfilDTO::perfilId))
                 .toList();
