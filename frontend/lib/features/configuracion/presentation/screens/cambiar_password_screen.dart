@@ -88,10 +88,12 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
                       labelText: 'Nueva contraseña',
                     ),
                     validator: (v) {
-                      if (v == null || v.length < 8)
+                      if (v == null || v.length < 8) {
                         return 'La contraseña debe tener al menos 8 caracteres';
-                      if (v == _actualCtrl.text)
+                      }
+                      if (v == _actualCtrl.text) {
                         return 'La nueva contraseña debe ser distinta a la actual';
+                      }
                       return null;
                     },
                   ),

@@ -122,7 +122,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                     const Text('Categoría', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<int>(
-                      value: _categoriaId,
+                      initialValue: _categoriaId,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: AppColors.surface,
@@ -194,7 +194,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                               const Text('Mes', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<int>(
-                                value: _mes,
+                                initialValue: _mes,
                                 decoration: InputDecoration(
                                   filled: true,
                                   fillColor: AppColors.surface,
@@ -219,7 +219,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                               const Text('Año', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<int>(
-                                value: _anio,
+                                initialValue: _anio,
                                 decoration: InputDecoration(
                                   filled: true,
                                   fillColor: AppColors.surface,

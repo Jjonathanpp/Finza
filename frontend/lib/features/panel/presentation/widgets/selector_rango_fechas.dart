@@ -68,8 +68,11 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
 
     if (seleccionada != null) {
       setState(() {
-        if (esInicio) _inicioPersonalizado = seleccionada;
-        else _finPersonalizado = seleccionada;
+        if (esInicio) {
+          _inicioPersonalizado = seleccionada;
+        } else {
+          _finPersonalizado = seleccionada;
+        }
       });
       
       if (_inicioPersonalizado != null && _finPersonalizado != null) {
@@ -101,7 +104,7 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
           const Text('Período de informes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _opcionElegida,
+            initialValue: _opcionElegida,
             decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
             items: _opciones.map((op) => DropdownMenuItem(value: op, child: Text(op))).toList(),
             onChanged: (val) {
