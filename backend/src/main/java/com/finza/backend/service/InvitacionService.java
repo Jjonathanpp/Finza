@@ -99,7 +99,7 @@ public InvitacionResponse crear(Long cuentaCompartidaId, Long cuentaEmisorId, In
     String link = baseUrl + "?token=" + token;
     emailService.enviarInvitacion(email, emisor.getNombrePerfil(), link, inv.getFechaExpiracion());
 
-    return new InvitacionResponse(inv.getId(), email, inv.getEstado(), inv.getFechaExpiracion());
+    return new InvitacionResponse(inv.getId(), email, inv.getEstado(), inv.getFechaExpiracion(), token);
 }
 
     @Transactional
@@ -142,7 +142,7 @@ public InvitacionResponse crear(Long cuentaCompartidaId, Long cuentaEmisorId, In
         perfil.setEsActivo(true);
         perfilRepository.save(perfil);
 
-        return new InvitacionResponse(inv.getId(), inv.getEmailInvitado(), inv.getEstado(), inv.getFechaExpiracion());
+        return new InvitacionResponse(inv.getId(), inv.getEmailInvitado(), inv.getEstado(), inv.getFechaExpiracion(), token);
     }
 
     private String generarToken() {

@@ -8,5 +8,6 @@ public record InvitacionResponse(
         Long id,
         String emailInvitado,
         EstadoInvitacion estado,
-        LocalDateTime fechaExpiracion
+        LocalDateTime fechaExpiracion,
+        String token
 ) {}
