@@ -7,7 +7,8 @@ import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.d
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:async';
 
 class MercadoPagoScreen extends StatefulWidget {
@@ -119,9 +120,20 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
   Future<void> _vincular() async {
     try {
       final url = await _vm.obtenerUrlAutorizacion();
-      final uri = Uri.parse(url);
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      _iniciarVerificacionAutomatica();
+      if (!mounted) return;
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => _WebViewMercadoPago(url: url),
+        ),
+      );
+
+      if (!mounted) return;
+      await _vm.cargar();
+      if (_vm.estaConectado && mounted) {
+        setState(() {});
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -172,21 +184,18 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
 
           final conectado = _vm.estaConectado;
 
+          if (conectado && _vm.pendientes.isEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _vm.cargarPendientes();
+            });
+          }
+
           return ListView(
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
             children: [
               if (conectado) ...[
                 _tarjetaEstadoConectado(),
                 const SizedBox(height: 16),
-                if (_vm.pendientes.isNotEmpty) ...[
-                  const Text(
-                    'Pendientes de confirmar',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.muted),
-                  ),
-                  const SizedBox(height: 8),
-                  ..._vm.pendientes.map((m) => _filaPendiente(m)).toList(),
-                  const SizedBox(height: 24),
-                ],
                 SizedBox(
                   width: double.infinity,
                   height: 46,
@@ -210,8 +219,18 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 _seccionDesvincular(),
+                const SizedBox(height: 16),
+                if (_vm.pendientes.isNotEmpty) ...[
+                  const Text(
+                    'Pendientes de confirmar',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.muted),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._vm.pendientes.map((m) => _filaPendiente(m, onVerificar: () => _revisarMovimiento(m))).toList(),
+                  const SizedBox(height: 24),
+                ],
               ] else ...[
                 _tarjetaEstadoDesconectado(),
               ],
@@ -366,7 +385,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
     );
   }
 
-  Widget _filaPendiente(Movimiento m) {
+  Widget _filaPendiente(Movimiento m, {required VoidCallback onVerificar}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -398,6 +417,17 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
             '\$${m.monto.toStringAsFixed(2)}',
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            onPressed: onVerificar,
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.orange,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(0, 36),
+            ),
+            icon: const Icon(Icons.fact_check_outlined, size: 16),
+            label: const Text('Verificar', style: TextStyle(fontSize: 13)),
+          ),
         ],
       ),
     );
@@ -419,5 +449,58 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
         SnackBar(content: Text(_vm.error!)),
       );
     }
+  }
+
+  Future<void> _revisarMovimiento(Movimiento movimiento) async {
+    final modificado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RevisionMovimientoScreen(movimiento: movimiento),
+      ),
+    );
+
+    if (modificado == true && mounted) {
+      _vm.cargarPendientes();
+    }
+  }
+}
+
+class _WebViewMercadoPago extends StatefulWidget {
+  final String url;
+  const _WebViewMercadoPago({required this.url});
+
+  @override
+  State<_WebViewMercadoPago> createState() => _WebViewMercadoPagoState();
+}
+
+class _WebViewMercadoPagoState extends State<_WebViewMercadoPago> {
+  late final WebViewController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (url) {
+            if (url.startsWith('finza://mercadopago/callback')) {
+              if (mounted) {
+                Navigator.pop(context);
+              }
+            }
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Mercado Pago')),
+      body: WebViewWidget(controller: _controller),
+    );
   }
 }
