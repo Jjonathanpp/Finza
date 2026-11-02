@@ -36,4 +36,16 @@ public class InvitacionController {
                 invitacionService.crear(cuentaCompartidaId, cuentaId, request),
                 "Invitación enviada");
     }
+
+    @PostMapping("/aceptar")
+    public ResponseEntity<Object> aceptar(
+            @RequestBody String token,
+            Authentication authentication) {
+
+        Long cuentaId = (Long) authentication.getPrincipal();
+
+        return Response.ok(
+                invitacionService.aceptarInvitacion(token, cuentaId),
+                "Invitación aceptada");
+    }
 }
