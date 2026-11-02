@@ -22,6 +22,8 @@ public interface PerfilRepository extends JpaRepository<Perfil, Long> {
 
     List<Perfil> findByCuentaIdAndCuentaCompartidaIsNotNull(Long cuentaId);
 
+    List<Perfil> findByCuentaCompartidaId(Long cuentaCompartidaId);
+
     // Cuando alguien se da de baja, sus perfiles de cuentas compartidas quedan en ellas (con lo que
     // cargó), pero ya sin nadie que los use.
     @Modifying

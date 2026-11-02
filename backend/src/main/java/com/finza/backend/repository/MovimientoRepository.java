@@ -69,6 +69,16 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
               @Param("desde") LocalDate desde,
               @Param("hasta") LocalDate hasta);
 
+       // Lo mismo, separado por integrante: una fila [categoriaId, perfilId, total] por categoría y perfil (t-13.2.1).
+       @Query("SELECT m.categoria.id, m.perfil.id, SUM(m.monto) FROM Movimiento m " +
+              "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 " +
+              "AND m.fecha BETWEEN :desde AND :hasta " +
+              "GROUP BY m.categoria.id, m.perfil.id")
+       List<Object[]> sumarGastosPorCategoriaYPerfilDeCuentaCompartida(
+              @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+              @Param("desde") LocalDate desde,
+              @Param("hasta") LocalDate hasta);
+
        @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m " +
            "WHERE m.perfil.id = :perfilId " +
            "AND m.perfil.cuenta.id = :cuentaId " +

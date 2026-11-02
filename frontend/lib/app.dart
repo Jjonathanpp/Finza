@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'config/theme/app_theme.dart';
+import 'core/actualizacion/aviso_de_version.dart';
 import 'core/session/deep_link_service.dart';
 import 'core/session/portero.dart';
 
@@ -17,7 +18,10 @@ class _AppState extends State<App> {
   void initState() {
     super.initState();
     // Se espera al primer frame para que el Navigator ya exista
-    WidgetsBinding.instance.addPostFrameCallback((_) => _deepLinks.iniciar());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _deepLinks.iniciar();
+      avisarSiHayVersionNueva();
+    });
   }
 
   @override

@@ -120,8 +120,9 @@ class MovimientosViewModel extends ChangeNotifier {
   }
 
   Future<void> irAPagina(int indice) async {
-    if (_cargando || indice == _pagina || indice < 0 || indice >= _totalPaginas)
+    if (_cargando || indice == _pagina || indice < 0 || indice >= _totalPaginas) {
       return;
+    }
     _pagina = indice;
     await _obtenerDatos();
   }

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
@@ -12,9 +15,11 @@ import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/screens/presupuestos_screen.dart';
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/tarjetas_cargando.dart';
 import 'package:provider/provider.dart';
 
-// Selector de cuenta y lo que cambia en Casa según el rol (t-13.1.2).
+// Selector de cuenta y lo que cambia en Casa según el rol (t-13.1.2), y cuánto gastó cada integrante
+// en cada presupuesto (t-13.2.2).
 
 const _casaAdmin = {'id': 5, 'nombre': 'Casa', 'rol': 'ADMIN', 'perfilId': 12};
 const _casaMiembro = {'id': 5, 'nombre': 'Casa', 'rol': 'MIEMBRO', 'perfilId': 13};
@@ -31,6 +36,8 @@ class _PresupuestosDeMentira extends Fake implements PresupuestoApi {
   final editados = <Map<String, Object>>[];
   final desactivados = <int>[];
 
+  // Como los manda el backend estando en Casa: Ana es el perfil 12 (el admin) y Beto el 13 (el miembro).
+  // Caro se fue, pero gastó en Comida. En Servicios nadie gastó.
   @override
   Future<List<Presupuesto>> listarPorMes(int mes, int anio) async => const [
     Presupuesto(
@@ -41,6 +48,24 @@ class _PresupuestosDeMentira extends Fake implements PresupuestoApi {
       montoTope: 2000,
       montoGastado: 1500,
       porcentajeConsumo: 75,
+      porPerfil: [
+        GastoDePerfil(perfilId: 12, nombre: 'Ana', gastado: 1000, porcentaje: 50),
+        GastoDePerfil(perfilId: 13, nombre: 'Beto', gastado: 300, porcentaje: 15),
+        GastoDePerfil(perfilId: 14, nombre: 'Caro', gastado: 200, porcentaje: 10, activo: false),
+      ],
+    ),
+    Presupuesto(
+      presupuestoId: 8,
+      categoriaId: 8,
+      categoriaNombre: 'Servicios',
+      categoriaColor: '#6366F1',
+      montoTope: 500,
+      montoGastado: 0,
+      porcentajeConsumo: 0,
+      porPerfil: [
+        GastoDePerfil(perfilId: 12, nombre: 'Ana', gastado: 0, porcentaje: 0),
+        GastoDePerfil(perfilId: 13, nombre: 'Beto', gastado: 0, porcentaje: 0),
+      ],
     ),
   ];
 
@@ -60,6 +85,16 @@ class _PresupuestosDeMentira extends Fake implements PresupuestoApi {
   Future<void> desactivarPresupuesto(int id) async => desactivados.add(id);
 }
 
+class _PresupuestosQueTardan extends _PresupuestosDeMentira {
+  final espera = Completer<void>();
+
+  @override
+  Future<List<Presupuesto>> listarPorMes(int mes, int anio) async {
+    await espera.future;
+    return super.listarPorMes(mes, anio);
+  }
+}
+
 class _CategoriasDeMentira extends Fake implements CategoriaApi {
   @override
   Future<List<Categoria>> listar() async => const [
@@ -77,6 +112,14 @@ Future<void> _abrirPresupuestos(WidgetTester tester, PresupuestoApi api) async {
       ),
     ),
   );
+  await tester.pumpAndSettle();
+}
+
+// En Casa, el admin edita desde la tarjeta abierta (t-13.2.2).
+Future<void> _abrirEditar(WidgetTester tester) async {
+  await tester.tap(find.text('Comida'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Editar tope'));
   await tester.pumpAndSettle();
 }
 
@@ -113,6 +156,7 @@ void main() {
       await tester.tap(find.text('Comida'));
       await tester.pumpAndSettle();
       expect(find.text('Desactivar presupuesto'), findsNothing);
+      expect(find.text('Cuánto gastó cada uno'), findsNothing);
     });
 
     testWidgets('miembro de Casa: no puede agregar ni editar, y ve por qué', (tester) async {
@@ -127,14 +171,13 @@ void main() {
       expect(find.text('Desactivar presupuesto'), findsNothing);
     });
 
-    testWidgets('admin de Casa: tocando una tarjeta cambia el tope', (tester) async {
+    testWidgets('admin de Casa: desde la tarjeta abierta cambia el tope', (tester) async {
       cuentaActiva.value = _casaAdmin;
       final api = _PresupuestosDeMentira();
       await _abrirPresupuestos(tester, api);
       expect(find.text('Agregar presupuesto'), findsOneWidget);
 
-      await tester.tap(find.text('Comida'));
-      await tester.pumpAndSettle();
+      await _abrirEditar(tester);
       await tester.enterText(find.byType(TextField), '2500');
       await tester.tap(find.text('Guardar'));
       await tester.pumpAndSettle();
@@ -151,8 +194,7 @@ void main() {
       final api = _PresupuestosDeMentira();
       await _abrirPresupuestos(tester, api);
 
-      await tester.tap(find.text('Comida'));
-      await tester.pumpAndSettle();
+      await _abrirEditar(tester);
       await tester.tap(find.text('Desactivar presupuesto'));
       await tester.pumpAndSettle();
       expect(find.textContaining('para todos los de Casa'), findsOneWidget);
@@ -169,8 +211,7 @@ void main() {
         _PresupuestosDeMentira(rechazo: ApiException(403, 'Solo el administrador de la cuenta compartida puede hacer esto')),
       );
 
-      await tester.tap(find.text('Comida'));
-      await tester.pumpAndSettle();
+      await _abrirEditar(tester);
       await tester.tap(find.text('Guardar'));
       await tester.pumpAndSettle();
 
@@ -183,14 +224,73 @@ void main() {
       final api = _PresupuestosDeMentira();
       await _abrirPresupuestos(tester, api);
 
-      await tester.tap(find.text('Comida'));
-      await tester.pumpAndSettle();
+      await _abrirEditar(tester);
       await tester.enterText(find.byType(TextField), '0');
       await tester.tap(find.text('Guardar'));
       await tester.pumpAndSettle();
 
       expect(find.text('Ingresá un tope mayor a cero'), findsOneWidget);
       expect(api.editados, isEmpty);
+    });
+
+    testWidgets('miembro de Casa: al tocar una tarjeta ve cuánto gastó cada uno', (tester) async {
+      cuentaActiva.value = _casaMiembro;
+      await _abrirPresupuestos(tester, _PresupuestosDeMentira());
+      expect(find.text('Cuánto gastó cada uno'), findsNothing, reason: 'cerrada hasta tocarla');
+      expect(find.text('Gastado: \$ 1.500'), findsOneWidget);
+      expect(tester.widget<Text>(find.text('75.0%')).style?.color, AppColors.success);
+
+      await tester.tap(find.text('Comida'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cuánto gastó cada uno'), findsOneWidget);
+      expect(find.text('Ana'), findsOneWidget);
+      expect(find.text('\$ 1.000'), findsOneWidget);
+      expect(find.text('50.0%'), findsOneWidget);
+      expect(find.text('vos'), findsOneWidget, reason: 'Beto es el perfil 13, el del miembro');
+      expect(find.text('ya no está'), findsOneWidget, reason: 'Caro se fue');
+      expect(find.text('Editar tope'), findsNothing);
+
+      await tester.tap(find.text('Comida'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cuánto gastó cada uno'), findsNothing, reason: 'se cierra al tocarla de nuevo');
+    });
+
+    testWidgets('en Casa se abre una tarjeta por vez, y si nadie gastó lo dice', (tester) async {
+      cuentaActiva.value = _casaAdmin;
+      await _abrirPresupuestos(tester, _PresupuestosDeMentira());
+
+      await tester.tap(find.text('Comida'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('Servicios'), 100);
+      await tester.tap(find.text('Servicios'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cuánto gastó cada uno'), findsOneWidget, reason: 'Comida se cerró');
+      expect(find.text('Todavía nadie gastó en Servicios este mes.'), findsOneWidget);
+      expect(find.text('\$ 0'), findsNWidgets(2));
+      expect(find.text('vos'), findsOneWidget, reason: 'Ana es el perfil 12, el del admin');
+    });
+
+    testWidgets('mientras carga muestra tarjetas grises en vez de la ruedita', (tester) async {
+      final api = _PresupuestosQueTardan();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => PresupuestosViewModel(api),
+            child: const PresupuestosScreen(),
+          ),
+        ),
+      );
+      await tester.pump(); // el pedido sale después del primer cuadro
+
+      expect(find.byType(TarjetasCargando), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      api.espera.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(TarjetasCargando), findsNothing);
+      expect(find.text('Comida'), findsOneWidget);
     });
   });
 

@@ -257,7 +257,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(18),
                     itemCount: _vm.movimientos.length,
-                    separatorBuilder: (_, __) => const Divider(color: AppColors.line, height: 24),
+                    separatorBuilder: (_, _) => const Divider(color: AppColors.line, height: 24),
                     itemBuilder: (context, i) {
                       final movimiento = _vm.movimientos[i];
                       return _FilaMovimiento(
@@ -315,10 +315,11 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
     );
     if (elegida != null) {
       setState(() {
-        if (esDesde)
+        if (esDesde) {
           desde = elegida;
-        else
+        } else {
           hasta = elegida;
+        }
       });
     }
   }
@@ -380,7 +381,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
           const Text('Categoría', style: TextStyle(fontSize: 13, color: AppColors.muted)),
           const SizedBox(height: 4),
           DropdownButtonFormField<Categoria>(
-            value: categoriaSeleccionada,
+            initialValue: categoriaSeleccionada,
             hint: const Text('Todas las categorías'),
             decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
             items: [
