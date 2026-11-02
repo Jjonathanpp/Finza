@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/mercadopago/data/models/sincronizacion_resumen.dart';
-import 'package:frontend/features/home/presentation/screens/pantalla_principal.dart';
 
 class SincronizacionResumenScreen extends StatelessWidget {
   final SincronizacionResumen resumen;
@@ -87,12 +86,7 @@ class SincronizacionResumenScreen extends StatelessWidget {
             height: 46,
             child: ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (_) => const PantallaPrincipal(pestana: 1),
-                  ),
-                  (route) => false,
-                );
+                Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
