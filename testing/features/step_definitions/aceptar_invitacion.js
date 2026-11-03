@@ -2,11 +2,13 @@ const { Given, When, Then } = require('@cucumber/cucumber');
 
 const BASE_URL = process.env.BASE_URL || 'https://finza-backend-9c6t.onrender.com';
 
+let adminEmail = '';
+let adminToken = '';
+let invitadoEmail = '';
 let invitadoToken = '';
 let cuentaCompartidaId = '';
 let invitacionToken = '';
 let lastResponse = null;
-let invitadoEmail = '';
 
 async function register(email, password, nombre, apellido, dni, telefono) {
   const res = await fetch(`${BASE_URL}/api/auth/registro`, {
@@ -43,13 +45,23 @@ Given('existe un usuario registrado con email único para invitación', async fu
 });
 
 Given('existe una cuenta compartida llamada {string}', async function (nombre) {
-  const loginRes = await login(invitadoEmail, 'Test1234!');
+  const ts = Date.now();
+  adminEmail = `admin${ts}@ejemplo.com`;
+  const dni = String(Math.floor(Math.random() * 90000000) + 10000000);
+  const telefono = '11' + String(Math.floor(Math.random() * 9000000000 + 1000000000));
+
+  const reg = await register(adminEmail, 'Test1234!', 'Admin', 'Test', dni, telefono);
+  if (reg.status !== 200 && reg.status !== 201 && reg.status !== 400) {
+    throw new Error(`Registro admin falló con ${reg.status}`);
+  }
+
+  const loginRes = await login(adminEmail, 'Test1234!');
   const loginData = await loginRes.json();
   const token = loginData.token || loginData.accessToken || loginData.data?.token;
-  invitadoToken = token;
+  adminToken = token;
 
   if (!token) {
-    throw new Error(`Login no devolvió token. Respuesta: ${JSON.stringify(loginData)}`);
+    throw new Error(`Login admin no devolvió token. Respuesta: ${JSON.stringify(loginData)}`);
   }
 
   const ccRes = await fetch(`${BASE_URL}/api/cuentas-compartidas`, {
@@ -62,13 +74,13 @@ Given('existe una cuenta compartida llamada {string}', async function (nombre) {
     throw new Error(`No se pudo crear cuenta compartida: ${ccRes.status} ${body}`);
   }
   const ccData = await ccRes.json();
-  cuentaCompartidaId = ccData.data || ccData.id;
+  cuentaCompartidaId = ccData.data.id;
 });
 
 Given('existe una invitación pendiente para el email del usuario en la cuenta compartida {string}', async function (nombreCC) {
   const invRes = await fetch(`${BASE_URL}/api/cuentas-compartidas/${cuentaCompartidaId}/invitaciones`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${invitadoToken}` },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
     body: JSON.stringify({ email: invitadoEmail })
   });
   if (!invRes.ok) {
@@ -76,14 +88,18 @@ Given('existe una invitación pendiente para el email del usuario en la cuenta c
     throw new Error(`No se pudo crear invitación: ${invRes.status} ${body}`);
   }
   const invData = await invRes.json();
-  invitacionToken = invData.token;
+  invitacionToken = invData.data?.token || invData.token;
 });
 
 When('el usuario acepta la invitación enviando su token en el body', async function () {
-  lastResponse = await fetch(`${BASE_URL}/api/cuentas-compartidas/invitaciones/aceptar`, {
+  const loginRes = await login(invitadoEmail, 'Test1234!');
+  const loginData = await loginRes.json();
+  invitadoToken = loginData.token || loginData.accessToken || loginData.data?.token;
+
+  lastResponse = await fetch(`${BASE_URL}/api/cuentas-compartidas/${cuentaCompartidaId}/invitaciones/aceptar`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${invitadoToken}` },
-    body: JSON.stringify(invitacionToken)
+    headers: { 'Content-Type': 'text/plain', 'Authorization': `Bearer ${invitadoToken}` },
+    body: invitacionToken
   });
 });
 
