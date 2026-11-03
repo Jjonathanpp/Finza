@@ -15,6 +15,10 @@ abstract final class AppColors {
   static const accentInk = Color(0xFFFFFFFF);
   static const blue = Color(0xFF4361EE);
   static const danger = Color(0xFFDC3545);
+  // El número del porcentaje de un presupuesto (t-13.2.2): un verde y un amarillo oscuros para que se
+  // lean sobre blanco (contraste de 4,5:1 o más). Pasado el tope, danger.
+  static const success = Color(0xFF2E7D32);
+  static const warning = Color(0xFFA16207);
 }
 
 ThemeData temaFinza() {

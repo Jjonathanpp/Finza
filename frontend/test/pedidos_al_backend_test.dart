@@ -80,11 +80,11 @@ void main() {
       expect(api.cuerpo!['fecha'], '09-10-2026');
     });
 
-    test('el historial: filtros con fecha yyyy-MM-dd y sin perfil', () async {
+    test('el historial: filtros con fecha yyyy-MM-dd y sin perfil, los más recientes primero', () async {
       final api = _ApiClientQueAnota();
       await MovimientoApi(api).listar(fechaInicio: DateTime(2026, 10, 1));
 
-      expect(api.ruta, '/api/movimientos?page=0&size=12&fechaInicio=2026-10-01');
+      expect(api.ruta, '/api/movimientos?page=0&size=12&sort=fecha,desc&sort=id,desc&fechaInicio=2026-10-01');
     });
 
     test('las categorías: sin cuenta', () async {

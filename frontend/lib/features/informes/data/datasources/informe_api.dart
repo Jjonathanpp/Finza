@@ -41,4 +41,16 @@ class InformeApi {
     final data = await _api.get('/api/informes/por-categoria$queryString');
     return ResumenGastos.fromJson(data as Map<String, dynamic>);
   }
+
+  Future<List<int>> descargarReporte({
+    required String alcance,
+    DateTime? fechaDesde,
+    DateTime? fechaHasta,
+  }) async {
+    final queryParams = <String, dynamic>{'alcance': alcance};
+    if (fechaDesde != null) queryParams['fechaDesde'] = _formatearFechaIso(fechaDesde);
+    if (fechaHasta != null) queryParams['fechaHasta'] = _formatearFechaIso(fechaHasta);
+
+    return _api.getBytes('/api/informes/reporte', queryParameters: queryParams);
+  }
 }

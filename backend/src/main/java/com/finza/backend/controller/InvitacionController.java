@@ -38,15 +38,27 @@ public class InvitacionController {
                 "Invitación enviada");
     }
 
-    @GetMapping
+@GetMapping
     public ResponseEntity<Object> listar(
             @PathVariable Long cuentaCompartidaId,
             Authentication authentication) {
-
+        
         Long cuentaId = (Long) authentication.getPrincipal();
 
         return Response.ok(
                 invitacionService.listar(cuentaCompartidaId, cuentaId),
                 "Invitaciones obtenidas");
+    }
+  
+    @PostMapping("/aceptar")
+    public ResponseEntity<Object> aceptar(
+            @RequestBody String token,
+            Authentication authentication) {
+
+        Long cuentaId = (Long) authentication.getPrincipal();
+
+        return Response.ok(
+                invitacionService.aceptarInvitacion(token, cuentaId),
+                "Invitación aceptada");
     }
 }

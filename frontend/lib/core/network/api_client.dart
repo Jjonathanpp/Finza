@@ -47,6 +47,26 @@ class ApiClient {
       );
     }
   }
+
+  Future<List<int>> getBytes(String path, {Map<String, dynamic>? queryParameters}) async {
+    try {
+      final respuesta = await _dio.get<List<int>>(
+        path,
+        queryParameters: queryParameters,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return respuesta.data ?? <int>[];
+    } on DioException catch (e) {
+      final respuestaError = e.response;
+      if (respuestaError == null) {
+        throw ApiException(null, 'No se pudo conectar con el servidor');
+      }
+      throw ApiException(
+        respuestaError.statusCode,
+        'Error inesperado del servidor',
+      );
+    }
+  }
 }
 
 // Antes de que salga cada pedido, le agrega el token del login (si hay uno guardado) y, si se eligió

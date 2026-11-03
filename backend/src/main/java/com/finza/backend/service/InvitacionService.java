@@ -69,6 +69,10 @@ public class InvitacionService {
             throw new BadRequestException("No podés invitarte a vos mismo");
         }
 
+        if (!cuentaRepository.existsByEmailIgnoreCase(email)) {
+            throw new BadRequestException("Ese email no existe en la app");
+        }
+
         boolean yaEsMiembro = cuentaRepository.findByEmailIgnoreCase(email)
                 .flatMap(c -> perfilRepository.findByCuentaIdAndCuentaCompartidaId(c.getId(), cuentaCompartidaId))
                 .isPresent();
@@ -96,7 +100,50 @@ public class InvitacionService {
         String link = baseUrl + "?token=" + token;
         emailService.enviarInvitacion(email, emisor.getNombrePerfil(), link, inv.getFechaExpiracion());
 
-        return new InvitacionResponse(inv.getId(), email, inv.getEstado(), inv.getFechaExpiracion());
+        return new InvitacionResponse(inv.getId(), email, inv.getEstado(), inv.getFechaExpiracion(), token);
+    }
+
+    @Transactional
+    public InvitacionResponse aceptarInvitacion(String token, Long cuentaId) {
+        String tokenHash = hash(token);
+
+        InvitacionCuenta inv = invitacionRepository.findByTokenHashForUpdate(tokenHash)
+                .orElseThrow(() -> new BadRequestException("Token de invitación inválido"));
+
+        if (inv.getEstado() != EstadoInvitacion.PENDIENTE) {
+            throw new BadRequestException("La invitación ya no está pendiente");
+        }
+
+        if (inv.getFechaExpiracion().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("La invitación expiró");
+        }
+
+        Cuenta cuenta = cuentaRepository.findById(cuentaId)
+                .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
+
+        if (!cuenta.getEmail().equalsIgnoreCase(inv.getEmailInvitado())) {
+            throw new BadRequestException("El email de tu cuenta no coincide con el invitado");
+        }
+
+        boolean yaEsMiembro = perfilRepository.findByCuentaIdAndCuentaCompartidaId(
+                cuenta.getId(), inv.getCuentaCompartida().getId()).isPresent();
+        if (yaEsMiembro) {
+            throw new BadRequestException("Ya sos miembro de esta cuenta compartida");
+        }
+
+        inv.setEstado(EstadoInvitacion.ACEPTADA);
+        invitacionRepository.save(inv);
+
+        Perfil perfil = new Perfil();
+        perfil.setCuenta(cuenta);
+        perfil.setCuentaCompartida(inv.getCuentaCompartida());
+        perfil.setRol(Perfil.Rol.MIEMBRO);
+        perfil.setNombrePerfil(cuenta.getEmail());
+        perfil.setEsPrincipal(false);
+        perfil.setEsActivo(true);
+        perfilRepository.save(perfil);
+
+        return new InvitacionResponse(inv.getId(), inv.getEmailInvitado(), inv.getEstado(), inv.getFechaExpiracion(), token);
     }
 
     private String generarToken() {

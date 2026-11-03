@@ -6,7 +6,9 @@ import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:frontend/features/movimientos/data/models/movimiento.dart';
+import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:async';
 
 class MercadoPagoScreen extends StatefulWidget {
@@ -25,6 +27,9 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _vm.cargar();
+    if (_vm.estaConectado) {
+      _vm.cargarPendientes();
+    }
   }
 
   @override
@@ -39,6 +44,9 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _vm.cargar();
+      if (_vm.estaConectado) {
+        _vm.cargarPendientes();
+      }
     }
   }
 
@@ -48,8 +56,19 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
     _timerVerificacion = Timer.periodic(const Duration(seconds: 2), (timer) async {
       intentos++;
       await _vm.cargar();
-      if (_vm.estaConectado || intentos >= 30) {
+      if (_vm.estaConectado) {
         timer.cancel();
+        if (mounted) setState(() {});
+      } else if (intentos >= 30) {
+        timer.cancel();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tiempo de espera agotado. Verificá que completaste la vinculación en Mercado Pago.'),
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
       }
     });
   }
@@ -101,9 +120,20 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
   Future<void> _vincular() async {
     try {
       final url = await _vm.obtenerUrlAutorizacion();
-      final uri = Uri.parse(url);
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      _iniciarVerificacionAutomatica();
+      if (!mounted) return;
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => _WebViewMercadoPago(url: url),
+        ),
+      );
+
+      if (!mounted) return;
+      await _vm.cargar();
+      if (_vm.estaConectado && mounted) {
+        setState(() {});
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,7 +150,16 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
         listenable: _vm,
         builder: (context, _) {
           if (_vm.cargando && _vm.estado == null) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 12),
+                  Text('Esperando vinculación de Mercado Pago...', style: TextStyle(color: AppColors.muted)),
+                ],
+              ),
+            );
           }
 
           final error = _vm.error;
@@ -144,6 +183,12 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
           }
 
           final conectado = _vm.estaConectado;
+
+          if (conectado && _vm.pendientes.isEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _vm.cargarPendientes();
+            });
+          }
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
@@ -174,8 +219,18 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 _seccionDesvincular(),
+                const SizedBox(height: 16),
+                if (_vm.pendientes.isNotEmpty) ...[
+                  const Text(
+                    'Pendientes de confirmar',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.muted),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._vm.pendientes.map((m) => _filaPendiente(m, onVerificar: () => _revisarMovimiento(m))).toList(),
+                  const SizedBox(height: 24),
+                ],
               ] else ...[
                 _tarjetaEstadoDesconectado(),
               ],
@@ -330,6 +385,54 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
     );
   }
 
+  Widget _filaPendiente(Movimiento m, {required VoidCallback onVerificar}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.pending_actions, size: 20, color: Colors.orange),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  m.descripcion ?? 'Movimiento Mercado Pago',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${m.fecha.day}/${m.fecha.month}/${m.fecha.year}',
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '\$${m.monto.toStringAsFixed(2)}',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            onPressed: onVerificar,
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.orange,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(0, 36),
+            ),
+            icon: const Icon(Icons.fact_check_outlined, size: 16),
+            label: const Text('Verificar', style: TextStyle(fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _sincronizar() async {
     final resumen = await _vm.sincronizar();
     if (!mounted) return;
@@ -346,5 +449,58 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
         SnackBar(content: Text(_vm.error!)),
       );
     }
+  }
+
+  Future<void> _revisarMovimiento(Movimiento movimiento) async {
+    final modificado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RevisionMovimientoScreen(movimiento: movimiento),
+      ),
+    );
+
+    if (modificado == true && mounted) {
+      _vm.cargarPendientes();
+    }
+  }
+}
+
+class _WebViewMercadoPago extends StatefulWidget {
+  final String url;
+  const _WebViewMercadoPago({required this.url});
+
+  @override
+  State<_WebViewMercadoPago> createState() => _WebViewMercadoPagoState();
+}
+
+class _WebViewMercadoPagoState extends State<_WebViewMercadoPago> {
+  late final WebViewController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (url) {
+            if (url.startsWith('finza://mercadopago/callback')) {
+              if (mounted) {
+                Navigator.pop(context);
+              }
+            }
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Mercado Pago')),
+      body: WebViewWidget(controller: _controller),
+    );
   }
 }
