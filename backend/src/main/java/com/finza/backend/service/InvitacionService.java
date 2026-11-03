@@ -180,7 +180,8 @@ public class InvitacionService {
                         i.getId(),
                         i.getEmailInvitado(),
                         estadoVisible(i, ahora),
-                        i.getFechaExpiracion()))
+                        i.getFechaExpiracion(),
+                        null)) // el token no se puede mostrar: solo se guarda su hash
                 .toList();
     }
 
