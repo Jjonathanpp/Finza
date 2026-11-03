@@ -25,8 +25,21 @@ const _casaAdmin = {'id': 5, 'nombre': 'Casa', 'rol': 'ADMIN', 'perfilId': 12};
 const _casaMiembro = {'id': 5, 'nombre': 'Casa', 'rol': 'MIEMBRO', 'perfilId': 13};
 
 class _CuentasDeMentira extends Fake implements CuentaCompartidaApi {
+  _CuentasDeMentira({this.rechazo});
+
+  final ApiException? rechazo;
+  final creadas = <String>[];
+
   @override
   Future<List<Map<String, dynamic>>> listarMias() async => [_casaAdmin];
+
+  // Como responde el backend al crearla: sin el rol (t-11.1.4).
+  @override
+  Future<Map<String, dynamic>> crear(String nombre) async {
+    creadas.add(nombre);
+    if (rechazo != null) throw rechazo!;
+    return {'id': 8, 'nombre': nombre, 'perfilId': 21};
+  }
 }
 
 class _PresupuestosDeMentira extends Fake implements PresupuestoApi {
@@ -145,6 +158,66 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(cuentaActiva.value, _casaAdmin);
+  });
+
+  group('crear una cuenta compartida (t-11.1.4)', () {
+    Future<void> abrirCuadro(WidgetTester tester, _CuentasDeMentira api) async {
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SelectorDeCuenta(api: api))));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Crear cuenta compartida'));
+      await tester.pumpAndSettle();
+    }
+
+    FilledButton botonCrear(WidgetTester tester) => tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Crear'));
+
+    testWidgets('con un nombre la crea y la app pasa a esa cuenta como administrador', (tester) async {
+      final api = _CuentasDeMentira();
+      await abrirCuadro(tester, api);
+
+      expect(find.text('Nueva cuenta compartida'), findsOneWidget);
+      expect(find.text('Vas a ser el administrador.'), findsOneWidget);
+      expect(botonCrear(tester).onPressed, isNull); // sin nombre no se puede
+
+      await tester.enterText(find.byType(TextField), '   ');
+      await tester.pump();
+      expect(botonCrear(tester).onPressed, isNull); // solo espacios tampoco
+
+      await tester.enterText(find.byType(TextField), '  Depto  ');
+      await tester.pump();
+      await tester.tap(find.text('Crear'));
+      await tester.pumpAndSettle();
+
+      expect(api.creadas, ['Depto']);
+      expect(find.text('Nueva cuenta compartida'), findsNothing);
+      expect(cuentaActiva.value, {'id': 8, 'nombre': 'Depto', 'perfilId': 21, 'rol': 'ADMIN'});
+    });
+
+    testWidgets('si el backend no la crea, muestra el mensaje y el cuadro sigue abierto', (tester) async {
+      final api = _CuentasDeMentira(rechazo: ApiException(null, 'No se pudo conectar con el servidor'));
+      await abrirCuadro(tester, api);
+
+      await tester.enterText(find.byType(TextField), 'Depto');
+      await tester.pump();
+      await tester.tap(find.text('Crear'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No se pudo conectar con el servidor'), findsOneWidget);
+      expect(find.text('Nueva cuenta compartida'), findsOneWidget);
+      expect(botonCrear(tester).onPressed, isNotNull); // se puede volver a probar
+      expect(cuentaActiva.value, isNull);
+    });
+
+    testWidgets('Cancelar lo cierra sin crear nada', (tester) async {
+      final api = _CuentasDeMentira();
+      await abrirCuadro(tester, api);
+
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nueva cuenta compartida'), findsNothing);
+      expect(api.creadas, isEmpty);
+      expect(cuentaActiva.value, isNull);
+    });
   });
 
   group('presupuestos', () {

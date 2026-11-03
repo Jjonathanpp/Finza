@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:frontend/core/errors/api_exception.dart';
-import 'package:frontend/features/lista-invitaciones/data/datasources/Invitacion_api.dart';
+import 'package:frontend/features/lista-invitaciones/data/datasources/invitacion_api.dart';
 import 'package:frontend/features/lista-invitaciones/data/models/invitacion_enviada.dart';
 
 class ListaInvitacionesViewModel extends ChangeNotifier {
