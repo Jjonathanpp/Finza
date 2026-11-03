@@ -9,6 +9,8 @@ import 'package:frontend/core/widgets/eliminar_cuenta_dialog.dart';
 import 'package:frontend/core/widgets/cuenta_usuario.dart';
 import 'package:frontend/features/configuracion/presentation/screens/configuracion_screen.dart';
 import 'package:frontend/features/informes/presentation/screens/informes_screen.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/features/lista-invitaciones/presentation/screens/lista_invitaciones_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -119,19 +121,47 @@ class AppDrawer extends StatelessWidget {
                     },
                   ),
                   ListTile(
-                    leading: const Icon(Icons.bar_chart, color: AppColors.muted),
+                    leading: const Icon(
+                      Icons.bar_chart,
+                      color: AppColors.muted,
+                    ),
                     title: const Text(
                       'Informes',
                       style: TextStyle(color: AppColors.text),
                     ),
                     onTap: () {
-                      Navigator.pop(context); // cierra el drawer
+                      Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const InformesScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const InformesScreen(),
+                        ),
                       );
                     },
                   ),
+                  if (cuentaActiva.value != null && esAdminDeCuentaActiva)
+                    ListTile(
+                      leading: const Icon(
+                        Icons.mail_outline,
+                        color: AppColors.muted,
+                      ),
+                      title: const Text(
+                        'Invitaciones enviadas',
+                        style: TextStyle(color: AppColors.text),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ListaInvitacionesScreen(
+                              cuentaCompartidaId:
+                                  cuentaActiva.value!['id'] as int,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ListTile(
                     leading: const Icon(Icons.mic, color: AppColors.muted),
                     title: const Text(
