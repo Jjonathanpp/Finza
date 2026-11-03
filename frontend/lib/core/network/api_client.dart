@@ -74,7 +74,8 @@ class TokenInterceptor extends Interceptor {
     }
     if (token != null) options.headers['Authorization'] = 'Bearer $token';
     final cuenta = cuentaActiva.value;
-    if (cuenta != null) options.headers['X-Perfil-Id'] = '${cuenta['perfilId']}';
+    if (cuenta != null)
+      options.headers['X-Perfil-Id'] = '${cuenta['perfilId']}';
     handler.next(options);
   }
 

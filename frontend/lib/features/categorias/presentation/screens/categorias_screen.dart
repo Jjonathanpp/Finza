@@ -41,7 +41,10 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: barraConVolver(context, editando == null ? 'Nueva categoría' : 'Editar categoría'),
+          appBar: barraConVolver(
+            context,
+            editando == null ? 'Nueva categoría' : 'Editar categoría',
+          ),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
             children: [FormularioCategoria(editando: editando)],
@@ -50,7 +53,10 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       ),
     );
     if (guardada == null || !mounted) return;
-    mostrarExito(context, editando == null ? 'Categoría creada' : 'Categoría actualizada');
+    mostrarExito(
+      context,
+      editando == null ? 'Categoría creada' : 'Categoría actualizada',
+    );
     _vm.cargar();
   }
 
@@ -61,7 +67,10 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
         title: Text('¿Eliminar "${categoria.nombre}"?'),
         content: const Text('No se puede deshacer.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
@@ -83,7 +92,12 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       builder: (context) => AlertDialog(
         title: const Text('No se pudo eliminar'),
         content: Text(error),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Entendido'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendido'),
+          ),
+        ],
       ),
     );
   }
@@ -96,7 +110,12 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
         // En una cuenta compartida, las crea solo el admin (t-13.1.2)
         actions: [
           if (esAdminDeCuentaActiva)
-            BotonIcono(icono: Icons.add, tamanio: 34, ayuda: 'Nueva categoría', alTocar: _abrirFormulario),
+            BotonIcono(
+              icono: Icons.add,
+              tamanio: 34,
+              ayuda: 'Nueva categoría',
+              alTocar: _abrirFormulario,
+            ),
         ],
       ),
       body: ListenableBuilder(
@@ -109,7 +128,12 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           }
           final error = _vm.error;
           if (error != null) {
-            return Center(child: Text(error, style: const TextStyle(color: AppColors.muted)));
+            return Center(
+              child: Text(
+                error,
+                style: const TextStyle(color: AppColors.muted),
+              ),
+            );
           }
           return ListView(
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
@@ -119,8 +143,17 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                 child: TextButton.icon(
                   onPressed: _vm.alternarPredefinidas,
                   style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-                  icon: Icon(_vm.verPredefinidas ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
-                  label: Text(_vm.verPredefinidas ? 'Ocultar predefinidas' : 'Mostrar predefinidas'),
+                  icon: Icon(
+                    _vm.verPredefinidas
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    size: 18,
+                  ),
+                  label: Text(
+                    _vm.verPredefinidas
+                        ? 'Ocultar predefinidas'
+                        : 'Mostrar predefinidas',
+                  ),
                 ),
               ),
               _grupo('Egresos', _vm.deEgreso),
@@ -141,11 +174,17 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           child: Text.rich(
             TextSpan(
               text: titulo,
-              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+              ),
               children: [
                 TextSpan(
                   text: ' (${categorias.length})',
-                  style: const TextStyle(color: AppColors.faint, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    color: AppColors.faint,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -165,11 +204,17 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
               if (categorias.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 11),
-                  child: Text('No tenés categorías propias de ${titulo.toLowerCase()}',
-                      style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+                  child: Text(
+                    'No tenés categorías propias de ${titulo.toLowerCase()}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.muted,
+                    ),
+                  ),
                 ),
               for (var i = 0; i < categorias.length; i++) ...[
-                if (i > 0) const Divider(height: 1, thickness: 1, color: AppColors.line),
+                if (i > 0)
+                  const Divider(height: 1, thickness: 1, color: AppColors.line),
                 _fila(categorias[i]),
               ],
             ],
@@ -194,7 +239,10 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                   categoria.nombre,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 _Etiqueta(predefinida: categoria.esPredefinida),
@@ -203,9 +251,19 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           ),
           // Las de una cuenta compartida todavía no se editan ni se borran (el backend no lo deja)
           if (!categoria.esPredefinida && cuentaActiva.value == null) ...[
-            BotonIcono(icono: Icons.edit_outlined, tamanio: 28, ayuda: 'Editar', alTocar: () => _abrirFormulario(editando: categoria)),
+            BotonIcono(
+              icono: Icons.edit_outlined,
+              tamanio: 28,
+              ayuda: 'Editar',
+              alTocar: () => _abrirFormulario(editando: categoria),
+            ),
             const SizedBox(width: 4),
-            BotonIcono(icono: Icons.delete_outline, tamanio: 28, ayuda: 'Eliminar', alTocar: () => _eliminar(categoria)),
+            BotonIcono(
+              icono: Icons.delete_outline,
+              tamanio: 28,
+              ayuda: 'Eliminar',
+              alTocar: () => _eliminar(categoria),
+            ),
           ],
         ],
       ),
@@ -234,8 +292,14 @@ class _Avatar extends StatelessWidget {
           ? Text(emoji, style: const TextStyle(fontSize: 18))
           : Text(
               // characters, no [0]: un emoji ocupa dos lugares del texto, y medio emoji no se puede dibujar.
-              categoria.nombre.isEmpty ? '?' : categoria.nombre.characters.first.toUpperCase(),
-              style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800),
+              categoria.nombre.isEmpty
+                  ? '?'
+                  : categoria.nombre.characters.first.toUpperCase(),
+              style: TextStyle(
+                color: color,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
             ),
     );
   }
@@ -251,7 +315,9 @@ class _Etiqueta extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: predefinida ? AppColors.surface3 : AppColors.blue.withValues(alpha: 0.16),
+        color: predefinida
+            ? AppColors.surface3
+            : AppColors.blue.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
