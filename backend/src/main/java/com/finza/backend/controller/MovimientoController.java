@@ -35,7 +35,8 @@ public class MovimientoController {
     private final MovimientoService movimientoService;
     private final PerfilService perfilService;
 
-    // La cuenta (cuentaId) sale del token: la deja JwtAuthFilter. El perfil es el principal de esa cuenta.
+    // La cuenta (cuentaId) sale del token: la deja JwtAuthFilter. El perfil es el
+    // principal de esa cuenta.
     @PostMapping
     public ResponseEntity<Object> registrar(@RequestBody MovimientosRegistroRequest requests,
             @AuthenticationPrincipal Long cuentaId) {
@@ -55,7 +56,8 @@ public class MovimientoController {
             @PathVariable Long id,
             @RequestBody MovimientoRequest request,
             @AuthenticationPrincipal Long cuentaId) {
-        MovimientoResponseDTO actualizado = movimientoService.actualizar(id, perfilService.idPrincipal(cuentaId), request, cuentaId);
+        MovimientoResponseDTO actualizado = movimientoService.actualizar(id, perfilService.idPrincipal(cuentaId),
+                request, cuentaId);
         return Response.ok(actualizado, "Movimiento actualizado exitosamente");
     }
 
@@ -67,12 +69,14 @@ public class MovimientoController {
             @RequestParam(name = "categoriaId", required = false) Long categoriaId,
             @RequestParam(name = "esIngreso", required = false) String esIngresoStr,
             @RequestParam(name = "estado", required = false) String estadoStr,
+            @RequestParam(name = "usuarioId", required = false) Long usuarioId,
             @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Boolean esIngreso = esIngresoStr != null ? Boolean.parseBoolean(esIngresoStr) : null;
 
         Page<MovimientoResponseDTO> resultado = movimientoService.listarMovimientos(
-                perfilService.idPrincipal(cuentaId), cuentaId, fechaInicio, fechaFin, categoriaId, esIngreso, estadoStr, pageable);
+                perfilService.idPrincipal(cuentaId), cuentaId, fechaInicio, fechaFin, categoriaId, esIngreso, estadoStr,
+                usuarioId, pageable);
 
         return Response.response(HttpStatus.OK, "Movimientos obtenidos", resultado);
     }
@@ -91,13 +95,15 @@ public class MovimientoController {
             return Response.response(HttpStatus.CREATED, "Movimiento de voz procesado y registrado como PENDIENTE",
                     movimientoService.registrarDesdeAudio(audio, perfilService.idPrincipal(cuentaId), cuentaId));
         } catch (Exception e) {
-            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, "Error procesando el audio: " + e.getMessage(), null);
+            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, "Error procesando el audio: " + e.getMessage(),
+                    null);
         }
     }
-    
+
     @PutMapping("/{id}/estado")
     public ResponseEntity<Object> cambiarEstado(@PathVariable Long id, @RequestParam("nuevoEstado") String nuevoEstado,
             @AuthenticationPrincipal Long cuentaId) {
-        return Response.response(HttpStatus.OK, "Estado actualizado correctamente", movimientoService.cambiarEstado(id, nuevoEstado, cuentaId));
+        return Response.response(HttpStatus.OK, "Estado actualizado correctamente",
+                movimientoService.cambiarEstado(id, nuevoEstado, cuentaId));
     }
 }
