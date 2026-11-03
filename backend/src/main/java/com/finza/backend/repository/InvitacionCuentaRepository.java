@@ -1,6 +1,7 @@
 package com.finza.backend.repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +15,6 @@ public interface InvitacionCuentaRepository extends JpaRepository<InvitacionCuen
 
     boolean existsByCuentaCompartidaIdAndEmailInvitadoIgnoreCaseAndEstadoAndFechaExpiracionAfter(
             Long cuentaCompartidaId, String email, EstadoInvitacion estado, LocalDateTime ahora);
+
+    List<InvitacionCuenta> findByCuentaCompartidaIdOrderByFechaCreacionDesc(Long cuentaCompartidaId);
 }

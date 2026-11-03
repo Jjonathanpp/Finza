@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,64 +40,65 @@ public class InvitacionService {
     private final CuentaRepository cuentaRepository;
     private final PerfilRepository perfilRepository;
     private final CuentaCompartidaRepository cuentaCompartidaRepository;
-    private final EmailService emailService; 
+    private final EmailService emailService;
 
     @Value("${app.invitaciones.base-url}")
-    private String baseUrl; 
+    private String baseUrl;
 
-@Transactional
-public InvitacionResponse crear(Long cuentaCompartidaId, Long cuentaEmisorId, InvitacionRequest req) {
-    CuentaCompartida compartida = cuentaCompartidaRepository.findById(cuentaCompartidaId)
-            .orElseThrow(() -> new BadRequestException("La cuenta compartida no existe"));
+    @Transactional
+    public InvitacionResponse crear(Long cuentaCompartidaId, Long cuentaEmisorId, InvitacionRequest req) {
+        CuentaCompartida compartida = cuentaCompartidaRepository.findById(cuentaCompartidaId)
+                .orElseThrow(() -> new BadRequestException("La cuenta compartida no existe"));
 
-    Cuenta cuentaEmisor = cuentaRepository.findById(cuentaEmisorId)
-            .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
+        Cuenta cuentaEmisor = cuentaRepository.findById(cuentaEmisorId)
+                .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
 
-    // 1) El emisor debe pertenecer a la cuenta compartida y ser ADMIN
-    Perfil emisor = perfilRepository
-            .findByCuentaIdAndCuentaCompartidaId(cuentaEmisor.getId(), cuentaCompartidaId)
-            .orElseThrow(() -> new AccessDeniedException("No pertenecés a esta cuenta compartida"));
+        // 1) El emisor debe pertenecer a la cuenta compartida y ser ADMIN
+        Perfil emisor = perfilRepository
+                .findByCuentaIdAndCuentaCompartidaId(cuentaEmisor.getId(), cuentaCompartidaId)
+                .orElseThrow(() -> new AccessDeniedException("No pertenecés a esta cuenta compartida"));
 
-    if (emisor.getRol() != Perfil.Rol.ADMIN) {
-        throw new AccessDeniedException("Solo un administrador puede invitar");
+        if (emisor.getRol() != Perfil.Rol.ADMIN) {
+            throw new AccessDeniedException("Solo un administrador puede invitar");
+        }
+
+        String email = req.email().trim();
+
+        // 2) Validaciones
+        if (email.equalsIgnoreCase(cuentaEmisor.getEmail())) {
+            throw new BadRequestException("No podés invitarte a vos mismo");
+        }
+
+        boolean yaEsMiembro = cuentaRepository.findByEmailIgnoreCase(email)
+                .flatMap(c -> perfilRepository.findByCuentaIdAndCuentaCompartidaId(c.getId(), cuentaCompartidaId))
+                .isPresent();
+        if (yaEsMiembro) {
+            throw new BadRequestException("Esa persona ya es miembro de la cuenta compartida");
+        }
+
+        if (invitacionRepository
+                .existsByCuentaCompartidaIdAndEmailInvitadoIgnoreCaseAndEstadoAndFechaExpiracionAfter(
+                        cuentaCompartidaId, email, EstadoInvitacion.PENDIENTE, LocalDateTime.now())) {
+            throw new BadRequestException("Ya existe una invitación pendiente para ese email");
+        }
+
+        // 3) Token (solo se guarda el hash)
+        String token = generarToken();
+        InvitacionCuenta inv = new InvitacionCuenta();
+        inv.setCuentaCompartida(compartida);
+        inv.setInvitadoPor(emisor);
+        inv.setEmailInvitado(email);
+        inv.setTokenHash(hash(token));
+        inv.setFechaExpiracion(LocalDateTime.now().plus(VALIDEZ));
+        invitacionRepository.save(inv);
+
+        // 4) Correo
+        String link = baseUrl + "?token=" + token;
+        emailService.enviarInvitacion(email, emisor.getNombrePerfil(), link, inv.getFechaExpiracion());
+
+        return new InvitacionResponse(inv.getId(), email, inv.getEstado(), inv.getFechaExpiracion());
     }
 
-    String email = req.email().trim();
-
-    // 2) Validaciones
-    if (email.equalsIgnoreCase(cuentaEmisor.getEmail())) {
-        throw new BadRequestException("No podés invitarte a vos mismo");
-    }
-
-    boolean yaEsMiembro = cuentaRepository.findByEmailIgnoreCase(email)
-            .flatMap(c -> perfilRepository.findByCuentaIdAndCuentaCompartidaId(c.getId(), cuentaCompartidaId))
-            .isPresent();
-    if (yaEsMiembro) {
-        throw new BadRequestException("Esa persona ya es miembro de la cuenta compartida");
-    }
-
-    if (invitacionRepository
-            .existsByCuentaCompartidaIdAndEmailInvitadoIgnoreCaseAndEstadoAndFechaExpiracionAfter(
-                    cuentaCompartidaId, email, EstadoInvitacion.PENDIENTE, LocalDateTime.now())) {
-        throw new BadRequestException("Ya existe una invitación pendiente para ese email");
-    }
-
-    // 3) Token (solo se guarda el hash)
-    String token = generarToken();
-    InvitacionCuenta inv = new InvitacionCuenta();
-    inv.setCuentaCompartida(compartida);
-    inv.setInvitadoPor(emisor);
-    inv.setEmailInvitado(email);
-    inv.setTokenHash(hash(token));
-    inv.setFechaExpiracion(LocalDateTime.now().plus(VALIDEZ));
-    invitacionRepository.save(inv);
-
-    // 4) Correo
-    String link = baseUrl + "?token=" + token;
-    emailService.enviarInvitacion(email, emisor.getNombrePerfil(), link, inv.getFechaExpiracion());
-
-    return new InvitacionResponse(inv.getId(), email, inv.getEstado(), inv.getFechaExpiracion());
-}
     private String generarToken() {
         byte[] bytes = new byte[32];
         new SecureRandom().nextBytes(bytes);
@@ -111,5 +113,33 @@ public InvitacionResponse crear(Long cuentaCompartidaId, Long cuentaEmisorId, In
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<InvitacionResponse> listar(Long cuentaCompartidaId, Long cuentaId) {
+        Perfil perfil = perfilRepository
+                .findByCuentaIdAndCuentaCompartidaId(cuentaId, cuentaCompartidaId)
+                .orElseThrow(() -> new AccessDeniedException("No pertenecés a esta cuenta compartida"));
+
+        if (perfil.getRol() != Perfil.Rol.ADMIN) {
+            throw new AccessDeniedException("Solo un administrador puede ver las invitaciones");
+        }
+
+        LocalDateTime ahora = LocalDateTime.now();
+        return invitacionRepository
+                .findByCuentaCompartidaIdOrderByFechaCreacionDesc(cuentaCompartidaId)
+                .stream()
+                .map(i -> new InvitacionResponse(
+                        i.getId(),
+                        i.getEmailInvitado(),
+                        estadoVisible(i, ahora),
+                        i.getFechaExpiracion()))
+                .toList();
+    }
+
+    private EstadoInvitacion estadoVisible(InvitacionCuenta inv, LocalDateTime ahora) {
+        boolean vencida = inv.getEstado() == EstadoInvitacion.PENDIENTE
+                && inv.getFechaExpiracion().isBefore(ahora);
+        return vencida ? EstadoInvitacion.EXPIRADA : inv.getEstado();
     }
 }
