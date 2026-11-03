@@ -15,6 +15,7 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   record: ^7.1.1
   path_provider: ^2.1.6
+  share_plus: ^13.3.1
   url_launcher: ^6.3.1
   webview_flutter: ^4.4.2
   record_web: ^2.1.3
