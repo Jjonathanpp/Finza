@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
-import 'package:frontend/features/lista-invitaciones/data/datasources/Invitacion_api.dart';
+import 'package:frontend/features/lista-invitaciones/data/datasources/invitacion_api.dart';
 import 'package:frontend/features/lista-invitaciones/data/models/invitacion_enviada.dart';
 import 'package:frontend/features/lista-invitaciones/presentation/viewmodels/lista_invitaciones_view_model.dart';
 
