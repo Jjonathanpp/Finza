@@ -2,6 +2,7 @@ package com.finza.backend.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,6 +38,18 @@ public class InvitacionController {
                 "Invitación enviada");
     }
 
+@GetMapping
+    public ResponseEntity<Object> listar(
+            @PathVariable Long cuentaCompartidaId,
+            Authentication authentication) {
+        
+        Long cuentaId = (Long) authentication.getPrincipal();
+
+        return Response.ok(
+                invitacionService.listar(cuentaCompartidaId, cuentaId),
+                "Invitaciones obtenidas");
+    }
+  
     @PostMapping("/aceptar")
     public ResponseEntity<Object> aceptar(
             @RequestBody String token,
