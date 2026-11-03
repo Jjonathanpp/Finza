@@ -9,7 +9,6 @@ import 'package:frontend/features/mercadopago/presentation/screens/sincronizacio
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'dart:async';
 
 class MercadoPagoScreen extends StatefulWidget {
   const MercadoPagoScreen({super.key});
@@ -20,7 +19,6 @@ class MercadoPagoScreen extends StatefulWidget {
 
 class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindingObserver {
   final _vm = MercadoPagoViewModel(MercadoPagoApi(ApiClient()));
-  Timer? _timerVerificacion;
 
   @override
   void initState() {
@@ -35,7 +33,6 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _timerVerificacion?.cancel();
     _vm.dispose();
     super.dispose();
   }
@@ -48,29 +45,6 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
         _vm.cargarPendientes();
       }
     }
-  }
-
-  void _iniciarVerificacionAutomatica() {
-    _timerVerificacion?.cancel();
-    int intentos = 0;
-    _timerVerificacion = Timer.periodic(const Duration(seconds: 2), (timer) async {
-      intentos++;
-      await _vm.cargar();
-      if (_vm.estaConectado) {
-        timer.cancel();
-        if (mounted) setState(() {});
-      } else if (intentos >= 30) {
-        timer.cancel();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tiempo de espera agotado. Verificá que completaste la vinculación en Mercado Pago.'),
-              duration: Duration(seconds: 5),
-            ),
-          );
-        }
-      }
-    });
   }
 
   Future<void> _desvincular() async {
@@ -228,7 +202,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.muted),
                   ),
                   const SizedBox(height: 8),
-                  ..._vm.pendientes.map((m) => _filaPendiente(m, onVerificar: () => _revisarMovimiento(m))).toList(),
+                  ..._vm.pendientes.map((m) => _filaPendiente(m, onVerificar: () => _revisarMovimiento(m))),
                   const SizedBox(height: 24),
                 ],
               ] else ...[

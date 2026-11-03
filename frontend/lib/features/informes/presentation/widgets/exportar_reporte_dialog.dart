@@ -100,30 +100,34 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
             const SizedBox(height: 16),
             const Text('Alcance', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            RadioListTile<String>(
-              value: 'solo_propios',
+            RadioGroup<String>(
               groupValue: _alcance,
-              onChanged: _cargando ? null : (v) => setState(() => _alcance = v!),
-              title: const Text('Mis registros', style: TextStyle(color: AppColors.text)),
-              contentPadding: EdgeInsets.zero,
-            ),
-            RadioListTile<String>(
-              value: 'cuenta_completa',
-              groupValue: _alcance,
-              onChanged: (widget.cuentaCompartidaActiva && !_cargando)
-                  ? (v) => setState(() => _alcance = v!)
-                  : null,
-              title: Text(
-                'Consolidado grupal',
-                style: TextStyle(
-                  color: widget.cuentaCompartidaActiva ? AppColors.text : AppColors.muted,
-                ),
+              onChanged: (v) => setState(() => _alcance = v!),
+              child: Column(
+                children: [
+                  RadioListTile<String>(
+                    value: 'solo_propios',
+                    enabled: !_cargando,
+                    title: const Text('Mis registros', style: TextStyle(color: AppColors.text)),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  RadioListTile<String>(
+                    value: 'cuenta_completa',
+                    enabled: widget.cuentaCompartidaActiva && !_cargando,
+                    title: Text(
+                      'Consolidado grupal',
+                      style: TextStyle(
+                        color: widget.cuentaCompartidaActiva ? AppColors.text : AppColors.muted,
+                      ),
+                    ),
+                    subtitle: widget.cuentaCompartidaActiva
+                        ? null
+                        : const Text('Solo disponible en cuenta compartida',
+                            style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ],
               ),
-              subtitle: widget.cuentaCompartidaActiva
-                  ? null
-                  : const Text('Solo disponible en cuenta compartida',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12)),
-              contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 16),
     Column(
