@@ -55,16 +55,14 @@ public class CategoriaService {
                 : categoriaRepository.listarPredefinidasYDeCuentaCompartida(compartida.getId());
     }
 
-    // En una cuenta compartida la crea solo el administrador, y queda de la cuenta compartida.
+    // En una cuenta compartida la crea cualquier integrante, admin o miembro (t-12.1.6), y queda de la
+    // cuenta compartida: la ven y la usan todos.
     @Transactional
     public CategoriaResponseDTO crearCategoria(Long cuentaId, CategoriaRequest request) {
         Cuenta cuenta = cuentaRepository.findById(cuentaId)
                 .orElseThrow(() -> new BadRequestException("La cuenta indicada no existe"));
         Perfil activo = perfilService.perfilActivo(cuentaId);
         CuentaCompartida compartida = activo.getCuentaCompartida();
-        if (compartida != null) {
-            perfilService.exigirAdmin(cuentaId, compartida.getId());
-        }
 
         String nombreLimpio = request.getNombre().trim();
 
@@ -79,17 +77,12 @@ public class CategoriaService {
 
     // Usado por MovimientoServiceImpl y MercadoPagoSyncService, dentro de su transacción. Recibe el
     // perfil del movimiento: en una cuenta compartida busca entre las predefinidas y las de la cuenta
-    // compartida, y si no existe la crea solo el administrador (un miembro recibe 400).
+    // compartida, y si no existe la crea ahí, la cargue el admin o un miembro (t-12.1.6).
     public Categoria buscarOCrearCategoria(String nombre, Categoria.TipoCategoria tipo, Perfil perfil) {
         String nombreLimpio = nombre.trim();
         CuentaCompartida compartida = perfil.getCuentaCompartida();
-        return buscar(nombreLimpio, tipo, perfil).orElseGet(() -> {
-            if (compartida != null && perfil.getRol() != Perfil.Rol.ADMIN) {
-                throw new BadRequestException(
-                        "La categoría " + nombreLimpio + " no existe en " + compartida.getNombre());
-            }
-            return crearYGuardar(compartida == null ? perfil.getCuenta() : null, compartida, nombreLimpio, null, tipo);
-        });
+        return buscar(nombreLimpio, tipo, perfil).orElseGet(() ->
+                crearYGuardar(compartida == null ? perfil.getCuenta() : null, compartida, nombreLimpio, null, tipo));
     }
 
     // La que puede usar el perfil con ese nombre y tipo, sin crearla: una predefinida o una propia (de su

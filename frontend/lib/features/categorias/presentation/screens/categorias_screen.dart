@@ -107,15 +107,14 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(conCuentaActiva('Categorías')),
-        // En una cuenta compartida, las crea solo el admin (t-13.1.2)
+        // También en una cuenta compartida, la crea cualquier integrante (t-12.1.6)
         actions: [
-          if (esAdminDeCuentaActiva)
-            BotonIcono(
-              icono: Icons.add,
-              tamanio: 34,
-              ayuda: 'Nueva categoría',
-              alTocar: _abrirFormulario,
-            ),
+          BotonIcono(
+            icono: Icons.add,
+            tamanio: 34,
+            ayuda: 'Nueva categoría',
+            alTocar: _abrirFormulario,
+          ),
         ],
       ),
       body: ListenableBuilder(
