@@ -12,26 +12,26 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 
 public interface MovimientoService {
-    List<MovimientoResponseDTO> registrar(MovimientosRegistroRequest requests, Long cuentaIdAutenticada);
+        List<MovimientoResponseDTO> registrar(MovimientosRegistroRequest requests, Long cuentaIdAutenticada);
 
-    void eliminar(Long id, Long cuentaIdAutenticada);
+        void eliminar(Long id, Long cuentaIdAutenticada);
 
-    MovimientoResponseDTO actualizar(Long id, Long perfilId, MovimientoRequest request, Long cuentaIdAutenticada);
+        MovimientoResponseDTO actualizar(Long id, Long perfilId, MovimientoRequest request, Long cuentaIdAutenticada);
 
-    Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, Long cuentaIdAutenticada, LocalDate fechaInicio,
-            LocalDate fechaFin,
-            Long categoriaId, Boolean esIngreso, String estadoStr, Long usuarioId, Pageable pageable);
+        Page<MovimientoResponseDTO> listarMovimientos(Long perfilActivoId, Long cuentaIdAutenticada, Long perfilId,
+                        LocalDate fechaInicio, LocalDate fechaFin, Long categoriaId, Boolean esIngreso,
+                        String estadoStr, Pageable pageable);
 
-    MovimientoResponseDTO cambiarEstado(Long id, String nuevoEstado, Long cuentaIdAutenticada);
+        MovimientoResponseDTO cambiarEstado(Long id, String nuevoEstado, Long cuentaIdAutenticada);
 
-    List<MovimientoResponseDTO> registrarDesdeAudio(MultipartFile audio, Long perfilId, Long cuentaIdAutenticada)
-            throws Exception;
+        List<MovimientoResponseDTO> registrarDesdeAudio(MultipartFile audio, Long perfilId, Long cuentaIdAutenticada)
+                        throws Exception;
 
-    List<MovimientoResponseDTO> obtenerUltimosMovimientos(Long perfilId, Long cuentaIdAutenticada, int limite);
+        List<MovimientoResponseDTO> obtenerUltimosMovimientos(Long perfilId, Long cuentaIdAutenticada, int limite);
 
-    List<MovimientoResponseDTO> obtenerUltimosIngresos(Long perfilId, Long cuentaIdAutenticada, int limite);
+        List<MovimientoResponseDTO> obtenerUltimosIngresos(Long perfilId, Long cuentaIdAutenticada, int limite);
 
-    List<MovimientoResponseDTO> obtenerUltimosEgresos(Long perfilId, Long cuentaIdAutenticada, int limite);
+        List<MovimientoResponseDTO> obtenerUltimosEgresos(Long perfilId, Long cuentaIdAutenticada, int limite);
 
-    List<MovimientoResponseDTO> obtenerPendientesMercadoPago(Long perfilId, Long cuentaIdAutenticada);
+        List<MovimientoResponseDTO> obtenerPendientesMercadoPago(Long perfilId, Long cuentaIdAutenticada);
 }

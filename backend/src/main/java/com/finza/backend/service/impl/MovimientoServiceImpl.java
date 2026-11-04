@@ -28,7 +28,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -178,36 +177,47 @@ public class MovimientoServiceImpl implements MovimientoService {
     }
 
     @Override
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Page<MovimientoResponseDTO> listarMovimientos(Long perfilId, Long cuentaIdAutenticada, LocalDate fechaInicio,
-            LocalDate fechaFin,
-            Long categoriaId, Boolean esIngreso, String estadoStr, Long usuarioId, Pageable pageable) {
+    @Transactional(readOnly = true)
+    public Page<MovimientoResponseDTO> listarMovimientos(Long perfilActivoId, Long cuentaIdAutenticada, Long perfilId,
+            LocalDate fechaInicio, LocalDate fechaFin, Long categoriaId, Boolean esIngreso,
+            String estadoStr, Pageable pageable) {
 
-        Long perfilIdAFiltrar = perfilId;
-        if (usuarioId != null) {
-            Perfil perfilActivo = perfilRepository.findById(perfilId)
-                    .orElseThrow(() -> new BadRequestException("Perfil no encontrado"));
-            if (perfilActivo.getCuentaCompartida() == null) {
-                throw new AccessDeniedException("La cuenta activa no es una cuenta compartida");
-            }
-            Long cuentaCompartidaId = perfilActivo.getCuentaCompartida().getId();
-            Perfil perfilObjetivo = perfilRepository.findByCuentaCompartidaId(cuentaCompartidaId).stream()
-                    .filter(p -> p.getCuenta() != null && p.getCuenta().getUsuario() != null
-                            && usuarioId.equals(p.getCuenta().getUsuario().getId()))
-                    .findFirst()
-                    .orElseThrow(() -> new AccessDeniedException("El usuario no pertenece a esta cuenta compartida"));
-            perfilIdAFiltrar = perfilObjetivo.getId();
-        }
+        Perfil activo = obtenerPerfilValidado(perfilActivoId, cuentaIdAutenticada);
 
         Movimiento.EstadoMovimiento estado = null;
         if (estadoStr != null && !estadoStr.isBlank()) {
             estado = Movimiento.EstadoMovimiento.valueOf(estadoStr.toUpperCase());
         }
 
-        Page<Movimiento> paginaMovimientos = movimientoRepository.buscarConFiltros(
-                perfilIdAFiltrar, cuentaIdAutenticada, fechaInicio, fechaFin, categoriaId, esIngreso, estado, pageable);
+        Long cuentaCompartidaId = null;
+        Long perfilConsulta;
 
-        return paginaMovimientos.map(MovimientoResponseDTO::new);
+        if (activo.getCuentaCompartida() != null && activo.getRol() == Perfil.Rol.ADMIN) {
+            // ADMIN parado en la cuenta compartida: ve a todos, o a un perfil si lo filtra
+            cuentaCompartidaId = activo.getCuentaCompartida().getId();
+            if (perfilId != null) {
+                Perfil filtrado = perfilRepository.findById(perfilId)
+                        .orElseThrow(() -> new NoSuchElementException("El perfil indicado no existe"));
+                if (filtrado.getCuentaCompartida() == null
+                        || !filtrado.getCuentaCompartida().getId().equals(cuentaCompartidaId)) {
+                    throw new org.springframework.security.access.AccessDeniedException(
+                            "No tenés permiso para ver los movimientos de este perfil");
+                }
+            }
+            perfilConsulta = perfilId; // null = todos los perfiles de la cuenta compartida
+        } else {
+            // Perfil personal o MIEMBRO: solo el propio
+            if (perfilId != null && !perfilId.equals(perfilActivoId)) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "No tenés permiso para ver los movimientos de este perfil");
+            }
+            perfilConsulta = perfilActivoId;
+        }
+
+        return movimientoRepository.buscarConFiltros(
+                perfilConsulta, cuentaIdAutenticada, cuentaCompartidaId,
+                fechaInicio, fechaFin, categoriaId, esIngreso, estado, pageable)
+                .map(MovimientoResponseDTO::new);
     }
 
     @Override

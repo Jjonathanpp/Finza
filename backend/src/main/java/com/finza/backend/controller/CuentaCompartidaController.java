@@ -46,4 +46,12 @@ public class CuentaCompartidaController {
         return Response.ok(null, "Rol actualizado");
     }
 
+    // Para el selector de perfil del filtro de movimientos: solo el ADMIN de esa
+    // cuenta compartida.
+    @GetMapping("/{id}/perfiles")
+    public ResponseEntity<Object> perfilesDeCuentaCompartida(@PathVariable Long id,
+            @AuthenticationPrincipal Long cuentaId) {
+        return Response.ok(perfilService.perfilesDeCuentaCompartida(cuentaId, id), "Perfiles obtenidos");
+    }
+
 }
