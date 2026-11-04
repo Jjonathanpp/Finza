@@ -26,4 +26,7 @@ public interface InvitacionCuentaRepository extends JpaRepository<InvitacionCuen
             Long cuentaCompartidaId, String email, EstadoInvitacion estado, LocalDateTime ahora);
 
     List<InvitacionCuenta> findByCuentaCompartidaIdOrderByFechaCreacionDesc(Long cuentaCompartidaId);
+
+    // Al borrar una cuenta compartida que se quedó sin integrantes (t-11.3.4).
+    void deleteByCuentaCompartidaId(Long cuentaCompartidaId);
 }

@@ -42,4 +42,7 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     List<Categoria> buscarPropiaOGlobal(@Param("nombre") String nombre,
                                          @Param("tipo") Categoria.TipoCategoria tipo,
                                          @Param("cuentaId") Long cuentaId);
+
+    // Al borrar una cuenta compartida que se quedó sin integrantes (t-11.3.4).
+    void deleteByCuentaCompartidaId(Long cuentaCompartidaId);
 }
