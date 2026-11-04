@@ -144,11 +144,8 @@ public class PerfilService {
         perfil.setRol(rol);
     }
 
-    // Para el selector de perfil del filtro de movimientos: los perfiles de una
-    // cuenta compartida.
-    // Solo el ADMIN de esa cuenta compartida puede verlos (si no, 403).
     public List<Map<String, Object>> perfilesDeCuentaCompartida(Long cuentaId, Long cuentaCompartidaId) {
-        exigirAdmin(cuentaId, cuentaCompartidaId);
+        exigirMiembro(cuentaId, cuentaCompartidaId);
         return perfilRepository.findByCuentaCompartidaId(cuentaCompartidaId).stream()
                 .map(perfil -> Map.<String, Object>of(
                         "perfilId", perfil.getId(),
@@ -196,5 +193,13 @@ public class PerfilService {
         perfilRepository.deleteAll(perfilRepository.findByCuentaCompartidaId(id));
         categoriaRepository.deleteByCuentaCompartidaId(id);
         cuentaCompartidaRepository.delete(compartida);
+    }
+
+    // Para lo que puede hacer cualquier integrante de una cuenta compartida (ADMIN
+    // o MIEMBRO).
+    public Perfil exigirMiembro(Long cuentaId, Long cuentaCompartidaId) {
+        return Optional.ofNullable(cuentaCompartidaId)
+                .flatMap(id -> perfilRepository.findByCuentaIdAndCuentaCompartidaId(cuentaId, id))
+                .orElseThrow(() -> new AccessDeniedException("No sos integrante de esta cuenta compartida"));
     }
 }
