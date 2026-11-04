@@ -6,13 +6,15 @@ import 'package:frontend/features/movimientos/data/datasources/movimiento_api.da
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/movimientos/data/models/perfil_cuenta.dart';
+import 'package:frontend/core/network/api_client.dart';
 
 class MovimientosViewModel extends ChangeNotifier {
-  MovimientosViewModel(this._api, this._categoriaApi) {
+  MovimientosViewModel(this._api, this._categoriaApi, this._apiClient) {
     cuentaActiva.addListener(_alCambiarCuenta);
   }
   final MovimientoApi _api;
   final CategoriaApi _categoriaApi;
+  final ApiClient _apiClient;
 
   List<Movimiento> _movimientos = [];
   List<Categoria> categorias = [];

@@ -151,17 +151,24 @@ public class PerfilService {
                         "perfilId", perfil.getId(),
                         "nombre", perfil.getNombrePerfil() != null ? perfil.getNombrePerfil() : "Sin nombre",
                         "rol", perfil.getRol()))
-                .toList();}
-    // Al borrar una cuenta (t-11.3.4), en cada cuenta compartida en la que está: si no queda ningún otro
-    // integrante activo, la cuenta compartida se borra con todo. Si quedan, su perfil sigue ahí con lo que
-    // cargó, pero inactivo y sin cuenta; si era el único ADMIN, el que entró primero pasa a ADMIN, y si era
-    // el creador, el creador pasa a un ADMIN que queda, así nadie le puede sacar el rol. Corre en la
-    // transacción de la baja: si algo falla, no se borra nada.
+                .toList();
+    }
+
+    // Al borrar una cuenta (t-11.3.4), en cada cuenta compartida en la que está: si
+    // no queda ningún otro
+    // integrante activo, la cuenta compartida se borra con todo. Si quedan, su
+    // perfil sigue ahí con lo que
+    // cargó, pero inactivo y sin cuenta; si era el único ADMIN, el que entró
+    // primero pasa a ADMIN, y si era
+    // el creador, el creador pasa a un ADMIN que queda, así nadie le puede sacar el
+    // rol. Corre en la transacción de la baja: si algo falla, no se borra nada.
+
     @Transactional
     public void dejarCuentasCompartidas(Long cuentaId) {
         for (Perfil saliente : perfilRepository.findByCuentaIdAndCuentaCompartidaIsNotNull(cuentaId)) {
             CuentaCompartida compartida = saliente.getCuentaCompartida();
-            List<Perfil> quedan = perfilRepository.findByCuentaCompartidaIdAndEsActivoTrueOrderByIdAsc(compartida.getId())
+            List<Perfil> quedan = perfilRepository
+                    .findByCuentaCompartidaIdAndEsActivoTrueOrderByIdAsc(compartida.getId())
                     .stream().filter(otro -> !otro.equals(saliente)).toList();
             if (quedan.isEmpty()) {
                 borrarCuentaCompartida(compartida);
@@ -178,12 +185,15 @@ public class PerfilService {
             saliente.setCuenta(null);
             saliente.setEsActivo(false);
         }
-        // Antes de borrar la cuenta: si no, al borrarla se llevaría también estos perfiles.
+        // Antes de borrar la cuenta: si no, al borrarla se llevaría también estos
+        // perfiles.
         perfilRepository.flush();
     }
 
-    // En este orden por las claves de la base: lo que apunta a la cuenta compartida y a sus perfiles va
-    // antes. Al borrar los perfiles se van sus movimientos y presupuestos (también los de ex integrantes),
+    // En este orden por las claves de la base: lo que apunta a la cuenta compartida
+    // y a sus perfiles va
+    // antes. Al borrar los perfiles se van sus movimientos y presupuestos (también
+    // los de ex integrantes),
     // y al borrar las categorías, lo que haya quedado en ellas.
     private void borrarCuentaCompartida(CuentaCompartida compartida) {
         Long id = compartida.getId();
