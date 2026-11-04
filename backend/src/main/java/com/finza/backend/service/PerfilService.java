@@ -39,14 +39,17 @@ public class PerfilService {
         this.categoriaRepository = categoriaRepository;
     }
 
-    // El perfil con el que trabaja el pedido. Se sigue llamando así para no tocar los controllers
+    // El perfil con el que trabaja el pedido. Se sigue llamando así para no tocar
+    // los controllers
     // que lo usan, pero devuelve el perfil activo (ver perfilActivo).
     public Long idPrincipal(Long cuentaId) {
         return perfilActivo(cuentaId).getId();
     }
 
-    // El perfil que eligió la app en el selector de cuenta (header X-Perfil-Id, t-13.1.2): el personal
-    // o el de una cuenta compartida. Tiene que ser de la cuenta del token (si no, 403). Sin el header,
+    // El perfil que eligió la app en el selector de cuenta (header X-Perfil-Id,
+    // t-13.1.2): el personal
+    // o el de una cuenta compartida. Tiene que ser de la cuenta del token (si no,
+    // 403). Sin el header,
     // el principal, como antes.
     public Perfil perfilActivo(Long cuentaId) {
         String elegido = RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes pedido
@@ -64,7 +67,8 @@ public class PerfilService {
         }
     }
 
-    // Para el selector de cuenta: las cuentas compartidas en las que está la cuenta del token, con su
+    // Para el selector de cuenta: las cuentas compartidas en las que está la cuenta
+    // del token, con su
     // perfil ahí (el que la app manda en X-Perfil-Id) y su rol.
     public List<Map<String, Object>> misCuentasCompartidas(Long cuentaId) {
         return perfilRepository.findByCuentaIdAndCuentaCompartidaIsNotNull(cuentaId).stream()
@@ -76,7 +80,8 @@ public class PerfilService {
                 .toList();
     }
 
-    // Crea la cuenta compartida y, en la cuenta de quien la crea, un perfil ADMIN para ella
+    // Crea la cuenta compartida y, en la cuenta de quien la crea, un perfil ADMIN
+    // para ella
     // (aparte de su perfil personal), con el mismo nombre que el personal.
     @Transactional
     public Map<String, Object> crearCuentaCompartida(Long cuentaId, String nombre) {
@@ -99,10 +104,14 @@ public class PerfilService {
         return Map.of("id", compartida.getId(), "nombre", compartida.getNombre(), "perfilId", perfil.getId());
     }
 
-    // Para las acciones que solo puede hacer el administrador de una cuenta compartida (invitar,
-    // cambiar roles, crear categorías, crear y editar el presupuesto compartido). Devuelve el perfil
-    // ADMIN de la cuenta del token en esa cuenta compartida; si no tiene perfil ahí, es MIEMBRO o no
-    // vino la cuenta compartida, 403. (Con null, Spring buscaría "IS NULL" y encontraría el perfil personal.)
+    // Para las acciones que solo puede hacer el administrador de una cuenta
+    // compartida (invitar,
+    // cambiar roles, crear categorías, crear y editar el presupuesto compartido).
+    // Devuelve el perfil
+    // ADMIN de la cuenta del token en esa cuenta compartida; si no tiene perfil
+    // ahí, es MIEMBRO o no
+    // vino la cuenta compartida, 403. (Con null, Spring buscaría "IS NULL" y
+    // encontraría el perfil personal.)
     public Perfil exigirAdmin(Long cuentaId, Long cuentaCompartidaId) {
         return Optional.ofNullable(cuentaCompartidaId)
                 .flatMap(id -> perfilRepository.findByCuentaIdAndCuentaCompartidaId(cuentaId, id))
@@ -111,8 +120,10 @@ public class PerfilService {
                         "Solo el administrador de la cuenta compartida puede hacer esto"));
     }
 
-    // El administrador cambia el rol de otro perfil de su cuenta compartida. El suyo y el de quien
-    // la creó no: así la cuenta compartida nunca se queda sin administrador ni sin su dueño.
+    // El administrador cambia el rol de otro perfil de su cuenta compartida. El
+    // suyo y el de quien
+    // la creó no: así la cuenta compartida nunca se queda sin administrador ni sin
+    // su dueño.
     @Transactional
     public void cambiarRol(Long cuentaId, Long perfilId, Perfil.Rol rol) {
         Perfil perfil = perfilRepository.findById(perfilId)
@@ -133,6 +144,17 @@ public class PerfilService {
         perfil.setRol(rol);
     }
 
+    // Para el selector de perfil del filtro de movimientos: los perfiles de una
+    // cuenta compartida.
+    // Solo el ADMIN de esa cuenta compartida puede verlos (si no, 403).
+    public List<Map<String, Object>> perfilesDeCuentaCompartida(Long cuentaId, Long cuentaCompartidaId) {
+        exigirAdmin(cuentaId, cuentaCompartidaId);
+        return perfilRepository.findByCuentaCompartidaId(cuentaCompartidaId).stream()
+                .map(perfil -> Map.<String, Object>of(
+                        "perfilId", perfil.getId(),
+                        "nombre", perfil.getNombrePerfil() != null ? perfil.getNombrePerfil() : "Sin nombre",
+                        "rol", perfil.getRol()))
+                .toList();
     // Al borrar una cuenta (t-11.3.4), en cada cuenta compartida en la que está: si no queda ningún otro
     // integrante activo, la cuenta compartida se borra con todo. Si quedan, su perfil sigue ahí con lo que
     // cargó, pero inactivo y sin cuenta; si era el único ADMIN, el que entró primero pasa a ADMIN, y si era

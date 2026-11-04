@@ -12,18 +12,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import com.finza.backend.dto.Response;
 import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
 import com.finza.backend.dto.movimiento.MovimientosRegistroRequest;
-import com.finza.backend.dto.movimiento.MovimientoIADTO;
 import com.finza.backend.dto.movimiento.MovimientoRequest;
 import com.finza.backend.service.MovimientoService;
 import com.finza.backend.service.PerfilService;
-import com.finza.backend.service.IAService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -61,22 +57,22 @@ public class MovimientoController {
         return Response.ok(actualizado, "Movimiento actualizado exitosamente");
     }
 
-    @GetMapping
-    public ResponseEntity<Object> obtenerMovimientos(
-            @AuthenticationPrincipal Long cuentaId,
-            @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
-            @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
-            @RequestParam(name = "categoriaId", required = false) Long categoriaId,
-            @RequestParam(name = "esIngreso", required = false) String esIngresoStr,
-            @RequestParam(name = "estado", required = false) String estadoStr,
-            @RequestParam(name = "usuarioId", required = false) Long usuarioId,
-            @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
+ @GetMapping
+public ResponseEntity<Object> obtenerMovimientos(
+        @AuthenticationPrincipal Long cuentaId,
+        @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+        @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+        @RequestParam(name = "categoriaId", required = false) Long categoriaId,
+        @RequestParam(name = "esIngreso", required = false) String esIngresoStr,
+        @RequestParam(name = "estado", required = false) String estadoStr,
+        @RequestParam(name = "perfilId", required = false) Long perfilId,
+        @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Boolean esIngreso = esIngresoStr != null ? Boolean.parseBoolean(esIngresoStr) : null;
 
         Page<MovimientoResponseDTO> resultado = movimientoService.listarMovimientos(
-                perfilService.idPrincipal(cuentaId), cuentaId, fechaInicio, fechaFin, categoriaId, esIngreso, estadoStr,
-                usuarioId, pageable);
+                perfilService.idPrincipal(cuentaId), cuentaId, perfilId,
+                fechaInicio, fechaFin, categoriaId, esIngreso, estadoStr, pageable);
 
         return Response.response(HttpStatus.OK, "Movimientos obtenidos", resultado);
     }

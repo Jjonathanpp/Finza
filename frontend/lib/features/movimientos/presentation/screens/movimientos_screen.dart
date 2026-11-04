@@ -343,6 +343,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
   Categoria? categoriaSeleccionada;
   bool? esIngreso;
   String? estadoSeleccionado; // <-- NUEVO PARA EL ESTADO
+  int? perfilIdSeleccionado;
 
   @override
   void initState() {
@@ -352,6 +353,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
     categoriaSeleccionada = widget.vm.categoriaFiltro;
     esIngreso = widget.vm.esIngresoFiltro;
     estadoSeleccionado = widget.vm.estadoFiltro; // Si lo tenés en tu VM
+    perfilIdSeleccionado = widget.vm.perfilFiltroId;
   }
 
   Future<void> _elegirFecha(bool esDesde) async {
@@ -397,6 +399,37 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
+
+          if (widget.vm.perfilesDisponibles.isNotEmpty) ...[
+            const Text(
+              'Perfil',
+              style: TextStyle(fontSize: 13, color: AppColors.muted),
+            ),
+            const SizedBox(height: 4),
+            DropdownButtonFormField<int?>(
+              value: perfilIdSeleccionado,
+              decoration: const InputDecoration(
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+              ),
+              items: [
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text('Todos los integrantes'),
+                ),
+                ...widget.vm.perfilesDisponibles.map(
+                  (p) => DropdownMenuItem<int?>(
+                    value: p.id,
+                    child: Text(p.nombre),
+                  ),
+                ),
+              ],
+              onChanged: (id) => setState(() => perfilIdSeleccionado = id),
+            ),
+            const SizedBox(height: 20),
+          ],
 
           Row(
             children: [
@@ -500,8 +533,8 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
             ],
           ),
           const SizedBox(height: 20),
-          // ------------------------------------------
 
+          // ------------------------------------------
           const Text(
             'Tipo',
             style: TextStyle(fontSize: 13, color: AppColors.muted),
@@ -553,6 +586,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                       nuevoEsIngreso: esIngreso,
                       nuevoEstado:
                           estadoSeleccionado, // Asegurate de agregar esto en tu viewmodel
+                      nuevoPerfilId: perfilIdSeleccionado,
                     );
                     Navigator.pop(context);
                   },

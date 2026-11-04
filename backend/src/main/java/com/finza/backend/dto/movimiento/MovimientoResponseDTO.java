@@ -22,6 +22,7 @@ public class MovimientoResponseDTO {
     private final String estado;
     private final CategoriaResponseDTO categoria;
     private final Long perfilId;
+    private final String perfilNombre;
 
     public MovimientoResponseDTO(Movimiento movimiento) {
         this.id = movimiento.getId();
@@ -32,5 +33,6 @@ public class MovimientoResponseDTO {
         this.estado = movimiento.getEstado().name();
         this.categoria = new CategoriaResponseDTO(movimiento.getCategoria());
         this.perfilId = movimiento.getPerfil().getId();
+        this.perfilNombre = movimiento.getPerfil().getNombrePerfil();
     }
 }

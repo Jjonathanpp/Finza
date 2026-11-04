@@ -5,10 +5,12 @@ import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/movimientos/data/datasources/movimiento_api.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
-import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/features/movimientos/data/models/perfil_cuenta.dart';
 
 class MovimientosViewModel extends ChangeNotifier {
-  MovimientosViewModel(this._api, this._categoriaApi, this._apiClient);
+  MovimientosViewModel(this._api, this._categoriaApi) {
+    cuentaActiva.addListener(_alCambiarCuenta);
+  }
   final MovimientoApi _api;
   final CategoriaApi _categoriaApi;
   final ApiClient _apiClient;
@@ -73,6 +75,8 @@ class MovimientosViewModel extends ChangeNotifier {
   DateTime? hasta;
   Categoria? categoriaFiltro;
   bool? esIngresoFiltro;
+  int? perfilFiltroId;
+  List<PerfilCuenta> perfilesDisponibles = [];
 
   int get totalPaginas => _totalPaginas;
   List<Movimiento> get movimientos => _movimientos;
@@ -86,7 +90,8 @@ class MovimientosViewModel extends ChangeNotifier {
       hasta != null ||
       categoriaFiltro != null ||
       esIngresoFiltro != null ||
-      estadoFiltro != null;
+      estadoFiltro != null ||
+      perfilFiltroId != null;
 
   @override
   void notifyListeners() {
@@ -95,8 +100,14 @@ class MovimientosViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    cuentaActiva.removeListener(_alCambiarCuenta);
     _cerrado = true;
     super.dispose();
+  }
+
+  void _alCambiarCuenta() {
+    perfilFiltroId = null;
+    cargarInicial();
   }
 
   Future<String?> eliminar(Movimiento movimiento) async {
@@ -115,8 +126,10 @@ class MovimientosViewModel extends ChangeNotifier {
 
   Future<void> cargarInicial() async {
     _pagina = 0;
-    await _cargarCategorias();
-    await _cargarMiembros();
+    if (categorias.isEmpty) {
+      await _cargarCategorias();
+    }
+    await cargarPerfilesDisponibles();
     await _obtenerDatos();
   }
 
@@ -137,12 +150,14 @@ class MovimientosViewModel extends ChangeNotifier {
     Categoria? nuevaCategoria,
     bool? nuevoEsIngreso,
     String? nuevoEstado,
+    int? nuevoPerfilId,
   }) {
     desde = nuevoDesde;
     hasta = nuevoHasta;
     categoriaFiltro = nuevaCategoria;
     esIngresoFiltro = nuevoEsIngreso;
     estadoFiltro = nuevoEstado;
+    perfilFiltroId = nuevoPerfilId;
     _pagina = 0;
     _obtenerDatos();
   }
@@ -187,8 +202,8 @@ class MovimientosViewModel extends ChangeNotifier {
         fechaFin: hasta,
         categoriaId: categoriaFiltro?.id,
         esIngreso: esIngresoFiltro,
-        estado: estadoFiltro,
-        usuarioId: _usuarioIdDelFiltro(),
+        estado: estadoFiltro, // <-- AGREGÁ ESTA LÍNEA
+        perfilId: perfilFiltroId,
       );
       _movimientos = nuevos;
       _totalPaginas = total;
@@ -229,6 +244,36 @@ class MovimientosViewModel extends ChangeNotifier {
       return null;
     } on ApiException catch (e) {
       return e.message;
+    }
+  }
+
+  // Lista vacía = el selector no se muestra (perfil personal o MIEMBRO).
+  void actualizarPerfilesDisponibles(List<PerfilCuenta> perfiles) {
+    perfilesDisponibles = perfiles;
+    // Si el perfil filtrado ya no está disponible (cambió de cuenta, por ejemplo), vuelve a "Todos".
+    if (perfilFiltroId != null &&
+        !perfiles.any((p) => p.id == perfilFiltroId)) {
+      perfilFiltroId = null;
+    }
+    notifyListeners();
+  }
+
+  Future<void> cargarPerfilesDisponibles() async {
+    final cuenta = cuentaActiva.value;
+
+    // Perfil personal o MIEMBRO: no hay selector
+    if (cuenta == null || cuenta['rol'] != 'ADMIN') {
+      actualizarPerfilesDisponibles([]);
+      return;
+    }
+
+    try {
+      final perfiles = await _api.listarPerfilesDeCuentaCompartida(
+        cuenta['id'] as int,
+      );
+      actualizarPerfilesDisponibles(perfiles);
+    } catch (_) {
+      actualizarPerfilesDisponibles([]);
     }
   }
 }

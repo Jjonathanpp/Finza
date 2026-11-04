@@ -20,8 +20,15 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
        boolean existsByCategoriaId(Long categoriaId);
 
-       @Query("SELECT m FROM Movimiento m WHERE m.perfil.id = :perfilId " +
-                     "AND m.perfil.cuenta.id = :cuentaId " +
+       @Query("SELECT m FROM Movimiento m WHERE (" +
+       // Sin cuenta compartida: solo el perfil indicado, que tiene que ser de la
+       // cuenta del token
+                     "  (:cuentaCompartidaId IS NULL AND m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId) " +
+                     // Con cuenta compartida (solo la manda el service si sos ADMIN): todos sus
+                     // perfiles, o uno si viene perfilId
+                     "  OR (:cuentaCompartidaId IS NOT NULL AND m.perfil.cuentaCompartida.id = :cuentaCompartidaId " +
+                     "      AND (:perfilId IS NULL OR m.perfil.id = :perfilId))" +
+                     ") " +
                      "AND (CAST(:fechaInicio AS date) IS NULL OR m.fecha >= :fechaInicio) " +
                      "AND (CAST(:fechaFin AS date) IS NULL OR m.fecha <= :fechaFin) " +
                      "AND (:categoriaId IS NULL OR m.categoria.id = :categoriaId) " +
@@ -30,6 +37,7 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
        Page<Movimiento> buscarConFiltros(
                      @Param("perfilId") Long perfilId,
                      @Param("cuentaId") Long cuentaId,
+                     @Param("cuentaCompartidaId") Long cuentaCompartidaId,
                      @Param("fechaInicio") LocalDate fechaInicio,
                      @Param("fechaFin") LocalDate fechaFin,
                      @Param("categoriaId") Long categoriaId,
@@ -132,22 +140,4 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                      @Param("perfilId") Long perfilId,
                      @Param("origen") Movimiento.OrigenMovimiento origen,
                      @Param("estado") Movimiento.EstadoMovimiento estado);
-
-       @Query("SELECT m FROM Movimiento m " +
-                     "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId " +
-                     "AND (:perfilId IS NULL OR m.perfil.id = :perfilId) " +
-                     "AND (CAST(:fechaInicio AS date) IS NULL OR m.fecha >= :fechaInicio) " +
-                     "AND (CAST(:fechaFin AS date) IS NULL OR m.fecha <= :fechaFin) " +
-                     "AND (:categoriaId IS NULL OR m.categoria.id = :categoriaId) " +
-                     "AND (:esIngreso IS NULL OR m.esIngreso = :esIngreso) " +
-                     "AND (:estado IS NULL OR m.estado = :estado)")
-       Page<Movimiento> buscarConFiltrosDeCuentaCompartida(
-                     @Param("cuentaCompartidaId") Long cuentaCompartidaId,
-                     @Param("perfilId") Long perfilId,
-                     @Param("fechaInicio") LocalDate fechaInicio,
-                     @Param("fechaFin") LocalDate fechaFin,
-                     @Param("categoriaId") Long categoriaId,
-                     @Param("esIngreso") Boolean esIngreso,
-                     @Param("estado") Movimiento.EstadoMovimiento estado,
-                     Pageable pageable);
 }

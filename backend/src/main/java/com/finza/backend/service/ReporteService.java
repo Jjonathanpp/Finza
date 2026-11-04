@@ -10,6 +10,8 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,75 +31,58 @@ public class ReporteService {
 
     private final MovimientoRepository movimientoRepository;
     private final PerfilRepository perfilRepository;
+    private final PerfilService perfilService;
 
     private static final int MAX_FILAS_POR_PAGINA = 25;
     private static final float MARGEN = 50;
     private static final float ALTURA_FILA = 20;
     private static final float ALTURA_ENCABEZADO = 80;
 
-    public byte[] generarReportePDF(Long cuentaId, String alcance, LocalDate fechaDesde, LocalDate fechaHasta) {
-        // Validar alcance
-        if (!"solo_propios".equals(alcance) && !"cuenta_completa".equals(alcance)) {
-            throw new BadRequestException("Alcance inválido. Use 'solo_propios' o 'cuenta_completa'");
-        }
-
-        // Validar fechas
-        if (fechaDesde != null && fechaHasta != null && fechaDesde.isAfter(fechaHasta)) {
-            throw new BadRequestException("La fecha desde no puede ser posterior a la fecha hasta");
-        }
-
-        // Rango por defecto: mes actual
-        if (fechaDesde == null) {
-            fechaDesde = LocalDate.now().withDayOfMonth(1);
-        }
-        if (fechaHasta == null) {
-            fechaHasta = LocalDate.now();
-        }
-
-        Perfil perfil = perfilRepository.findByCuentaIdAndEsPrincipalTrue(cuentaId)
-                .orElseThrow(() -> new BadRequestException("No se encontró el perfil principal de la cuenta"));
-
-        List<Movimiento> movimientos;
-        String nombreCuenta;
-        Long cuentaCompartidaId = null;
-
-        if ("solo_propios".equals(alcance)) {
-            nombreCuenta = "Movimientos propios";
-            movimientos = movimientoRepository.buscarConFiltros(
-                    perfil.getId(), cuentaId, fechaDesde, fechaHasta, null, null, null,
-                    org.springframework.data.domain.PageRequest.of(0, 1000)).getContent();
-        } else {
-            // cuenta_completa: validar admin
-            if (perfil.getRol() != Perfil.Rol.ADMIN) {
-                throw new AccessDeniedException("Solo el administrador puede exportar la cuenta completa");
-            }
-            if (perfil.getCuentaCompartida() == null) {
-                throw new BadRequestException("La cuenta no pertenece a una cuenta compartida");
-            }
-            cuentaCompartidaId = perfil.getCuentaCompartida().getId();
-            nombreCuenta = perfil.getCuentaCompartida().getNombre();
-
-            // Obtener todos los perfiles de la cuenta compartida
-            List<Perfil> perfiles = perfilRepository.findByCuentaCompartidaId(cuentaCompartidaId);
-            List<Long> perfilIds = new ArrayList<>();
-            for (Perfil p : perfiles) {
-                perfilIds.add(p.getId());
-            }
-
-            // Consultar movimientos de cada perfil y combinarlos
-            movimientos = new ArrayList<>();
-            for (Long pId : perfilIds) {
-                List<Movimiento> m = movimientoRepository.buscarConFiltros(
-                        pId, cuentaId, fechaDesde, fechaHasta, null, null, null,
-                        org.springframework.data.domain.PageRequest.of(0, 1000)).getContent();
-                movimientos.addAll(m);
-            }
-            // Ordenar por fecha descendente
-            movimientos.sort((m1, m2) -> m2.getFecha().compareTo(m1.getFecha()));
-        }
-
-        return generarPDF(nombreCuenta, alcance, fechaDesde, fechaHasta, movimientos);
+public byte[] generarReportePDF(Long cuentaId, String alcance, LocalDate fechaDesde, LocalDate fechaHasta) {
+    if (!"solo_propios".equals(alcance) && !"cuenta_completa".equals(alcance)) {
+        throw new BadRequestException("Alcance inválido. Use 'solo_propios' o 'cuenta_completa'");
     }
+
+    if (fechaDesde != null && fechaHasta != null && fechaDesde.isAfter(fechaHasta)) {
+        throw new BadRequestException("La fecha desde no puede ser posterior a la fecha hasta");
+    }
+
+    if (fechaDesde == null) {
+        fechaDesde = LocalDate.now().withDayOfMonth(1);
+    }
+    if (fechaHasta == null) {
+        fechaHasta = LocalDate.now();
+    }
+
+    // El perfil en el que está parado el usuario (header X-Perfil-Id), no el principal
+    Perfil perfil = perfilService.perfilActivo(cuentaId);
+
+    List<Movimiento> movimientos;
+    String nombreCuenta;
+
+    if ("solo_propios".equals(alcance)) {
+        nombreCuenta = "Movimientos propios";
+        movimientos = movimientoRepository.buscarConFiltros(
+                perfil.getId(), cuentaId, null, fechaDesde, fechaHasta, null, null, null,
+                PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "fecha"))).getContent();
+    } else {
+        if (perfil.getRol() != Perfil.Rol.ADMIN) {
+            throw new AccessDeniedException("Solo el administrador puede exportar la cuenta completa");
+        }
+        if (perfil.getCuentaCompartida() == null) {
+            throw new BadRequestException("La cuenta no pertenece a una cuenta compartida");
+        }
+        Long cuentaCompartidaId = perfil.getCuentaCompartida().getId();
+        nombreCuenta = perfil.getCuentaCompartida().getNombre();
+
+        // perfilId = null: todos los perfiles de la cuenta compartida
+        movimientos = movimientoRepository.buscarConFiltros(
+                null, cuentaId, cuentaCompartidaId, fechaDesde, fechaHasta, null, null, null,
+                PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "fecha"))).getContent();
+    }
+
+    return generarPDF(nombreCuenta, alcance, fechaDesde, fechaHasta, movimientos);
+}
 
     private byte[] generarPDF(String nombreCuenta, String alcance, LocalDate fechaDesde,
             LocalDate fechaHasta, List<Movimiento> movimientos) {

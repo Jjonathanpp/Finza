@@ -1,5 +1,6 @@
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
+import 'package:frontend/features/movimientos/data/models/perfil_cuenta.dart';
 
 class MovimientoApi {
   MovimientoApi(this._api);
@@ -59,12 +60,15 @@ class MovimientoApi {
     int? categoriaId,
     bool? esIngreso,
     String? estado,
+    int? perfilId,
     int? usuarioId,
   }) async {
     // Agregamos sort=fecha,desc&sort=id,desc para que los más recientes queden arriba
     String url =
         '/api/movimientos?page=$pagina&size=$limite&sort=fecha,desc&sort=id,desc';
 
+    if (fechaInicio != null)
+      url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
     if (fechaInicio != null) {
       url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
     }
@@ -72,6 +76,7 @@ class MovimientoApi {
     if (categoriaId != null) url += '&categoriaId=$categoriaId';
     if (esIngreso != null) url += '&esIngreso=$esIngreso';
     if (estado != null) url += '&estado=$estado';
+    if (perfilId != null) url += '&perfilId=$perfilId';
     if (usuarioId != null) url += '&usuarioId=$usuarioId';
 
     final data = await _api.get(url);
@@ -107,5 +112,14 @@ class MovimientoApi {
       {}, // El body va vacío porque no lo necesita
     );
     return Movimiento.fromJson(data);
+  }
+
+  Future<List<PerfilCuenta>> listarPerfilesDeCuentaCompartida(
+    int cuentaCompartidaId,
+  ) async {
+    final data = await _api.get(
+      '/api/cuentas-compartidas/$cuentaCompartidaId/perfiles',
+    );
+    return (data as List).map((j) => PerfilCuenta.fromJson(j)).toList();
   }
 }
