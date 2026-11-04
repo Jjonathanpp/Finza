@@ -377,13 +377,13 @@ void main() {
       expect(find.byTooltip('Eliminar'), findsOneWidget);
     });
 
-    testWidgets('miembro de Casa: no crea, y las de Casa no se editan ni se borran', (tester) async {
+    testWidgets('miembro de Casa: crea, pero las de Casa no se editan ni se borran', (tester) async {
       cuentaActiva.value = _casaMiembro;
       await _abrirCategorias(tester);
 
       expect(find.text('Categorías · Casa'), findsOneWidget);
       expect(find.text('Expensas'), findsOneWidget);
-      expect(find.byTooltip('Nueva categoría'), findsNothing);
+      expect(find.byTooltip('Nueva categoría'), findsOneWidget);
       expect(find.byTooltip('Editar'), findsNothing);
       expect(find.byTooltip('Eliminar'), findsNothing);
     });
