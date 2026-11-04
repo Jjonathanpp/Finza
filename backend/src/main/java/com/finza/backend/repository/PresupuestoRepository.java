@@ -40,4 +40,7 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
 
     boolean existsByCuentaCompartidaIdAndCategoriaIdAndMesAndAnioAndActivoTrueAndIdNot(
             Long cuentaCompartidaId, Long categoriaId, int mes, int anio, Long id);
+
+    // Al borrar una cuenta compartida que se quedó sin integrantes (t-11.3.4).
+    void deleteByCuentaCompartidaId(Long cuentaCompartidaId);
 }

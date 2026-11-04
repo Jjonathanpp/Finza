@@ -13,6 +13,7 @@ class MovimientosViewModel extends ChangeNotifier {
   }
   final MovimientoApi _api;
   final CategoriaApi _categoriaApi;
+  final ApiClient _apiClient;
 
   List<Movimiento> _movimientos = [];
   List<Categoria> categorias = [];
@@ -25,6 +26,49 @@ class MovimientosViewModel extends ChangeNotifier {
   bool _cerrado = false;
   int _totalPaginas = 1;
   String? estadoFiltro;
+
+  Map<String, dynamic>? filtroMiembro;
+  List<Map<String, dynamic>?> miembrosDisponibles = [];
+  int? _usuarioIdActual;
+
+  void cambiarFiltroMiembro(Map<String, dynamic>? valor) {
+    filtroMiembro = valor;
+    _pagina = 0;
+    _obtenerDatos();
+  }
+
+  int? _usuarioIdDelFiltro() {
+    if (filtroMiembro == null) return null; // Todos
+    if (filtroMiembro!['esPropio'] == true) {
+      return _usuarioIdActual; // Solo míos
+    }
+    return filtroMiembro!['usuarioId'] as int?; // Integrante específico
+  }
+
+  Future<void> _cargarMiembros() async {
+    final cuenta = cuentaActiva.value;
+    if (cuenta == null) return;
+    try {
+      final datos = await _apiClient.get('/api/cuentas-compartidas/miembros');
+      if (datos is List) {
+        miembrosDisponibles = datos
+            .cast<Map<String, dynamic>>()
+            .map((m) => m as Map<String, dynamic>?)
+            .toList();
+        final perfilActivoId = cuentaActiva.value?['perfilId'];
+        final actual = miembrosDisponibles
+            .whereType<Map<String, dynamic>>()
+            .firstWhere(
+              (m) => m['perfilId'] == perfilActivoId,
+              orElse: () => <String, dynamic>{},
+            );
+        _usuarioIdActual = actual['usuarioId'] as int?;
+        notifyListeners();
+      }
+    } catch (e) {
+      // sin miembros en cuenta personal
+    }
+  }
 
   // Filtros
   DateTime? desde;
