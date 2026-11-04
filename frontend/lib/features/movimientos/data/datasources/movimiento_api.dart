@@ -61,6 +61,7 @@ class MovimientoApi {
     bool? esIngreso,
     String? estado,
     int? perfilId,
+    int? usuarioId,
   }) async {
     // Agregamos sort=fecha,desc&sort=id,desc para que los más recientes queden arriba
     String url =
@@ -68,11 +69,15 @@ class MovimientoApi {
 
     if (fechaInicio != null)
       url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
+    if (fechaInicio != null) {
+      url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
+    }
     if (fechaFin != null) url += '&fechaFin=${_formatearFechaIso(fechaFin)}';
     if (categoriaId != null) url += '&categoriaId=$categoriaId';
     if (esIngreso != null) url += '&esIngreso=$esIngreso';
     if (estado != null) url += '&estado=$estado';
     if (perfilId != null) url += '&perfilId=$perfilId';
+    if (usuarioId != null) url += '&usuarioId=$usuarioId';
 
     final data = await _api.get(url);
 

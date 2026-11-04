@@ -31,19 +31,22 @@ public class CuentaService {
     private final PerfilRepository perfilRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final PerfilService perfilService;
 
     public CuentaService(
             CuentaRepository cuentaRepository,
             UsuarioRepository usuarioRepository,
             PerfilRepository perfilRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            PerfilService perfilService) {
 
         this.cuentaRepository = cuentaRepository;
         this.usuarioRepository = usuarioRepository;
         this.perfilRepository = perfilRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.perfilService = perfilService;
     }
 
     @Transactional
@@ -127,8 +130,9 @@ public class CuentaService {
             throw new BadRequestException("La contraseña es incorrecta");
         }
 
-        // Sus perfiles de cuentas compartidas no se borran: lo que cargó queda en esas cuentas.
-        perfilRepository.desvincularPerfilesCompartidos(cuentaId);
+        // Sus perfiles de cuentas compartidas no se borran: lo que cargó queda en esas cuentas. Si era el
+        // último que quedaba en una, se borra; si era el admin, el admin pasa a otro (t-11.3.4).
+        perfilService.dejarCuentasCompartidas(cuentaId);
         cuentaRepository.delete(cuenta);
     }
 }

@@ -12,11 +12,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.finza.backend.dto.Response;
 import com.finza.backend.dto.cuentaCompartida.CuentaCompartidaRequestDTO;
+import com.finza.backend.dto.cuentaCompartida.MiembroDTO;
 import com.finza.backend.dto.cuentaCompartida.RolRequestDTO;
+import com.finza.backend.model.Perfil;
+import com.finza.backend.repository.PerfilRepository;
 import com.finza.backend.service.PerfilService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/cuentas-compartidas")
@@ -24,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class CuentaCompartidaController {
 
     private final PerfilService perfilService;
+    private final PerfilRepository perfilRepository;
 
     // Para el selector de cuenta de la app.
     @GetMapping
@@ -54,4 +60,20 @@ public class CuentaCompartidaController {
         return Response.ok(perfilService.perfilesDeCuentaCompartida(cuentaId, id), "Perfiles obtenidos");
     }
 
+    @GetMapping("/miembros")
+    public ResponseEntity<Object> listarMiembros(@AuthenticationPrincipal Long cuentaId) {
+        Perfil perfilActivo = perfilService.perfilActivo(cuentaId);
+        if (perfilActivo.getCuentaCompartida() == null) {
+            return Response.ok(List.of(), "Cuenta personal, sin miembros");
+        }
+        List<Perfil> miembros = perfilRepository.findByCuentaCompartidaId(perfilActivo.getCuentaCompartida().getId());
+        List<MiembroDTO> response = miembros.stream()
+                .map(p -> new MiembroDTO(
+                        p.getId(),
+                        p.getCuenta().getUsuario().getId(),
+                        p.getNombrePerfil(),
+                        p.getRol().name()))
+                .toList();
+        return Response.ok(response, "Miembros obtenidos");
+    }
 }

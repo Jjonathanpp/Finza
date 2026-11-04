@@ -14,18 +14,29 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.CuentaCompartida;
 import com.finza.backend.model.Perfil;
+import com.finza.backend.repository.CategoriaRepository;
 import com.finza.backend.repository.CuentaCompartidaRepository;
+import com.finza.backend.repository.InvitacionCuentaRepository;
 import com.finza.backend.repository.PerfilRepository;
+import com.finza.backend.repository.PresupuestoRepository;
 
 @Service
 public class PerfilService {
 
     private final PerfilRepository perfilRepository;
     private final CuentaCompartidaRepository cuentaCompartidaRepository;
+    private final InvitacionCuentaRepository invitacionCuentaRepository;
+    private final PresupuestoRepository presupuestoRepository;
+    private final CategoriaRepository categoriaRepository;
 
-    public PerfilService(PerfilRepository perfilRepository, CuentaCompartidaRepository cuentaCompartidaRepository) {
+    public PerfilService(PerfilRepository perfilRepository, CuentaCompartidaRepository cuentaCompartidaRepository,
+            InvitacionCuentaRepository invitacionCuentaRepository, PresupuestoRepository presupuestoRepository,
+            CategoriaRepository categoriaRepository) {
         this.perfilRepository = perfilRepository;
         this.cuentaCompartidaRepository = cuentaCompartidaRepository;
+        this.invitacionCuentaRepository = invitacionCuentaRepository;
+        this.presupuestoRepository = presupuestoRepository;
+        this.categoriaRepository = categoriaRepository;
     }
 
     // El perfil con el que trabaja el pedido. Se sigue llamando así para no tocar
@@ -141,6 +152,47 @@ public class PerfilService {
                         "nombre", perfil.getNombrePerfil() != null ? perfil.getNombrePerfil() : "Sin nombre",
                         "rol", perfil.getRol()))
                 .toList();
+    // Al borrar una cuenta (t-11.3.4), en cada cuenta compartida en la que está: si no queda ningún otro
+    // integrante activo, la cuenta compartida se borra con todo. Si quedan, su perfil sigue ahí con lo que
+    // cargó, pero inactivo y sin cuenta; si era el único ADMIN, el que entró primero pasa a ADMIN, y si era
+    // el creador, el creador pasa a un ADMIN que queda, así nadie le puede sacar el rol. Corre en la
+    // transacción de la baja: si algo falla, no se borra nada.
+    @Transactional
+    public void dejarCuentasCompartidas(Long cuentaId) {
+        for (Perfil saliente : perfilRepository.findByCuentaIdAndCuentaCompartidaIsNotNull(cuentaId)) {
+            CuentaCompartida compartida = saliente.getCuentaCompartida();
+            List<Perfil> quedan = perfilRepository.findByCuentaCompartidaIdAndEsActivoTrueOrderByIdAsc(compartida.getId())
+                    .stream().filter(otro -> !otro.equals(saliente)).toList();
+            if (quedan.isEmpty()) {
+                borrarCuentaCompartida(compartida);
+                continue;
+            }
+            if (saliente.getRol() == Perfil.Rol.ADMIN) {
+                Perfil admin = quedan.stream().filter(otro -> otro.getRol() == Perfil.Rol.ADMIN).findFirst()
+                        .orElse(quedan.get(0));
+                admin.setRol(Perfil.Rol.ADMIN);
+                if (saliente.equals(compartida.getCreador())) {
+                    compartida.setCreador(admin);
+                }
+            }
+            saliente.setCuenta(null);
+            saliente.setEsActivo(false);
+        }
+        // Antes de borrar la cuenta: si no, al borrarla se llevaría también estos perfiles.
+        perfilRepository.flush();
+    }
+
+    // En este orden por las claves de la base: lo que apunta a la cuenta compartida y a sus perfiles va
+    // antes. Al borrar los perfiles se van sus movimientos y presupuestos (también los de ex integrantes),
+    // y al borrar las categorías, lo que haya quedado en ellas.
+    private void borrarCuentaCompartida(CuentaCompartida compartida) {
+        Long id = compartida.getId();
+        invitacionCuentaRepository.deleteByCuentaCompartidaId(id);
+        presupuestoRepository.deleteByCuentaCompartidaId(id);
+        compartida.setCreador(null);
+        perfilRepository.deleteAll(perfilRepository.findByCuentaCompartidaId(id));
+        categoriaRepository.deleteByCuentaCompartidaId(id);
+        cuentaCompartidaRepository.delete(compartida);
     }
 
     // Para lo que puede hacer cualquier integrante de una cuenta compartida (ADMIN
