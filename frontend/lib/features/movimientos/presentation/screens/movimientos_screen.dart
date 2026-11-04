@@ -11,7 +11,6 @@ import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
-import 'package:frontend/features/movimientos/presentation/widgets/selector_miembros.dart';
 
 class MovimientosScreen extends StatefulWidget {
   const MovimientosScreen({super.key});
@@ -24,7 +23,6 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
   late final _vm = MovimientosViewModel(
     MovimientoApi(ApiClient()),
     CategoriaApi(ApiClient()),
-    ApiClient(),
   );
 
   @override
@@ -290,14 +288,6 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
 
           return Column(
             children: [
-              if (_vm.miembrosDisponibles.isNotEmpty) ...[
-                SelectorMiembros(
-                  opciones: _vm.miembrosDisponibles,
-                  seleccionado: _vm.filtroMiembro,
-                  alCambiar: (valor) => _vm.cambiarFiltroMiembro(valor),
-                ),
-                const SizedBox(height: 12),
-              ],
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _vm.cargarInicial,

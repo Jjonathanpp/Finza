@@ -151,7 +151,7 @@ public class PerfilService {
                         "perfilId", perfil.getId(),
                         "nombre", perfil.getNombrePerfil() != null ? perfil.getNombrePerfil() : "Sin nombre",
                         "rol", perfil.getRol()))
-                .toList();
+                .toList();}
     // Al borrar una cuenta (t-11.3.4), en cada cuenta compartida en la que está: si no queda ningún otro
     // integrante activo, la cuenta compartida se borra con todo. Si quedan, su perfil sigue ahí con lo que
     // cargó, pero inactivo y sin cuenta; si era el único ADMIN, el que entró primero pasa a ADMIN, y si era
