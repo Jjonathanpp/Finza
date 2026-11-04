@@ -10,6 +10,7 @@ import 'package:frontend/features/movimientos/presentation/viewmodels/movimiento
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/movimientos/presentation/widgets/selector_miembros.dart';
 
 class MovimientosScreen extends StatefulWidget {
@@ -707,11 +708,16 @@ class _FilaMovimiento extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 1. VARIABLES PARA DETECTAR CUENTA COMPARTIDA Y MOVIMIENTOS AJENOS
+    final cuenta = cuentaActiva.value;
+    final bool enCuentaCompartida = cuenta != null;
+    final bool esAjeno =
+        enCuentaCompartida && movimiento.perfilId != cuenta['perfilId'];
+
     final colorCategoria = colorDesdeHex(movimiento.categoria.color);
     final colorMonto = movimiento.esIngreso ? AppColors.accent : AppColors.text;
     final signo = movimiento.esIngreso ? '+' : '-';
 
-    // --- ESTA ES LA CLAVE PARA EL PUNTO 2 ---
     final bool estaPendiente = movimiento.estado == 'PENDIENTE';
 
     return Row(
@@ -750,6 +756,32 @@ class _FilaMovimiento extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
+              // 2. MUESTRA EL NOMBRE DEL PERFIL SI ES CUENTA COMPARTIDA
+              if (enCuentaCompartida && movimiento.perfilNombre != null) ...[
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.person_outline,
+                      size: 13,
+                      color: AppColors.muted,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        movimiento.perfilNombre!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+              ],
               Row(
                 children: [
                   if (estaPendiente) ...[
@@ -789,13 +821,14 @@ class _FilaMovimiento extends StatelessWidget {
         ),
         const SizedBox(width: 8),
 
-        // --- BOTÓN VERIFICAR VS LÁPIZ ---
-        if (estaPendiente)
+        // 3. OCULTAR BOTONES DE ACCIÓN PARA MOVIMIENTOS AJENOS
+        if (esAjeno)
+          const SizedBox.shrink()
+        else if (estaPendiente)
           FilledButton.icon(
             onPressed: onRevisar,
             style: FilledButton.styleFrom(
-              backgroundColor:
-                  Colors.orange, // Naranja resalta que está pendiente
+              backgroundColor: Colors.orange,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               minimumSize: const Size(0, 36),
             ),

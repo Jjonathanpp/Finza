@@ -10,7 +10,7 @@ class Movimiento {
     required this.estado,
     required this.categoria,
     required this.perfilId,
-    this.nombrePerfil,
+    this.perfilNombre,
     required this.origen,
   });
 
@@ -22,7 +22,7 @@ class Movimiento {
   final String estado;
   final Categoria categoria;
   final int perfilId;
-  final String? nombrePerfil;
+  final String? perfilNombre;
   final String origen;
 
   bool get esIngreso => tipo == 'ingreso';
@@ -36,7 +36,7 @@ class Movimiento {
     estado: json['estado'],
     categoria: Categoria.fromJson(json['categoria']),
     perfilId: json['perfilId'],
-    nombrePerfil: json['nombrePerfil'],
+    perfilNombre: json['perfilNombre'],
     origen: json['origen'] ?? 'MANUAL',
   );
 
