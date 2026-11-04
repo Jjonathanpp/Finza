@@ -161,8 +161,8 @@ public class PerfilService {
     // cargó, pero inactivo y sin cuenta; si era el único ADMIN, el que entró
     // primero pasa a ADMIN, y si era
     // el creador, el creador pasa a un ADMIN que queda, así nadie le puede sacar el
-    // rol. Corre en la
-    // transacción de la baja: si algo falla, no se borra nada.
+    // rol. Corre en la transacción de la baja: si algo falla, no se borra nada.
+
     @Transactional
     public void dejarCuentasCompartidas(Long cuentaId) {
         for (Perfil saliente : perfilRepository.findByCuentaIdAndCuentaCompartidaIsNotNull(cuentaId)) {
