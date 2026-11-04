@@ -184,13 +184,21 @@ public class MovimientoServiceImpl implements MovimientoService {
             Long categoriaId, Boolean esIngreso, String estadoStr, Long usuarioId, Pageable pageable) {
 
         Long perfilIdAFiltrar = perfilId;
+        Long cuentaCompartidaId = null;
+        boolean esCuentaCompartida = false;
+
+        Perfil perfilActivo = perfilRepository.findById(perfilId)
+                .orElseThrow(() -> new BadRequestException("Perfil no encontrado"));
+
+        if (perfilActivo.getCuentaCompartida() != null) {
+            esCuentaCompartida = true;
+            cuentaCompartidaId = perfilActivo.getCuentaCompartida().getId();
+        }
+
         if (usuarioId != null) {
-            Perfil perfilActivo = perfilRepository.findById(perfilId)
-                    .orElseThrow(() -> new BadRequestException("Perfil no encontrado"));
-            if (perfilActivo.getCuentaCompartida() == null) {
+            if (!esCuentaCompartida) {
                 throw new AccessDeniedException("La cuenta activa no es una cuenta compartida");
             }
-            Long cuentaCompartidaId = perfilActivo.getCuentaCompartida().getId();
             Perfil perfilObjetivo = perfilRepository.findByCuentaCompartidaId(cuentaCompartidaId).stream()
                     .filter(p -> p.getCuenta() != null && p.getCuenta().getUsuario() != null
                             && usuarioId.equals(p.getCuenta().getUsuario().getId()))
@@ -204,8 +212,16 @@ public class MovimientoServiceImpl implements MovimientoService {
             estado = Movimiento.EstadoMovimiento.valueOf(estadoStr.toUpperCase());
         }
 
-        Page<Movimiento> paginaMovimientos = movimientoRepository.buscarConFiltros(
-                perfilIdAFiltrar, cuentaIdAutenticada, fechaInicio, fechaFin, categoriaId, esIngreso, estado, pageable);
+        Page<Movimiento> paginaMovimientos;
+        if (esCuentaCompartida) {
+            Long perfilFiltro = (usuarioId == null) ? null : perfilIdAFiltrar;
+            paginaMovimientos = movimientoRepository.buscarConFiltrosDeCuentaCompartida(
+                    cuentaCompartidaId, perfilFiltro, fechaInicio, fechaFin, categoriaId, esIngreso, estado, pageable);
+        } else {
+            paginaMovimientos = movimientoRepository.buscarConFiltros(
+                    perfilIdAFiltrar, cuentaIdAutenticada, fechaInicio, fechaFin, categoriaId, esIngreso, estado,
+                    pageable);
+        }
 
         return paginaMovimientos.map(MovimientoResponseDTO::new);
     }

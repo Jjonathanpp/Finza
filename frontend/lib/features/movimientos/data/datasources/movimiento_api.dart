@@ -59,15 +59,20 @@ class MovimientoApi {
     int? categoriaId,
     bool? esIngreso,
     String? estado,
+    int? usuarioId,
   }) async {
     // Agregamos sort=fecha,desc&sort=id,desc para que los más recientes queden arriba
-    String url = '/api/movimientos?page=$pagina&size=$limite&sort=fecha,desc&sort=id,desc';
+    String url =
+        '/api/movimientos?page=$pagina&size=$limite&sort=fecha,desc&sort=id,desc';
 
-    if (fechaInicio != null) url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
+    if (fechaInicio != null) {
+      url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
+    }
     if (fechaFin != null) url += '&fechaFin=${_formatearFechaIso(fechaFin)}';
     if (categoriaId != null) url += '&categoriaId=$categoriaId';
     if (esIngreso != null) url += '&esIngreso=$esIngreso';
     if (estado != null) url += '&estado=$estado';
+    if (usuarioId != null) url += '&usuarioId=$usuarioId';
 
     final data = await _api.get(url);
 
@@ -98,8 +103,8 @@ class MovimientoApi {
   /// Cambia el estado de un movimiento
   Future<Movimiento> cambiarEstado(int id, String nuevoEstado) async {
     final data = await _api.put(
-      '/api/movimientos/$id/estado?nuevoEstado=${nuevoEstado.toUpperCase()}', 
-      {} // El body va vacío porque no lo necesita
+      '/api/movimientos/$id/estado?nuevoEstado=${nuevoEstado.toUpperCase()}',
+      {}, // El body va vacío porque no lo necesita
     );
     return Movimiento.fromJson(data);
   }
