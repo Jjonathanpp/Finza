@@ -398,7 +398,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
             ),
             const SizedBox(height: 4),
             DropdownButtonFormField<int?>(
-              value: perfilIdSeleccionado,
+              initialValue: perfilIdSeleccionado,
               decoration: const InputDecoration(
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: 14,

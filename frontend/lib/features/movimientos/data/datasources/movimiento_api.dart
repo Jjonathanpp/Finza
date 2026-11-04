@@ -67,8 +67,6 @@ class MovimientoApi {
     String url =
         '/api/movimientos?page=$pagina&size=$limite&sort=fecha,desc&sort=id,desc';
 
-    if (fechaInicio != null)
-      url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
     if (fechaInicio != null) {
       url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
     }
