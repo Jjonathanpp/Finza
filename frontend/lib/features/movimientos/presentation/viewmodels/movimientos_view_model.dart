@@ -217,8 +217,8 @@ class MovimientosViewModel extends ChangeNotifier {
   Future<void> cargarPerfilesDisponibles() async {
     final cuenta = cuentaActiva.value;
 
-    // Perfil personal o MIEMBRO: no hay selector
-    if (cuenta == null || cuenta['rol'] != 'ADMIN') {
+    // Perfil personal: no hay selector
+    if (cuenta == null) {
       actualizarPerfilesDisponibles([]);
       return;
     }

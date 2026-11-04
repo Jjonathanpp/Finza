@@ -192,8 +192,9 @@ public class MovimientoServiceImpl implements MovimientoService {
         Long cuentaCompartidaId = null;
         Long perfilConsulta;
 
-        if (activo.getCuentaCompartida() != null && activo.getRol() == Perfil.Rol.ADMIN) {
-            // ADMIN parado en la cuenta compartida: ve a todos, o a un perfil si lo filtra
+        if (activo.getCuentaCompartida() != null) {
+            // Cualquier integrante parado en la cuenta compartida: ve a todos, o a un
+            // perfil si lo filtra
             cuentaCompartidaId = activo.getCuentaCompartida().getId();
             if (perfilId != null) {
                 Perfil filtrado = perfilRepository.findById(perfilId)
@@ -206,7 +207,7 @@ public class MovimientoServiceImpl implements MovimientoService {
             }
             perfilConsulta = perfilId; // null = todos los perfiles de la cuenta compartida
         } else {
-            // Perfil personal o MIEMBRO: solo el propio
+            // Perfil personal: solo el propio
             if (perfilId != null && !perfilId.equals(perfilActivoId)) {
                 throw new org.springframework.security.access.AccessDeniedException(
                         "No tenés permiso para ver los movimientos de este perfil");
