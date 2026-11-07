@@ -22,12 +22,14 @@ import com.finza.backend.service.CategoriaService;
 import com.finza.backend.service.IAService;
 import com.finza.backend.service.MovimientoService;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -35,6 +37,11 @@ import lombok.RequiredArgsConstructor;
 public class MovimientoServiceImpl implements MovimientoService {
 
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+    // Vista consolidada: más nuevos primero; el id desempata los del mismo día para
+    // que la paginación sea estable (sin filas repetidas ni salteadas entre páginas).
+    private static final Sort ORDEN_CONSOLIDADO = Sort.by(Sort.Order.desc("fecha"), Sort.Order.desc("id"));
+    private static final int TAMANIO_PAGINA_POR_DEFECTO = 20;
 
     private final MovimientoRepository movimientoRepository;
     private final CategoriaService categoriaService;
@@ -184,10 +191,7 @@ public class MovimientoServiceImpl implements MovimientoService {
 
         Perfil activo = obtenerPerfilValidado(perfilActivoId, cuentaIdAutenticada);
 
-        Movimiento.EstadoMovimiento estado = null;
-        if (estadoStr != null && !estadoStr.isBlank()) {
-            estado = Movimiento.EstadoMovimiento.valueOf(estadoStr.toUpperCase());
-        }
+        Movimiento.EstadoMovimiento estado = parsearEstado(estadoStr);
 
         Long cuentaCompartidaId = null;
         Long perfilConsulta;
@@ -219,6 +223,45 @@ public class MovimientoServiceImpl implements MovimientoService {
                 perfilConsulta, cuentaIdAutenticada, cuentaCompartidaId,
                 fechaInicio, fechaFin, categoriaId, esIngreso, estado, pageable)
                 .map(MovimientoResponseDTO::new);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<MovimientoResponseDTO> listarConsolidadoDeCuenta(Long cuentaIdAutenticada,
+            LocalDate fechaInicio, LocalDate fechaFin, Long categoriaId, Boolean esIngreso,
+            String estadoStr, Pageable pageable) {
+
+        // La cuenta la pone JwtAuthFilter a partir del token: sin ella no hay a quién
+        // consultar (y nunca se acepta como parámetro del pedido).
+        if (cuentaIdAutenticada == null) {
+            throw new AccessDeniedException("No autenticado");
+        }
+        if (fechaInicio != null && fechaFin != null && fechaInicio.isAfter(fechaFin)) {
+            throw new BadRequestException("La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
+
+        // Se respeta la página y el tamaño pedidos, pero el orden es siempre el de la
+        // vista consolidada: se ignora un ?sort= que venga en el pedido.
+        Pageable pagina = pageable != null && pageable.isPaged()
+                ? PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), ORDEN_CONSOLIDADO)
+                : PageRequest.of(0, TAMANIO_PAGINA_POR_DEFECTO, ORDEN_CONSOLIDADO);
+
+        return movimientoRepository.buscarConsolidadoPorCuenta(
+                cuentaIdAutenticada, fechaInicio, fechaFin, categoriaId, esIngreso,
+                parsearEstado(estadoStr), pagina)
+                .map(MovimientoResponseDTO::new);
+    }
+
+    // Un estado que no existe es un error del pedido (400), no del servidor.
+    private Movimiento.EstadoMovimiento parsearEstado(String estadoStr) {
+        if (esVacio(estadoStr)) {
+            return null;
+        }
+        try {
+            return Movimiento.EstadoMovimiento.valueOf(estadoStr.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Estado inválido: " + estadoStr);
+        }
     }
 
     @Override

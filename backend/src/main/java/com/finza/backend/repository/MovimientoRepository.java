@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,14 +19,10 @@ import com.finza.backend.model.Movimiento;
 @Repository
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
-       boolean existsByCategoriaId(Long categoriaId);
-
+      boolean existsByCategoriaId(Long categoriaId);
+ 
        @Query("SELECT m FROM Movimiento m WHERE (" +
-       // Sin cuenta compartida: solo el perfil indicado, que tiene que ser de la
-       // cuenta del token
                      "  (:cuentaCompartidaId IS NULL AND m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId) " +
-                     // Con cuenta compartida (solo la manda el service si sos ADMIN): todos sus
-                     // perfiles, o uno si viene perfilId
                      "  OR (:cuentaCompartidaId IS NOT NULL AND m.perfil.cuentaCompartida.id = :cuentaCompartidaId " +
                      "      AND (:perfilId IS NULL OR m.perfil.id = :perfilId))" +
                      ") " +
@@ -44,18 +41,30 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                      @Param("esIngreso") Boolean esIngreso,
                      @Param("estado") Movimiento.EstadoMovimiento estado,
                      Pageable pageable);
-
+ 
+       @EntityGraph(attributePaths = { "perfil", "perfil.cuentaCompartida", "categoria" })
+       @Query("SELECT m FROM Movimiento m WHERE m.perfil.cuenta.id = :cuentaId " +
+                     "AND (CAST(:fechaInicio AS date) IS NULL OR m.fecha >= :fechaInicio) " +
+                     "AND (CAST(:fechaFin AS date) IS NULL OR m.fecha <= :fechaFin) " +
+                     "AND (:categoriaId IS NULL OR m.categoria.id = :categoriaId) " +
+                     "AND (:esIngreso IS NULL OR m.esIngreso = :esIngreso) " +
+                     "AND (:estado IS NULL OR m.estado = :estado)")
+       Page<Movimiento> buscarConsolidadoPorCuenta(
+                     @Param("cuentaId") Long cuentaId,
+                     @Param("fechaInicio") LocalDate fechaInicio,
+                     @Param("fechaFin") LocalDate fechaFin,
+                     @Param("categoriaId") Long categoriaId,
+                     @Param("esIngreso") Boolean esIngreso,
+                     @Param("estado") Movimiento.EstadoMovimiento estado,
+                     Pageable pageable);
+ 
        Optional<Movimiento> findByIdAndPerfilId(Long id, Long perfilId);
-
+ 
        boolean existsByExternalId(String externalId);
-
+ 
        Optional<Movimiento> findByExternalId(String externalId);
-
-       // Los gastos aprobados del perfil entre dos fechas, sumados por categoría, de
-       // mayor a menor.
-       // Los pendientes (de Mercado Pago) no suman hasta que el usuario los confirme.
-       // Monto mayor a 0: la voz guarda primero un movimiento con monto 0, y con 0 el
-       // porcentaje dividiría por cero.
+ 
+      
        @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
                      "FROM Movimiento m JOIN m.categoria c " +
                      "WHERE m.perfil.id = :perfilId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 " +
@@ -66,9 +75,8 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                      @Param("perfilId") Long perfilId,
                      @Param("desde") LocalDate desde,
                      @Param("hasta") LocalDate hasta);
-
-       // Lo mismo, sumando todos los perfiles de una cuenta compartida (también los de
-       // quienes se dieron de baja).
+ 
+      
        @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
                      "FROM Movimiento m JOIN m.categoria c " +
                      "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 "
@@ -80,9 +88,8 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                      @Param("cuentaCompartidaId") Long cuentaCompartidaId,
                      @Param("desde") LocalDate desde,
                      @Param("hasta") LocalDate hasta);
-
-       // Lo mismo, separado por integrante: una fila [categoriaId, perfilId, total]
-       // por categoría y perfil (t-13.2.1).
+ 
+     
        @Query("SELECT m.categoria.id, m.perfil.id, SUM(m.monto) FROM Movimiento m " +
                      "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 "
                      +
@@ -92,7 +99,7 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                      @Param("cuentaCompartidaId") Long cuentaCompartidaId,
                      @Param("desde") LocalDate desde,
                      @Param("hasta") LocalDate hasta);
-
+ 
        @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m " +
                      "WHERE m.perfil.id = :perfilId " +
                      "AND m.perfil.cuenta.id = :cuentaId " +
@@ -106,7 +113,7 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                      @Param("esIngreso") boolean esIngreso,
                      @Param("inicio") LocalDate inicio,
                      @Param("fin") LocalDate fin);
-
+ 
        @Query("SELECT m FROM Movimiento m " +
                      "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
                      "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
@@ -114,8 +121,8 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                      @Param("perfilId") Long perfilId,
                      @Param("cuentaId") Long cuentaId,
                      Pageable pageable);
-
-       // 2. Últimos 5 Ingresos (esIngreso = true)
+ 
+       
        @Query("SELECT m FROM Movimiento m " +
                      "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
                      "AND m.esIngreso = true " +
@@ -124,8 +131,8 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                      @Param("perfilId") Long perfilId,
                      @Param("cuentaId") Long cuentaId,
                      Pageable pageable);
-
-       // 3. Últimos 5 Egresos (esIngreso = false)
+ 
+       
        @Query("SELECT m FROM Movimiento m " +
                      "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
                      "AND m.esIngreso = false " +
@@ -134,7 +141,7 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                      @Param("perfilId") Long perfilId,
                      @Param("cuentaId") Long cuentaId,
                      Pageable pageable);
-
+ 
        @Query("SELECT m FROM Movimiento m WHERE m.perfil.id = :perfilId AND m.origen = :origen AND m.estado = :estado ORDER BY m.fecha DESC, m.fechaCreacion DESC")
        List<Movimiento> findPendientesMercadoPago(
                      @Param("perfilId") Long perfilId,

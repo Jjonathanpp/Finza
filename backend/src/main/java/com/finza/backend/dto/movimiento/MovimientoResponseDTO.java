@@ -23,6 +23,8 @@ public class MovimientoResponseDTO {
     private final CategoriaResponseDTO categoria;
     private final Long perfilId;
     private final String perfilNombre;
+    private final Long cuentaCompartidaId;
+    private final String cuentaCompartidaNombre;
 
     public MovimientoResponseDTO(Movimiento movimiento) {
         this.id = movimiento.getId();
@@ -34,5 +36,9 @@ public class MovimientoResponseDTO {
         this.categoria = new CategoriaResponseDTO(movimiento.getCategoria());
         this.perfilId = movimiento.getPerfil().getId();
         this.perfilNombre = movimiento.getPerfil().getNombrePerfil();
+
+        var compartida = movimiento.getPerfil().getCuentaCompartida();
+        this.cuentaCompartidaId = compartida != null ? compartida.getId() : null;
+        this.cuentaCompartidaNombre = compartida != null ? compartida.getNombre() : null;
     }
 }
