@@ -99,3 +99,14 @@ ALTER TABLE presupuestos ADD CONSTRAINT presupuestos_perfil_o_cuenta_compartida
   CHECK ((perfil_id IS NULL) <> (cuenta_compartida_id IS NULL));
 CREATE UNIQUE INDEX IF NOT EXISTS presupuestos_compartido_unico
   ON presupuestos (cuenta_compartida_id, categoria_id, mes, anio) WHERE activo;
+
+-- 10) Cada cuánto avisa la app que un presupuesto se está por llenar (popup cada X %). Hibernate
+-- agrega la columna vacía; los presupuestos que ya existían quedan con el de por defecto (33 %),
+-- y de acá en más no puede quedar vacía ni fuera de 5..100.
+ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS intervalo_aviso INTEGER;
+UPDATE presupuestos SET intervalo_aviso = 33 WHERE intervalo_aviso IS NULL;
+ALTER TABLE presupuestos ALTER COLUMN intervalo_aviso SET DEFAULT 33;
+ALTER TABLE presupuestos ALTER COLUMN intervalo_aviso SET NOT NULL;
+ALTER TABLE presupuestos DROP CONSTRAINT IF EXISTS presupuestos_intervalo_aviso_valido;
+ALTER TABLE presupuestos ADD CONSTRAINT presupuestos_intervalo_aviso_valido
+  CHECK (intervalo_aviso BETWEEN 5 AND 100);

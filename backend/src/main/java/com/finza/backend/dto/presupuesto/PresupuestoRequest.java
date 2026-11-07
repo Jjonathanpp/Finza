@@ -16,4 +16,7 @@ public class PresupuestoRequest {
     private BigDecimal montoTope;
     private Integer mes;
     private Integer anio;
+    // Cada cuánto avisar, en % (entre 5 y 100). Opcional: al crear, sin valor queda 33;
+    // al editar, sin valor no se cambia.
+    private Integer intervaloAviso;
 }

@@ -3,6 +3,8 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.dart';
+import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 
 class AltaPresupuestoScreen extends StatefulWidget {
@@ -24,6 +26,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
   int? _categoriaId;
   int _mes = DateTime.now().month;
   int _anio = DateTime.now().year;
+  int _intervaloAviso = intervaloAvisoPorDefecto;
   final _montoController = TextEditingController();
 
   @override
@@ -74,6 +77,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
         montoTope: monto,
         mes: _mes,
         anio: _anio,
+        intervaloAviso: _intervaloAviso,
       );
 
       if (mounted) {
@@ -237,6 +241,17 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                           ),
                         ),
                       ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Cada cuánto avisar que el presupuesto se está llenando (popup).
+                    const Text('Avisarme cada', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    SelectorIntervaloAviso(
+                      valor: _intervaloAviso,
+                      habilitado: !_guardando,
+                      alCambiar: (valor) => setState(() => _intervaloAviso = valor),
                     ),
 
                     const SizedBox(height: 40),

@@ -1,3 +1,6 @@
+// Cada cuánto avisa la app que un presupuesto se está llenando, si el usuario no elige otro.
+const intervaloAvisoPorDefecto = 33;
+
 class Presupuesto {
   const Presupuesto({
     required this.presupuestoId,
@@ -8,6 +11,7 @@ class Presupuesto {
     required this.montoGastado,
     required this.porcentajeConsumo,
     this.porPerfil = const [],
+    this.intervaloAviso = intervaloAvisoPorDefecto,
   });
 
   final int presupuestoId;
@@ -19,6 +23,8 @@ class Presupuesto {
   final double porcentajeConsumo;
   // Cuánto gastó cada integrante (t-13.2.2): solo en una cuenta compartida; en la personal, vacía.
   final List<GastoDePerfil> porPerfil;
+  // Cada cuánto avisar, en %: con 33, al 33 %, 66 %, 99 % y al pasarse del tope.
+  final int intervaloAviso;
 
   bool get alertaAlcanzada => porcentajeConsumo >= 80.0;
 
@@ -33,6 +39,7 @@ class Presupuesto {
         porPerfil: (json['porPerfil'] as List<dynamic>? ?? [])
             .map((g) => GastoDePerfil.fromJson(g as Map<String, dynamic>))
             .toList(),
+        intervaloAviso: json['intervaloAviso'] as int? ?? intervaloAvisoPorDefecto,
       );
 }
 

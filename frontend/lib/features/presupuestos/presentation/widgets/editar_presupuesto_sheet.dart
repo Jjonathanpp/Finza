@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
 
 // El panel que sube desde abajo (showModalBottomSheet) al tocar un presupuesto de una cuenta compartida,
 // si sos admin (t-13.1.2): cambiar el tope o desactivarlo para todos. Se cierra solo cuando el backend
@@ -19,7 +20,7 @@ class EditarPresupuestoSheet extends StatefulWidget {
   final Presupuesto presupuesto;
   final String periodo;
   final String cuenta;
-  final Future<void> Function(double tope) alGuardar;
+  final Future<void> Function(double tope, int intervaloAviso) alGuardar;
   final Future<void> Function() alDesactivar;
 
   @override
@@ -30,6 +31,7 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
   late final _tope = TextEditingController(
     text: widget.presupuesto.montoTope.toStringAsFixed(widget.presupuesto.montoTope % 1 == 0 ? 0 : 2),
   );
+  late int _intervaloAviso = widget.presupuesto.intervaloAviso;
   bool _guardando = false;
   String? _error;
 
@@ -60,7 +62,7 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
       setState(() => _error = 'Ingresá un tope mayor a cero');
       return;
     }
-    _enviar(() => widget.alGuardar(tope));
+    _enviar(() => widget.alGuardar(tope, _intervaloAviso));
   }
 
   Future<void> _desactivar() async {
@@ -87,7 +89,9 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 18, 18, 18 + MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
+      // Con el selector de avisos y el teclado abierto puede no entrar: que se pueda deslizar.
+      child: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -101,6 +105,14 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
             enabled: !_guardando,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: r'Tope ($)'),
+          ),
+          const SizedBox(height: 18),
+          const Text('Avisarme cada', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          SelectorIntervaloAviso(
+            valor: _intervaloAviso,
+            habilitado: !_guardando,
+            alCambiar: (valor) => setState(() => _intervaloAviso = valor),
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
@@ -127,6 +139,7 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
             child: const Text('Desactivar presupuesto'),
           ),
         ],
+        ),
       ),
     );
   }

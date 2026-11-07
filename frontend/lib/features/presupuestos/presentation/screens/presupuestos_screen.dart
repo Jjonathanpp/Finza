@@ -245,7 +245,7 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
         presupuesto: p,
         periodo: '${_meses[vm.mesActual]} ${vm.anioActual}',
         cuenta: cuentaActiva.value!['nombre'] as String,
-        alGuardar: (tope) => vm.editarTope(p, tope),
+        alGuardar: (tope, intervalo) => vm.editarTope(p, tope, intervaloAviso: intervalo),
         alDesactivar: () => vm.desactivar(p),
       ),
     );
