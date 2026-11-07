@@ -21,6 +21,11 @@ public class PresupuestoCategoriaDTO {
     private final BigDecimal porcentajeConsumo;
     private final String estado;
 
+    // Cada cuánto avisa la app, en % (ver Presupuesto.intervaloAviso). Con setter para no cambiar
+    // el constructor que ya usa el service: se completa con setIntervaloAviso al armar el DTO.
+    @Setter
+    private int intervaloAviso = 33;
+
     // Solo en una cuenta compartida: cuánto gastó cada integrante, de mayor a menor (t-13.2.1).
     // En la personal queda vacío y no sale en el JSON.
     @Setter

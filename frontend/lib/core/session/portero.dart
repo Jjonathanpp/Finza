@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../features/login/screens/login_screen.dart';
 import '../../features/home/presentation/screens/pantalla_principal.dart';
+import '../avisos/aviso_de_presupuestos.dart';
 import '../storage/token_storage.dart';
 import 'sesion.dart';
 
@@ -24,6 +25,8 @@ void irAlInicio() {
     MaterialPageRoute(builder: (_) => const PantallaPrincipal()),
     (_) => false,
   );
+  // Los presupuestos de la cuenta elegida pueden tener avisos pendientes.
+  Future.delayed(const Duration(milliseconds: 700), revisarAvisosDePresupuesto);
 }
 
 // Lo primero que se ve al abrir la app: con una sesión que sirve entra directo, si no va al login.
@@ -41,7 +44,13 @@ class _PorteroState extends State<Portero> {
   static Future<bool> _arrancar() async {
     final tokens = TokenStorage();
     await tokens.cargarCuentaActiva();
-    return tokenVigente(await tokens.obtenerToken());
+    final haySesion = tokenVigente(await tokens.obtenerToken());
+    // Con sesión, una vez que se ve la pantalla principal: ¿algún presupuesto cruzó un aviso
+    // mientras la app estaba cerrada? (gastos que llegaron por voz o por Mercado Pago)
+    if (haySesion) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => revisarAvisosDePresupuesto());
+    }
+    return haySesion;
   }
 
   @override

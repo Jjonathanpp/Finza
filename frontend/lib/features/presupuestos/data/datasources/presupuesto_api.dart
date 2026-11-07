@@ -1,11 +1,11 @@
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
-
+ 
 class PresupuestoApi {
   PresupuestoApi(this._client);
   final ApiClient _client;
-
+ 
   Future<List<Presupuesto>> listarPorMes(int mes, int anio) async {
     try {
       final response = await _client.get('/api/presupuestos/mes?mes=$mes&anio=$anio');
@@ -13,7 +13,7 @@ class PresupuestoApi {
       final data = response is Map && response.containsKey('data') ? response['data'] : response;
       
       if (data == null || !data.containsKey('categorias')) return [];
-
+ 
       final List<dynamic> lista = data['categorias'] as List<dynamic>;
       return lista.map((json) => Presupuesto.fromJson(json)).toList();
     } on ApiException {
@@ -22,12 +22,13 @@ class PresupuestoApi {
       throw ApiException(500, 'Error al obtener los presupuestos: $e');
     }
   }
-
+ 
   Future<void> crearPresupuesto({
     required int categoriaId,
     required double montoTope,
     required int mes,
     required int anio,
+    int intervaloAviso = intervaloAvisoPorDefecto,
   }) async {
     try {
       await _client.post('/api/presupuestos', {
@@ -35,6 +36,7 @@ class PresupuestoApi {
         'montoTope': montoTope,
         'mes': mes,
         'anio': anio,
+        'intervaloAviso': intervaloAviso,
       });
     } on ApiException {
       rethrow;
@@ -42,7 +44,7 @@ class PresupuestoApi {
       throw ApiException(500, 'Error al crear el presupuesto: $e');
     }
   }
-
+ 
   // Editar y desactivar (t-13.1.2): las mismas rutas que los personales. En una cuenta compartida,
   // el backend solo se lo deja al admin (403 si no).
   Future<void> editarPresupuesto({
@@ -51,15 +53,17 @@ class PresupuestoApi {
     required double montoTope,
     required int mes,
     required int anio,
+    required int intervaloAviso,
   }) => _client.put('/api/presupuestos/$id', {
         'categoriaId': categoriaId,
         'montoTope': montoTope,
         'mes': mes,
         'anio': anio,
+        'intervaloAviso': intervaloAviso,
       });
-
+ 
   Future<void> desactivarPresupuesto(int id) => _client.delete('/api/presupuestos/$id');
-
+ 
   Future<List<Map<String, dynamic>>> obtenerCategoriasEgreso() async {
     try {
       final response = await _client.get('/api/categorias');
