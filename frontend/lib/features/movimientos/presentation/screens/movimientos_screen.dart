@@ -22,7 +22,6 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
   late final _vm = MovimientosViewModel(
     MovimientoApi(ApiClient()),
     CategoriaApi(ApiClient()),
-    ApiClient(),
   );
  
   @override
