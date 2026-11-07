@@ -1,8 +1,8 @@
 package com.finza.backend.controller;
-
+ 
 import java.time.LocalDate;
 import java.util.List;
-
+ 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -13,24 +13,24 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
+ 
 import com.finza.backend.dto.Response;
 import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
 import com.finza.backend.dto.movimiento.MovimientosRegistroRequest;
 import com.finza.backend.dto.movimiento.MovimientoRequest;
 import com.finza.backend.service.MovimientoService;
 import com.finza.backend.service.PerfilService;
-
+ 
 import lombok.RequiredArgsConstructor;
-
+ 
 @RestController
 @RequestMapping("/api/movimientos")
 @RequiredArgsConstructor
 public class MovimientoController {
-
+ 
     private final MovimientoService movimientoService;
     private final PerfilService perfilService;
-
+ 
     // La cuenta (cuentaId) sale del token: la deja JwtAuthFilter. El perfil es el
     // principal de esa cuenta.
     @PostMapping
@@ -40,13 +40,13 @@ public class MovimientoController {
         List<MovimientoResponseDTO> creados = movimientoService.registrar(requests, cuentaId);
         return Response.response(HttpStatus.CREATED, "Movimiento registrado exitosamente", creados);
     }
-
+ 
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> eliminar(@PathVariable Long id, @AuthenticationPrincipal Long cuentaId) {
         movimientoService.eliminar(id, cuentaId);
         return Response.response(HttpStatus.OK, "Movimiento eliminado exitosamente", null);
     }
-
+ 
     @PutMapping("/{id}")
     public ResponseEntity<Object> actualizarMovimiento(
             @PathVariable Long id,
@@ -56,7 +56,7 @@ public class MovimientoController {
                 request, cuentaId);
         return Response.ok(actualizado, "Movimiento actualizado exitosamente");
     }
-
+ 
  @GetMapping
 public ResponseEntity<Object> obtenerMovimientos(
         @AuthenticationPrincipal Long cuentaId,
@@ -67,23 +67,41 @@ public ResponseEntity<Object> obtenerMovimientos(
         @RequestParam(name = "estado", required = false) String estadoStr,
         @RequestParam(name = "perfilId", required = false) Long perfilId,
         @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
-
+ 
         Boolean esIngreso = esIngresoStr != null ? Boolean.parseBoolean(esIngresoStr) : null;
-
+ 
         Page<MovimientoResponseDTO> resultado = movimientoService.listarMovimientos(
                 perfilService.idPrincipal(cuentaId), cuentaId, perfilId,
                 fechaInicio, fechaFin, categoriaId, esIngreso, estadoStr, pageable);
-
+ 
         return Response.response(HttpStatus.OK, "Movimientos obtenidos", resultado);
     }
 
+    @GetMapping("/consolidado")
+    public ResponseEntity<Object> obtenerMovimientosConsolidados(
+            @AuthenticationPrincipal Long cuentaId,
+            @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(name = "categoriaId", required = false) Long categoriaId,
+            @RequestParam(name = "esIngreso", required = false) String esIngresoStr,
+            @RequestParam(name = "estado", required = false) String estadoStr,
+            @PageableDefault(size = 20) Pageable pageable) {
+ 
+        Boolean esIngreso = esIngresoStr != null ? Boolean.parseBoolean(esIngresoStr) : null;
+ 
+        Page<MovimientoResponseDTO> resultado = movimientoService.listarConsolidadoDeCuenta(
+                cuentaId, fechaInicio, fechaFin, categoriaId, esIngreso, estadoStr, pageable);
+ 
+        return Response.response(HttpStatus.OK, "Movimientos consolidados obtenidos", resultado);
+    }
+ 
     @GetMapping("/pendientes-mercadopago")
     public ResponseEntity<Object> obtenerPendientesMercadoPago(@AuthenticationPrincipal Long cuentaId) {
         Long perfilId = perfilService.idPrincipal(cuentaId);
         List<MovimientoResponseDTO> pendientes = movimientoService.obtenerPendientesMercadoPago(perfilId, cuentaId);
         return Response.ok(pendientes, "Movimientos pendientes de Mercado Pago obtenidos");
     }
-
+ 
     @PostMapping("/procesar-audio")
     public ResponseEntity<Object> procesarAudio(@RequestParam("audio") MultipartFile audio,
             @AuthenticationPrincipal Long cuentaId) {
@@ -95,7 +113,7 @@ public ResponseEntity<Object> obtenerMovimientos(
                     null);
         }
     }
-
+ 
     @PutMapping("/{id}/estado")
     public ResponseEntity<Object> cambiarEstado(@PathVariable Long id, @RequestParam("nuevoEstado") String nuevoEstado,
             @AuthenticationPrincipal Long cuentaId) {

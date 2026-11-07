@@ -21,6 +21,35 @@ class PresupuestosViewModel extends ChangeNotifier {
   int get mesActual => _mesActual;
   int get anioActual => _anioActual;
 
+  // ---- Resumen del mes (lo calcula el front a partir de las categorías) ----
+
+  // Los más comprometidos primero: lo que pide atención queda arriba.
+  List<Presupuesto> get presupuestosOrdenados =>
+      [..._presupuestos]..sort((a, b) => b.porcentajeConsumo.compareTo(a.porcentajeConsumo));
+
+  double get totalTope => _presupuestos.fold(0.0, (suma, p) => suma + p.montoTope);
+  double get totalGastado => _presupuestos.fold(0.0, (suma, p) => suma + p.montoGastado);
+  double get porcentajeTotal => totalTope == 0 ? 0 : totalGastado / totalTope * 100;
+
+  // Mismos cortes que la alerta del backend (80%) y el tope (100%).
+  int get cantidadEnOrden => _presupuestos.where((p) => p.porcentajeConsumo < 80).length;
+  int get cantidadCercaDelTope =>
+      _presupuestos.where((p) => p.porcentajeConsumo >= 80 && p.porcentajeConsumo < 100).length;
+  int get cantidadExcedidos => _presupuestos.where((p) => p.porcentajeConsumo >= 100).length;
+
+  // Para el "podés gastar $X por día": los días que le quedan al mes que se está
+  // viendo, contando hoy. Un mes futuro, todos sus días; uno pasado, null.
+  int? get diasRestantes {
+    final hoy = DateTime.now();
+    final diasDelMes = DateTime(_anioActual, _mesActual + 1, 0).day;
+    final esPasado = _anioActual < hoy.year || (_anioActual == hoy.year && _mesActual < hoy.month);
+    if (esPasado) return null;
+    if (_anioActual == hoy.year && _mesActual == hoy.month) return diasDelMes - hoy.day + 1;
+    return diasDelMes;
+  }
+
+  bool get esMesPasado => diasRestantes == null;
+
   @override
   void notifyListeners() {
     if (!_cerrado) super.notifyListeners();
