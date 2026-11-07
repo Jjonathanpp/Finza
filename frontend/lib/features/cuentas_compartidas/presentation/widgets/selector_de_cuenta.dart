@@ -6,6 +6,7 @@ import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/storage/token_storage.dart';
 import 'package:frontend/features/cuentas_compartidas/data/datasources/cuenta_compartida_api.dart';
+import 'package:frontend/features/cuentas_compartidas/presentation/screens/miembros_screen.dart';
 
 // Configuración → "Cuenta" (t-13.1.2): en cuál está la app y para pasarse a otra, como los perfiles
 // de Netflix. Al elegir, la guarda y arma la pantalla principal de cero con los datos de esa cuenta.
@@ -61,6 +62,29 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
                 style: const TextStyle(color: AppColors.muted, fontSize: 12.5),
               ),
             ),
+            // En una cuenta compartida: quiénes están y con qué rol (t-11.3.2). La pantalla
+            // trabaja sobre la cuenta activa, así que solo se ofrece para esa.
+            if (actual != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 4),
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => MiembrosScreen(nombreCuenta: actual['nombre'] as String, api: _api),
+                    ),
+                  ),
+                  icon: const Icon(Icons.group_outlined),
+                  label: Text(actual['rol'] == 'ADMIN' ? 'Miembros y roles' : 'Ver miembros'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor: AppColors.text,
+                    backgroundColor: AppColors.surface,
+                    side: const BorderSide(color: AppColors.line),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
             for (final cuenta in opciones)
               _opcion(cuenta, elegida: cuenta?['perfilId'] == actual?['perfilId']),
             if (respuesta.hasError)

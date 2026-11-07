@@ -14,6 +14,7 @@ import com.finza.backend.dto.Response;
 import com.finza.backend.dto.cuentaCompartida.CuentaCompartidaRequestDTO;
 import com.finza.backend.dto.cuentaCompartida.MiembroDTO;
 import com.finza.backend.dto.cuentaCompartida.RolRequestDTO;
+import com.finza.backend.model.CuentaCompartida;
 import com.finza.backend.model.Perfil;
 import com.finza.backend.repository.PerfilRepository;
 import com.finza.backend.service.PerfilService;
@@ -66,13 +67,21 @@ public class CuentaCompartidaController {
         if (perfilActivo.getCuentaCompartida() == null) {
             return Response.ok(List.of(), "Cuenta personal, sin miembros");
         }
-        List<Perfil> miembros = perfilRepository.findByCuentaCompartidaId(perfilActivo.getCuentaCompartida().getId());
+        CuentaCompartida compartida = perfilActivo.getCuentaCompartida();
+        Long creadorId = compartida.getCreador() != null ? compartida.getCreador().getId() : null;
+
+        // Solo los que siguen, en el orden en que entraron. Los que se fueron (baja de cuenta o
+        // abandono, t-11.3.4 / t-12.1.7) quedan con cuenta null: con ellos getCuenta() daba 500.
+        List<Perfil> miembros = perfilRepository
+                .findByCuentaCompartidaIdAndEsActivoTrueOrderByIdAsc(compartida.getId());
         List<MiembroDTO> response = miembros.stream()
+                .filter(p -> p.getCuenta() != null)
                 .map(p -> new MiembroDTO(
                         p.getId(),
                         p.getCuenta().getUsuario().getId(),
                         p.getNombrePerfil(),
-                        p.getRol().name()))
+                        p.getRol().name(),
+                        p.getId().equals(creadorId)))
                 .toList();
         return Response.ok(response, "Miembros obtenidos");
     }
