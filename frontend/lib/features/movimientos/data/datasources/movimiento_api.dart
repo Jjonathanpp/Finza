@@ -93,32 +93,6 @@ class MovimientoApi {
     return _leerPagina(await _api.get(url));
   }
 
-  // Vista consolidada (t-12.1.2): los movimientos de todos los perfiles de la
-  // cuenta (el personal y los de cada cuenta compartida). El backend toma la cuenta
-  // del token y ordena siempre por fecha e id descendente, así que no se manda
-  // perfilId ni sort.
-  Future<(List<Movimiento>, int)> listarConsolidado({
-    int pagina = 0,
-    int limite = 12,
-    DateTime? fechaInicio,
-    DateTime? fechaFin,
-    int? categoriaId,
-    bool? esIngreso,
-    String? estado,
-  }) async {
-    String url = '/api/movimientos/consolidado?page=$pagina&size=$limite';
-
-    if (fechaInicio != null) {
-      url += '&fechaInicio=${_formatearFechaIso(fechaInicio)}';
-    }
-    if (fechaFin != null) url += '&fechaFin=${_formatearFechaIso(fechaFin)}';
-    if (categoriaId != null) url += '&categoriaId=$categoriaId';
-    if (esIngreso != null) url += '&esIngreso=$esIngreso';
-    if (estado != null) url += '&estado=$estado';
-
-    return _leerPagina(await _api.get(url));
-  }
-
   // La página de Spring: los movimientos en "content" y el total de páginas en
   // "totalPages" (o dentro de "page", según cómo la serialice el backend).
   static (List<Movimiento>, int) _leerPagina(dynamic data) {
