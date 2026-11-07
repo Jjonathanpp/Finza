@@ -76,4 +76,12 @@ public class CuentaCompartidaController {
                 .toList();
         return Response.ok(response, "Miembros obtenidos");
     }
+
+    @PostMapping("/{id}/abandonar")
+    public ResponseEntity<Object> abandonarCuentaCompartida(@PathVariable Long id,
+            @AuthenticationPrincipal Long cuentaId) {
+        perfilService.abandonarCuentaCompartida(cuentaId, id);
+        return Response.ok(null, "Abandonaste la cuenta compartida");
+    }
+
 }

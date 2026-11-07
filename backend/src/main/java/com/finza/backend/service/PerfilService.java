@@ -132,6 +132,10 @@ public class PerfilService {
             throw new BadRequestException("Solo se puede cambiar el rol de un perfil de una cuenta compartida");
         }
 
+        if (perfil.getCuenta() == null) {
+            throw new BadRequestException("Ese perfil ya no pertenece a la cuenta compartida");
+        }
+
         Perfil admin = exigirAdmin(cuentaId, perfil.getCuentaCompartida().getId());
         if (admin.getId().equals(perfil.getId())) {
             throw new BadRequestException("No podés cambiar tu propio rol");
@@ -166,28 +170,18 @@ public class PerfilService {
     @Transactional
     public void dejarCuentasCompartidas(Long cuentaId) {
         for (Perfil saliente : perfilRepository.findByCuentaIdAndCuentaCompartidaIsNotNull(cuentaId)) {
-            CuentaCompartida compartida = saliente.getCuentaCompartida();
-            List<Perfil> quedan = perfilRepository
-                    .findByCuentaCompartidaIdAndEsActivoTrueOrderByIdAsc(compartida.getId())
-                    .stream().filter(otro -> !otro.equals(saliente)).toList();
-            if (quedan.isEmpty()) {
-                borrarCuentaCompartida(compartida);
-                continue;
-            }
-            if (saliente.getRol() == Perfil.Rol.ADMIN) {
-                Perfil admin = quedan.stream().filter(otro -> otro.getRol() == Perfil.Rol.ADMIN).findFirst()
-                        .orElse(quedan.get(0));
-                admin.setRol(Perfil.Rol.ADMIN);
-                if (saliente.equals(compartida.getCreador())) {
-                    compartida.setCreador(admin);
-                }
-            }
-            saliente.setCuenta(null);
-            saliente.setEsActivo(false);
+            salirDeCuentaCompartida(saliente);
         }
         // Antes de borrar la cuenta: si no, al borrarla se llevaría también estos
         // perfiles.
         perfilRepository.flush();
+    }
+
+    // T-12.1.7
+    @Transactional
+    public void abandonarCuentaCompartida(Long cuentaId, Long cuentaCompartidaId) {
+        Perfil saliente = exigirMiembro(cuentaId, cuentaCompartidaId);
+        salirDeCuentaCompartida(saliente);
     }
 
     // En este orden por las claves de la base: lo que apunta a la cuenta compartida
@@ -211,5 +205,35 @@ public class PerfilService {
         return Optional.ofNullable(cuentaCompartidaId)
                 .flatMap(id -> perfilRepository.findByCuentaIdAndCuentaCompartidaId(cuentaId, id))
                 .orElseThrow(() -> new AccessDeniedException("No sos integrante de esta cuenta compartida"));
+    }
+
+    // Saca a un perfil de su cuenta compartida (T-11.3.4 baja de cuenta y T-12.1.7
+    // abandono voluntario).
+    // Si se va un ADMIN y quedan integrantes activos, siempre queda un ADMIN: si ya
+    // había otro, sigue ese;
+    // si no, pasa a ADMIN el que entró primero. Si además era el creador, el
+    // creador pasa a ese ADMIN.
+    private void salirDeCuentaCompartida(Perfil saliente) {
+        CuentaCompartida compartida = saliente.getCuentaCompartida();
+        List<Perfil> quedan = perfilRepository
+                .findByCuentaCompartidaIdAndEsActivoTrueOrderByIdAsc(compartida.getId())
+                .stream().filter(otro -> !otro.equals(saliente)).toList();
+
+        if (quedan.isEmpty()) {
+            borrarCuentaCompartida(compartida);
+            return;
+        }
+
+        if (saliente.getRol() == Perfil.Rol.ADMIN) {
+            Perfil admin = quedan.stream().filter(otro -> otro.getRol() == Perfil.Rol.ADMIN).findFirst()
+                    .orElse(quedan.get(0));
+            admin.setRol(Perfil.Rol.ADMIN);
+            if (saliente.equals(compartida.getCreador())) {
+                compartida.setCreador(admin);
+            }
+        }
+
+        saliente.setCuenta(null);
+        saliente.setEsActivo(false);
     }
 }
