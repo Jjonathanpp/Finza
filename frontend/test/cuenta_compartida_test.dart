@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
@@ -15,6 +14,7 @@ import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/screens/presupuestos_screen.dart';
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/desglose_integrantes.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/tarjetas_cargando.dart';
 import 'package:provider/provider.dart';
 
@@ -128,9 +128,12 @@ Future<void> _abrirPresupuestos(WidgetTester tester, PresupuestoApi api) async {
   await tester.pumpAndSettle();
 }
 
-// En Casa, el admin edita desde la tarjeta abierta (t-13.2.2).
+// En Casa, el admin edita desde la tarjeta abierta (t-13.2.2). Arriba está el resumen del mes, así que
+// "Editar tope" puede quedar debajo del borde de la pantalla de la prueba: se scrollea hasta él.
 Future<void> _abrirEditar(WidgetTester tester) async {
   await tester.tap(find.text('Comida'));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('Editar tope'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Editar tope'));
   await tester.pumpAndSettle();
@@ -310,8 +313,10 @@ void main() {
       cuentaActiva.value = _casaMiembro;
       await _abrirPresupuestos(tester, _PresupuestosDeMentira());
       expect(find.text('Cuánto gastó cada uno'), findsNothing, reason: 'cerrada hasta tocarla');
-      expect(find.text('Gastado: \$ 1.500'), findsOneWidget);
-      expect(tester.widget<Text>(find.text('75.0%')).style?.color, AppColors.success);
+      expect(find.text('\$ 1.500'), findsOneWidget);
+      // El porcentaje se tiene que leer sobre blanco: contraste de 4,5:1 o más (t-13.2.2).
+      final colorPorcentaje = tester.widget<Text>(find.text('75%')).style!.color!;
+      expect(1.05 / (colorPorcentaje.computeLuminance() + 0.05), greaterThanOrEqualTo(4.5));
 
       await tester.tap(find.text('Comida'));
       await tester.pumpAndSettle();
@@ -341,7 +346,8 @@ void main() {
 
       expect(find.text('Cuánto gastó cada uno'), findsOneWidget, reason: 'Comida se cerró');
       expect(find.text('Todavía nadie gastó en Servicios este mes.'), findsOneWidget);
-      expect(find.text('\$ 0'), findsNWidgets(2));
+      // Los dos integrantes, en $ 0 (la tarjeta también muestra "Gastado $ 0", afuera del desglose).
+      expect(find.descendant(of: find.byType(DesgloseIntegrantes), matching: find.text('\$ 0')), findsNWidgets(2));
       expect(find.text('vos'), findsOneWidget, reason: 'Ana es el perfil 12, el del admin');
     });
 
