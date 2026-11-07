@@ -10,6 +10,7 @@ import 'package:frontend/features/movimientos/presentation/viewmodels/movimiento
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
  
 class MovimientosScreen extends StatefulWidget {
   const MovimientosScreen({super.key});
@@ -266,116 +267,75 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
+          if (_vm.cargando && _vm.movimientos.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+ 
+          if (_vm.error != null && _vm.movimientos.isEmpty) {
+            return _VistaError(
+              mensaje: _vm.error!,
+              alReintentar: _vm.cargarInicial,
+            );
+          }
+ 
+          if (_vm.movimientos.isEmpty) {
+            return _VistaVacia(
+              conFiltros: _vm.tieneFiltrosActivos,
+              alLimpiarFiltros: _vm.limpiarFiltros,
+              alRecargar: _vm.cargarInicial,
+            );
+          }
+ 
+          final nombreFiltrado = _vm.nombrePerfilFiltrado;
+ 
           return Column(
             children: [
-              // Siempre visible, también con la lista vacía o con error, para
-              // poder volver a la otra vista.
-              _SelectorVista(
-                consolidado: _vm.consolidado,
-                habilitado: !_vm.cargando,
-                alCambiar: _vm.cambiarModoConsolidado,
-              ),
-              // Recarga con la lista ya visible (paginar, filtrar, cambiar de vista).
-              if (_vm.cargando && _vm.movimientos.isNotEmpty)
+              // Recarga con la lista ya visible (paginar, filtrar): barra fina arriba.
+              if (_vm.cargando)
                 const LinearProgressIndicator(
                   minHeight: 2,
                   color: AppColors.accent,
                 ),
-              Expanded(child: _contenido(context)),
+              if (_vm.enCuentaCompartida && nombreFiltrado != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: InputChip(
+                      avatar: const Icon(Icons.person_outline, size: 16),
+                      label: Text('Solo de ${_nombreCorto(nombreFiltrado)}'),
+                      onDeleted: _vm.verTodosLosIntegrantes,
+                      deleteButtonTooltipMessage: 'Ver todos los integrantes',
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _vm.cargarInicial,
+                  color: AppColors.accent,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(18),
+                    itemCount: _vm.movimientos.length,
+                    separatorBuilder: (_, _) =>
+                        const Divider(color: AppColors.line, height: 24),
+                    itemBuilder: (context, i) {
+                      final movimiento = _vm.movimientos[i];
+                      return _FilaMovimiento(
+                        movimiento,
+                        mostrarPerfil: _vm.mostrarAutor,
+                        onEditar: () =>
+                            _mostrarModalEdicion(context, movimiento),
+                        onEliminar: () => _confirmarEliminar(movimiento),
+                        onRevisar: () => _revisarMovimiento(movimiento),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              _ControlesPaginacion(vm: _vm),
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _contenido(BuildContext context) {
-    if (_vm.cargando && _vm.movimientos.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_vm.error != null && _vm.movimientos.isEmpty) {
-      return _VistaError(mensaje: _vm.error!, alReintentar: _vm.cargarInicial);
-    }
-
-    if (_vm.movimientos.isEmpty) {
-      return _VistaVacia(
-        conFiltros: _vm.tieneFiltrosActivos,
-        alLimpiarFiltros: _vm.limpiarFiltros,
-        alRecargar: _vm.cargarInicial,
-      );
-    }
-
-    return Column(
-      children: [
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _vm.cargarInicial,
-            color: AppColors.accent,
-            child: ListView.separated(
-              padding: const EdgeInsets.all(18),
-              itemCount: _vm.movimientos.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(color: AppColors.line, height: 24),
-              itemBuilder: (context, i) {
-                final movimiento = _vm.movimientos[i];
-                return _FilaMovimiento(
-                  movimiento,
-                  mostrarContexto: _vm.consolidado,
-                  esDelPerfilActivo: _vm.esDelPerfilActivo(movimiento),
-                  puedeEliminar: _vm.puedeEliminar(movimiento),
-                  onEditar: () => _mostrarModalEdicion(context, movimiento),
-                  onEliminar: () => _confirmarEliminar(movimiento),
-                  onRevisar: () => _revisarMovimiento(movimiento),
-                );
-              },
-            ),
-          ),
-        ),
-        _ControlesPaginacion(vm: _vm),
-      ],
-    );
-  }
-}
-
-// "Este perfil" (el elegido en el selector de cuenta) o "Todos mis perfiles"
-// (la vista consolidada).
-class _SelectorVista extends StatelessWidget {
-  const _SelectorVista({
-    required this.consolidado,
-    required this.habilitado,
-    required this.alCambiar,
-  });
-
-  final bool consolidado;
-  final bool habilitado;
-  final ValueChanged<bool> alCambiar;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 4),
-      child: SizedBox(
-        width: double.infinity,
-        child: SegmentedButton<bool>(
-          showSelectedIcon: false,
-          segments: const [
-            ButtonSegment<bool>(
-              value: false,
-              icon: Icon(Icons.person_outline, size: 18),
-              label: Text('Este perfil'),
-            ),
-            ButtonSegment<bool>(
-              value: true,
-              icon: Icon(Icons.layers_outlined, size: 18),
-              label: Text('Todos mis perfiles'),
-            ),
-          ],
-          selected: {consolidado},
-          onSelectionChanged: habilitado
-              ? (seleccion) => alCambiar(seleccion.first)
-              : null,
-        ),
       ),
     );
   }
@@ -453,9 +413,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
           ),
           const SizedBox(height: 20),
  
-          // El consolidado no filtra por integrante (el endpoint no recibe perfilId).
-          if (!widget.vm.consolidado &&
-              widget.vm.perfilesDisponibles.isNotEmpty) ...[
+          if (widget.vm.perfilesDisponibles.isNotEmpty) ...[
             const Text(
               'Perfil',
               style: TextStyle(fontSize: 13, color: AppColors.muted),
@@ -742,20 +700,15 @@ class _ControlesPaginacion extends StatelessWidget {
 class _FilaMovimiento extends StatelessWidget {
   const _FilaMovimiento(
     this.movimiento, {
-    required this.mostrarContexto,
-    required this.esDelPerfilActivo,
-    required this.puedeEliminar,
+    required this.mostrarPerfil,
     required this.onEditar,
     required this.onEliminar,
     required this.onRevisar,
   });
-
+ 
   final Movimiento movimiento;
-  // true en la vista consolidada: muestra el badge "Personal" / cuenta compartida.
-  final bool mostrarContexto;
-  // Editar y verificar solo se puede desde el perfil del movimiento.
-  final bool esDelPerfilActivo;
-  final bool puedeEliminar;
+  // true en una cuenta compartida viendo a todos los integrantes: muestra quién lo cargó.
+  final bool mostrarPerfil;
   final VoidCallback onEditar;
   final VoidCallback onEliminar;
   final VoidCallback onRevisar;
@@ -770,6 +723,12 @@ class _FilaMovimiento extends StatelessWidget {
  
   @override
   Widget build(BuildContext context) {
+    // 1. VARIABLES PARA DETECTAR CUENTA COMPARTIDA Y MOVIMIENTOS AJENOS
+    final cuenta = cuentaActiva.value;
+    final bool enCuentaCompartida = cuenta != null;
+    final bool esAjeno =
+        enCuentaCompartida && movimiento.perfilId != cuenta['perfilId'];
+ 
     final colorCategoria = colorDesdeHex(movimiento.categoria.color);
     final colorMonto = movimiento.esIngreso ? AppColors.accent : AppColors.text;
     final signo = movimiento.esIngreso ? '+' : '-';
@@ -801,7 +760,7 @@ class _FilaMovimiento extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // CATEGORÍA + BADGE DE CONTEXTO (vista consolidada)
+              // 2. CATEGORÍA + BADGE DEL PERFIL QUE CARGÓ EL MOVIMIENTO (vista consolidada)
               Row(
                 children: [
                   Flexible(
@@ -816,11 +775,11 @@ class _FilaMovimiento extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (mostrarContexto) ...[
+                  if (mostrarPerfil && movimiento.perfilNombre != null) ...[
                     const SizedBox(width: 6),
-                    _BadgeContexto(
-                      movimiento: movimiento,
-                      esDelPerfilActivo: esDelPerfilActivo,
+                    _BadgePerfil(
+                      nombre: movimiento.perfilNombre!,
+                      esPropio: !esAjeno,
                     ),
                   ],
                 ],
@@ -865,31 +824,10 @@ class _FilaMovimiento extends StatelessWidget {
         ),
         const SizedBox(width: 8),
  
-        // ACCIONES SEGÚN DE QUÉ PERFIL ES EL MOVIMIENTO
-        if (!esDelPerfilActivo) ...[
-          // Otro perfil de la cuenta (vista consolidada): se puede borrar, pero
-          // editar o verificar hay que hacerlo parado en ese perfil.
-          if (puedeEliminar) ...[
-            Tooltip(
-              message:
-                  'Para editarlo, pasá a "${movimiento.contexto}" en el selector de cuenta',
-              child: const IconButton(
-                icon: Icon(Icons.edit_off_outlined, size: 20),
-                onPressed: null,
-              ),
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                size: 20,
-                color: AppColors.danger,
-              ),
-              onPressed: onEliminar,
-              tooltip: 'Eliminar',
-            ),
-          ],
-          // Si no (movimiento de otro integrante de una cuenta compartida), sin acciones.
-        ] else if (estaPendiente)
+        // 3. OCULTAR BOTONES DE ACCIÓN PARA MOVIMIENTOS AJENOS
+        if (esAjeno)
+          const SizedBox.shrink()
+        else if (estaPendiente)
           FilledButton.icon(
             onPressed: onRevisar,
             style: FilledButton.styleFrom(
@@ -925,29 +863,33 @@ class _FilaMovimiento extends StatelessWidget {
   }
 }
  
-// Etiqueta tonal con el perfil del que es el movimiento: "Personal" o el nombre
-// de la cuenta compartida. El del perfil activo va con el color de acento.
-class _BadgeContexto extends StatelessWidget {
-  const _BadgeContexto({
-    required this.movimiento,
-    required this.esDelPerfilActivo,
-  });
-
-  final Movimiento movimiento;
-  final bool esDelPerfilActivo;
-
+// Los integrantes invitados tienen como nombre de perfil su email
+// (InvitacionService): en el badge se muestra solo la parte antes de la @.
+String _nombreCorto(String nombre) {
+  final limpio = nombre.trim();
+  final arroba = limpio.indexOf('@');
+  return arroba > 0 ? limpio.substring(0, arroba) : limpio;
+}
+ 
+// Etiqueta tonal con la inicial y el nombre del perfil que cargó el movimiento.
+// Los propios se destacan con el color de acento y dicen "Vos".
+class _BadgePerfil extends StatelessWidget {
+  const _BadgePerfil({required this.nombre, required this.esPropio});
+ 
+  final String nombre;
+  final bool esPropio;
+ 
   @override
   Widget build(BuildContext context) {
-    final color = esDelPerfilActivo ? AppColors.accent : AppColors.muted;
-    final etiqueta = movimiento.contexto;
-
+    final corto = _nombreCorto(nombre);
+    final inicial = corto.isEmpty ? '?' : corto.characters.first.toUpperCase();
+    final color = esPropio ? AppColors.accent : AppColors.muted;
+ 
     return Tooltip(
-      message: movimiento.esPersonal
-          ? 'Movimiento de tu perfil personal'
-          : 'Movimiento de la cuenta compartida "$etiqueta"',
+      message: esPropio ? 'Cargado por vos' : 'Cargado por $nombre',
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 120),
-        padding: const EdgeInsets.fromLTRB(6, 2, 8, 2),
+        constraints: const BoxConstraints(maxWidth: 104),
+        padding: const EdgeInsets.fromLTRB(3, 2, 8, 2),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(999),
@@ -955,17 +897,22 @@ class _BadgeContexto extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              movimiento.esPersonal
-                  ? Icons.person_outline
-                  : Icons.group_outlined,
-              size: 13,
-              color: color,
+            CircleAvatar(
+              radius: 8,
+              backgroundColor: color,
+              child: Text(
+                inicial,
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.surface,
+                ),
+              ),
             ),
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                etiqueta,
+                esPropio ? 'Vos' : corto,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

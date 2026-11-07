@@ -51,36 +51,23 @@ class MovimientosViewModel extends ChangeNotifier {
       estadoFiltro != null ||
       perfilFiltroId != null;
 
-  // Vista consolidada (t-12.1.4): los movimientos de TODOS los perfiles de la
-  // cuenta (el personal y los de cada cuenta compartida) en un solo listado, con
-  // un badge que dice de dónde es cada uno. Apagada, se ve solo el perfil activo.
-  bool _consolidado = false;
-  bool get consolidado => _consolidado;
-
+  // En una cuenta compartida, viendo a todos los integrantes (sin filtrar por perfil),
+  // cada fila muestra la etiqueta de quién cargó el movimiento (t-12.1.4).
   bool get enCuentaCompartida => cuentaActiva.value != null;
+  bool get mostrarAutor => enCuentaCompartida && perfilFiltroId == null;
 
-  Future<void> cambiarModoConsolidado(bool valor) async {
-    if (valor == _consolidado || _cargando) return;
-    _consolidado = valor;
-    // El consolidado no filtra por integrante: ese filtro se descarta.
-    if (valor) perfilFiltroId = null;
+  String? get nombrePerfilFiltrado => perfilesDisponibles
+      .where((p) => p.id == perfilFiltroId)
+      .firstOrNull
+      ?.nombre;
+
+  // Saca el filtro de integrante (vuelve a ver a todos) sin tocar los demás filtros.
+  Future<void> verTodosLosIntegrantes() async {
+    if (perfilFiltroId == null) return;
+    perfilFiltroId = null;
     _pagina = 0;
     await _obtenerDatos();
   }
-
-  // Si el movimiento es del perfil en el que está parada la app (selector de
-  // cuenta). El backend solo deja editarlo o verificarlo desde ese perfil.
-  bool esDelPerfilActivo(Movimiento movimiento) {
-    final cuenta = cuentaActiva.value;
-    if (cuenta == null) return movimiento.esPersonal;
-    return movimiento.perfilId == cuenta['perfilId'];
-  }
-
-  // En el consolidado todos los movimientos son de la cuenta del usuario, así
-  // que se pueden borrar aunque sean de otro perfil. En una cuenta compartida
-  // (vista normal), los de otros integrantes no.
-  bool puedeEliminar(Movimiento movimiento) =>
-      _consolidado || esDelPerfilActivo(movimiento);
 
   @override
   void notifyListeners() {
@@ -96,9 +83,8 @@ class MovimientosViewModel extends ChangeNotifier {
 
   void _alCambiarCuenta() {
     perfilFiltroId = null;
-    // Sin esto, mientras carga se verían los movimientos de la cuenta anterior.
-    // (El modo consolidado se mantiene: su lista no depende del perfil activo,
-    // pero sí qué movimientos se pueden editar.)
+    // Sin esto, mientras carga se verían los movimientos de la cuenta anterior
+    // con los badges de perfil equivocados.
     _movimientos = [];
     notifyListeners();
     cargarInicial();
@@ -151,7 +137,7 @@ class MovimientosViewModel extends ChangeNotifier {
     categoriaFiltro = nuevaCategoria;
     esIngresoFiltro = nuevoEsIngreso;
     estadoFiltro = nuevoEstado;
-    perfilFiltroId = _consolidado ? null : nuevoPerfilId;
+    perfilFiltroId = nuevoPerfilId;
     _pagina = 0;
     _obtenerDatos();
   }
@@ -189,26 +175,16 @@ class MovimientosViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final (nuevos, total) = _consolidado
-          ? await _api.listarConsolidado(
-              pagina: _pagina,
-              limite: _limite,
-              fechaInicio: desde,
-              fechaFin: hasta,
-              categoriaId: categoriaFiltro?.id,
-              esIngreso: esIngresoFiltro,
-              estado: estadoFiltro,
-            )
-          : await _api.listar(
-              pagina: _pagina,
-              limite: _limite,
-              fechaInicio: desde,
-              fechaFin: hasta,
-              categoriaId: categoriaFiltro?.id,
-              esIngreso: esIngresoFiltro,
-              estado: estadoFiltro,
-              perfilId: perfilFiltroId,
-            );
+      final (nuevos, total) = await _api.listar(
+        pagina: _pagina,
+        limite: _limite,
+        fechaInicio: desde,
+        fechaFin: hasta,
+        categoriaId: categoriaFiltro?.id,
+        esIngreso: esIngresoFiltro,
+        estado: estadoFiltro, // <-- AGREGÁ ESTA LÍNEA
+        perfilId: perfilFiltroId,
+      );
       _movimientos = nuevos;
       _totalPaginas = total;
       _hayMas = _pagina + 1 < _totalPaginas;
