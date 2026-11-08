@@ -21,6 +21,7 @@ import com.finza.backend.repository.PerfilRepository;
 import com.finza.backend.service.CategoriaService;
 import com.finza.backend.service.IAService;
 import com.finza.backend.service.MovimientoService;
+import com.finza.backend.service.PerfilService;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -39,7 +40,8 @@ public class MovimientoServiceImpl implements MovimientoService {
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     // Vista consolidada: más nuevos primero; el id desempata los del mismo día para
-    // que la paginación sea estable (sin filas repetidas ni salteadas entre páginas).
+    // que la paginación sea estable (sin filas repetidas ni salteadas entre
+    // páginas).
     private static final Sort ORDEN_CONSOLIDADO = Sort.by(Sort.Order.desc("fecha"), Sort.Order.desc("id"));
     private static final int TAMANIO_PAGINA_POR_DEFECTO = 20;
 
@@ -47,6 +49,7 @@ public class MovimientoServiceImpl implements MovimientoService {
     private final CategoriaService categoriaService;
     private final PerfilRepository perfilRepository;
     private final IAService iaService;
+    private final PerfilService perfilService;
 
     // --- VALIDADORES DE SCOPING ---
     private Perfil obtenerPerfilValidado(Long perfilId, Long cuentaIdAutenticada) {
@@ -393,5 +396,35 @@ public class MovimientoServiceImpl implements MovimientoService {
         return pendientes.stream()
                 .map(MovimientoResponseDTO::new)
                 .toList();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<MovimientoResponseDTO> obtenerUltimosMovimientosDeCuentaCompartida(Long cuentaCompartidaId,
+            Long cuentaIdAutenticada, int limite) {
+        perfilService.exigirMiembro(cuentaIdAutenticada, cuentaCompartidaId);
+        return movimientoRepository
+                .buscarUltimosMovimientosDeCuentaCompartida(cuentaCompartidaId, PageRequest.of(0, limite))
+                .stream().map(MovimientoResponseDTO::new).toList();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<MovimientoResponseDTO> obtenerUltimosIngresosDeCuentaCompartida(Long cuentaCompartidaId,
+            Long cuentaIdAutenticada, int limite) {
+        perfilService.exigirMiembro(cuentaIdAutenticada, cuentaCompartidaId);
+        return movimientoRepository
+                .buscarUltimosIngresosDeCuentaCompartida(cuentaCompartidaId, PageRequest.of(0, limite))
+                .stream().map(MovimientoResponseDTO::new).toList();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<MovimientoResponseDTO> obtenerUltimosEgresosDeCuentaCompartida(Long cuentaCompartidaId,
+            Long cuentaIdAutenticada, int limite) {
+        perfilService.exigirMiembro(cuentaIdAutenticada, cuentaCompartidaId);
+        return movimientoRepository
+                .buscarUltimosEgresosDeCuentaCompartida(cuentaCompartidaId, PageRequest.of(0, limite))
+                .stream().map(MovimientoResponseDTO::new).toList();
     }
 }

@@ -24,44 +24,49 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class InformeController {
 
-    private final PanelService panelService;
-    private final PerfilService perfilService;
-    private final ReporteService reporteService;
-    
-    // Torta por categoría (US-6.1): el mismo cálculo que "En qué gastás" del panel, con el período elegido.
-    // Sin fechas, el período de las preferencias del perfil (por defecto, el mes actual).
-    @GetMapping("/por-categoria")
-    public ResponseEntity<Object> porCategoria(
-            @AuthenticationPrincipal Long cuentaId,
-            @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return Response.ok(panelService.gastosPorCategoria(perfilService.idPrincipal(cuentaId), startDate, endDate),
-                "Gastos por categoría del período");
-    }
+        private final PanelService panelService;
+        private final PerfilService perfilService;
+        private final ReporteService reporteService;
 
-    @GetMapping("/comparacion")
-    public ResponseEntity<Object> comparacion(
-            @AuthenticationPrincipal Long cuentaId,
-            @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(name = "granularidad", required = false) String granularidad) {
-        return Response.ok(
-                panelService.compararPeriodos(perfilService.idPrincipal(cuentaId), cuentaId, startDate, endDate, granularidad),
-                "Comparación de períodos");
-    }
+        // Torta por categoría (US-6.1): el mismo cálculo que "En qué gastás" del panel,
+        // con el período elegido.
+        // Sin fechas, el período de las preferencias del perfil (por defecto, el mes
+        // actual).
+        @GetMapping("/por-categoria")
+        public ResponseEntity<Object> porCategoria(
+                        @AuthenticationPrincipal Long cuentaId,
+                        @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+                return Response.ok(
+                                panelService.gastosPorCategoria(perfilService.idPrincipal(cuentaId), cuentaId,
+                                                startDate, endDate),
+                                "Gastos por categoría del período");
+        }
 
-    @GetMapping(value = "/reporte", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<byte[]> reportePDF(
-            @AuthenticationPrincipal Long cuentaId,
-            @RequestParam(name = "alcance") String alcance,
-            @RequestParam(name = "fechaDesde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
-            @RequestParam(name = "fechaHasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta) {
+        @GetMapping("/comparacion")
+        public ResponseEntity<Object> comparacion(
+                        @AuthenticationPrincipal Long cuentaId,
+                        @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                        @RequestParam(name = "granularidad", required = false) String granularidad) {
+                return Response.ok(
+                                panelService.compararPeriodos(perfilService.idPrincipal(cuentaId), cuentaId, startDate,
+                                                endDate, granularidad),
+                                "Comparación de períodos");
+        }
 
-        byte[] pdf = reporteService.generarReportePDF(cuentaId, alcance, fechaDesde, fechaHasta);
+        @GetMapping(value = "/reporte", produces = MediaType.APPLICATION_PDF_VALUE)
+        public ResponseEntity<byte[]> reportePDF(
+                        @AuthenticationPrincipal Long cuentaId,
+                        @RequestParam(name = "alcance") String alcance,
+                        @RequestParam(name = "fechaDesde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
+                        @RequestParam(name = "fechaHasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta) {
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=reporte.pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf);
-    }
+                byte[] pdf = reporteService.generarReportePDF(cuentaId, alcance, fechaDesde, fechaHasta);
+
+                return ResponseEntity.ok()
+                                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=reporte.pdf")
+                                .contentType(MediaType.APPLICATION_PDF)
+                                .body(pdf);
+        }
 }

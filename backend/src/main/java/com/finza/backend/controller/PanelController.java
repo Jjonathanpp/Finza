@@ -27,14 +27,16 @@ public class PanelController {
         this.perfilService = perfilService;
     }
 
-    // Balance del período y últimos movimientos (US-5.1 y US-5.2), del perfil de la cuenta del token.
+    // Balance del período y últimos movimientos (US-5.1 y US-5.2), del perfil de la
+    // cuenta del token.
     @GetMapping("/resumen")
     public ResponseEntity<Object> obtenerResumen(
             @AuthenticationPrincipal Long cuentaId,
             @RequestParam(name = "limite", defaultValue = "5") int limite,
             @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        var resumen = panelService.obtenerResumen(perfilService.idPrincipal(cuentaId), cuentaId, limite, startDate, endDate);
+        var resumen = panelService.obtenerResumen(perfilService.idPrincipal(cuentaId), cuentaId, limite, startDate,
+                endDate);
         return Response.response(HttpStatus.OK, "Resumen del balance obtenido", resumen);
     }
 
@@ -44,7 +46,9 @@ public class PanelController {
             @AuthenticationPrincipal Long cuentaId,
             @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        
-        return Response.ok(panelService.gastosPorCategoria(perfilService.idPrincipal(cuentaId), startDate, endDate), "Gastos por categoría del período");
+
+        return Response.ok(
+                panelService.gastosPorCategoria(perfilService.idPrincipal(cuentaId), cuentaId, startDate, endDate),
+                "Gastos por categoría del período");
     }
 }
