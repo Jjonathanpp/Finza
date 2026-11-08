@@ -10,6 +10,7 @@ class ListaInvitacionesViewModel extends ChangeNotifier {
   final int _cuentaCompartidaId;
 
   bool _cargando = false;
+  bool _enviando = false;
   String? _error;
   List<InvitacionEnviada> _invitaciones = [];
   bool _cerrado = false;
@@ -26,6 +27,7 @@ class ListaInvitacionesViewModel extends ChangeNotifier {
   }
 
   bool get cargando => _cargando;
+  bool get enviando => _enviando;
   String? get error => _error;
   List<InvitacionEnviada> get invitaciones => _invitaciones;
 
@@ -39,6 +41,22 @@ class ListaInvitacionesViewModel extends ChangeNotifier {
       _error = e.message;
     } finally {
       _cargando = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> enviarInvitacion(String email) async {
+    _enviando = true;
+    notifyListeners();
+    try {
+      await _api.invitar(_cuentaCompartidaId, email);
+      await cargar(); // Recargamos la lista tras invitar
+      return true;
+    } on ApiException catch (e) {
+      _error = e.message;
+      return false;
+    } finally {
+      _enviando = false;
       notifyListeners();
     }
   }
