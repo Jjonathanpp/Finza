@@ -14,4 +14,15 @@ class InvitacionApi {
         .map((json) => InvitacionEnviada.fromJson(json))
         .toList();
   }
+
+  Future<InvitacionEnviada> invitar(
+    int cuentaCompartidaId,
+    String email,
+  ) async {
+    final data = await _api.post(
+      '/api/cuentas-compartidas/$cuentaCompartidaId/invitaciones',
+      {'email': email},
+    );
+    return InvitacionEnviada.fromJson(data);
+  }
 }
