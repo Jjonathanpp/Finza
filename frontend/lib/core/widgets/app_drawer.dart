@@ -139,29 +139,35 @@ class AppDrawer extends StatelessWidget {
                       );
                     },
                   ),
-                  if (cuentaActiva.value != null && esAdminDeCuentaActiva)
-                    ListTile(
-                      leading: const Icon(
-                        Icons.mail_outline,
-                        color: AppColors.muted,
-                      ),
-                      title: const Text(
-                        'Invitaciones enviadas',
-                        style: TextStyle(color: AppColors.text),
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ListaInvitacionesScreen(
-                              cuentaCompartidaId:
-                                  cuentaActiva.value!['id'] as int,
+                  ValueListenableBuilder<Map<String, dynamic>?>(
+                    valueListenable: cuentaActiva,
+                    builder: (context, cuenta, _) {
+                      if (cuenta == null || cuenta['rol'] != 'ADMIN') {
+                        return const SizedBox.shrink();
+                      }
+                      return ListTile(
+                        leading: const Icon(
+                          Icons.mail_outline,
+                          color: AppColors.muted,
+                        ),
+                        title: const Text(
+                          'Invitaciones enviadas',
+                          style: TextStyle(color: AppColors.text),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ListaInvitacionesScreen(
+                                cuentaCompartidaId: cuenta['id'] as int,
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                   ListTile(
                     leading: const Icon(Icons.mic, color: AppColors.muted),
                     title: const Text(
