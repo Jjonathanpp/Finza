@@ -98,12 +98,12 @@ void main() {
   // Selector de cuenta (t-13.1.2): la cuenta va en X-Perfil-Id (lo agrega el interceptor), así que
   // los presupuestos de una cuenta compartida usan las mismas rutas que los personales.
   group('cuenta compartida: mismas rutas, la cuenta va en el header', () {
-    test('editar un presupuesto: PUT con categoría, tope, mes y año', () async {
+    test('editar un presupuesto: PUT con categoría, tope, mes, año y cada cuánto avisar', () async {
       final api = _ApiClientQueAnota();
-      await PresupuestoApi(api).editarPresupuesto(id: 7, categoriaId: 6, montoTope: 2500, mes: 10, anio: 2026);
+      await PresupuestoApi(api).editarPresupuesto(id: 7, categoriaId: 6, montoTope: 2500, mes: 10, anio: 2026, intervaloAviso: 25);
 
       expect(api.ruta, '/api/presupuestos/7');
-      expect(api.cuerpo, {'categoriaId': 6, 'montoTope': 2500.0, 'mes': 10, 'anio': 2026});
+      expect(api.cuerpo, {'categoriaId': 6, 'montoTope': 2500.0, 'mes': 10, 'anio': 2026, 'intervaloAviso': 25});
     });
 
     test('desactivar un presupuesto: DELETE', () async {
