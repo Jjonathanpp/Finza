@@ -27,6 +27,9 @@ import com.finza.backend.repository.MovimientoRepository;
 import com.finza.backend.repository.PreferenciasSistemaRepository;
 import com.finza.backend.service.MovimientoService;
 import com.finza.backend.service.PanelService;
+import com.finza.backend.model.CuentaCompartida;
+import com.finza.backend.model.Perfil;
+import com.finza.backend.service.PerfilService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,38 +40,78 @@ public class PanelServiceImpl implements PanelService {
     private final MovimientoRepository movimientoRepository;
     private final PreferenciasSistemaRepository preferenciasRepository;
     private final MovimientoService movimientoService;
+    private final PerfilService perfilService;
 
     @Override
     @Transactional(readOnly = true)
-    public ResumenMesDTO obtenerResumen(Long perfilId, Long cuentaIdAutenticada, int limite, LocalDate startDate, LocalDate endDate) {
+    public ResumenMesDTO obtenerResumen(Long perfilId, Long cuentaIdAutenticada, int limite, LocalDate startDate,
+            LocalDate endDate) {
 
-        PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(perfilId).orElse(new PreferenciasSistema());
-        LocalDate[] rangoFechas = calcularRangoDeFechas(prefs, startDate, endDate); // <-- Todo resuelto acá
+        Perfil activo = perfilService.perfilActivo(cuentaIdAutenticada);
+        PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(activo.getId())
+                .orElse(new PreferenciasSistema());
+        LocalDate[] rangoFechas = calcularRangoDeFechas(prefs, startDate, endDate);
+
+        CuentaCompartida compartida = activo.getCuentaCompartida();
+        if (compartida != null) {
+            Long ccId = compartida.getId();
+            BigDecimal totalIngresos = movimientoRepository.sumarMontoPorTipoYFechasDeCuentaCompartida(
+                    ccId, true, rangoFechas[0], rangoFechas[1]);
+            BigDecimal totalEgresos = movimientoRepository.sumarMontoPorTipoYFechasDeCuentaCompartida(
+                    ccId, false, rangoFechas[0], rangoFechas[1]);
+            BigDecimal saldo = totalIngresos.subtract(totalEgresos);
+
+            BigDecimal saldoTotal = movimientoRepository
+                    .sumarMontoPorTipoYFechasDeCuentaCompartida(ccId, true, null, null)
+                    .subtract(movimientoRepository.sumarMontoPorTipoYFechasDeCuentaCompartida(ccId, false, null, null));
+
+            List<MovimientoResponseDTO> ultimosTodos = movimientoService
+                    .obtenerUltimosMovimientosDeCuentaCompartida(ccId, cuentaIdAutenticada, limite);
+            List<MovimientoResponseDTO> ultimosIngresos = movimientoService
+                    .obtenerUltimosIngresosDeCuentaCompartida(ccId, cuentaIdAutenticada, limite);
+            List<MovimientoResponseDTO> ultimosEgresos = movimientoService.obtenerUltimosEgresosDeCuentaCompartida(ccId,
+                    cuentaIdAutenticada, limite);
+
+            return new ResumenMesDTO(totalIngresos, totalEgresos, saldo, saldoTotal, ultimosTodos, ultimosIngresos,
+                    ultimosEgresos);
+        }
 
         BigDecimal totalIngresos = movimientoRepository.sumarMontoPorTipoYFechas(
-                perfilId, cuentaIdAutenticada, true, rangoFechas[0], rangoFechas[1]);
+                activo.getId(), cuentaIdAutenticada, true, rangoFechas[0], rangoFechas[1]);
         BigDecimal totalEgresos = movimientoRepository.sumarMontoPorTipoYFechas(
-                perfilId, cuentaIdAutenticada, false, rangoFechas[0], rangoFechas[1]);
+                activo.getId(), cuentaIdAutenticada, false, rangoFechas[0], rangoFechas[1]);
         BigDecimal saldo = totalIngresos.subtract(totalEgresos);
-        
-        BigDecimal saldoTotal = movimientoRepository.sumarMontoPorTipoYFechas(perfilId, cuentaIdAutenticada, true, null, null)
-                .subtract(movimientoRepository.sumarMontoPorTipoYFechas(perfilId, cuentaIdAutenticada, false, null, null));
 
-        List<MovimientoResponseDTO> ultimosTodos = movimientoService.obtenerUltimosMovimientos(perfilId, cuentaIdAutenticada, limite);
-        List<MovimientoResponseDTO> ultimosIngresos = movimientoService.obtenerUltimosIngresos(perfilId, cuentaIdAutenticada, limite);
-        List<MovimientoResponseDTO> ultimosEgresos = movimientoService.obtenerUltimosEgresos(perfilId, cuentaIdAutenticada, limite);
+        BigDecimal saldoTotal = movimientoRepository
+                .sumarMontoPorTipoYFechas(activo.getId(), cuentaIdAutenticada, true, null, null)
+                .subtract(movimientoRepository.sumarMontoPorTipoYFechas(activo.getId(), cuentaIdAutenticada, false,
+                        null, null));
 
-        return new ResumenMesDTO(totalIngresos, totalEgresos, saldo, saldoTotal, ultimosTodos, ultimosIngresos, ultimosEgresos);
+        List<MovimientoResponseDTO> ultimosTodos = movimientoService.obtenerUltimosMovimientos(activo.getId(),
+                cuentaIdAutenticada, limite);
+        List<MovimientoResponseDTO> ultimosIngresos = movimientoService.obtenerUltimosIngresos(activo.getId(),
+                cuentaIdAutenticada, limite);
+        List<MovimientoResponseDTO> ultimosEgresos = movimientoService.obtenerUltimosEgresos(activo.getId(),
+                cuentaIdAutenticada, limite);
+
+        return new ResumenMesDTO(totalIngresos, totalEgresos, saldo, saldoTotal, ultimosTodos, ultimosIngresos,
+                ultimosEgresos);
     }
 
     @Override
-    public ResumenGastosDTO gastosPorCategoria(Long perfilId, LocalDate startDate, LocalDate endDate) {
-        
-        PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(perfilId).orElse(new PreferenciasSistema());
-        LocalDate[] rangoFechas = calcularRangoDeFechas(prefs, startDate, endDate); // <-- Todo resuelto acá también
+    public ResumenGastosDTO gastosPorCategoria(Long perfilId, Long cuentaIdAutenticada, LocalDate startDate,
+            LocalDate endDate) {
 
-        List<GastoPorCategoriaDTO> categorias =
-                movimientoRepository.sumarGastosPorCategoria(perfilId, rangoFechas[0], rangoFechas[1]);
+        Perfil activo = perfilService.perfilActivo(cuentaIdAutenticada);
+        PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(activo.getId())
+                .orElse(new PreferenciasSistema());
+        LocalDate[] rangoFechas = calcularRangoDeFechas(prefs, startDate, endDate);
+
+        CuentaCompartida compartida = activo.getCuentaCompartida();
+        List<GastoPorCategoriaDTO> categorias = (compartida != null)
+                ? movimientoRepository.sumarGastosPorCategoriaDeCuentaCompartida(compartida.getId(), rangoFechas[0],
+                        rangoFechas[1])
+                : movimientoRepository.sumarGastosPorCategoria(activo.getId(), rangoFechas[0], rangoFechas[1]);
 
         BigDecimal total = categorias.stream()
                 .map(GastoPorCategoriaDTO::getTotal)
@@ -84,7 +127,8 @@ public class PanelServiceImpl implements PanelService {
 
     @Override
     @Transactional(readOnly = true)
-    public ComparacionPeriodosDTO compararPeriodos(Long perfilId, Long cuentaIdAutenticada, LocalDate startDate, LocalDate endDate, String granularidad) {
+    public ComparacionPeriodosDTO compararPeriodos(Long perfilId, Long cuentaIdAutenticada, LocalDate startDate,
+            LocalDate endDate, String granularidad) {
 
         String granularidadElegida = normalizarGranularidad(granularidad);
 
@@ -115,7 +159,7 @@ public class PanelServiceImpl implements PanelService {
             BigDecimal saldo = ingresos.subtract(egresos);
 
             List<GastoPorCategoriaDTO> categorias = gastosPorCategoria(
-                    perfilId, periodo.inicio(), periodo.fin()).getCategorias();
+                    perfilId, cuentaIdAutenticada, periodo.inicio(), periodo.fin()).getCategorias();
 
             comparados.add(new PeriodoComparacionDTO(
                     periodo.etiqueta(),
@@ -137,12 +181,13 @@ public class PanelServiceImpl implements PanelService {
 
     // El método ahora maneja la prioridad (parámetros explícitos) y la validación
     private LocalDate[] calcularRangoDeFechas(PreferenciasSistema prefs, LocalDate startDate, LocalDate endDate) {
-        
+
         if (startDate != null && endDate != null) {
             if (startDate.isAfter(endDate)) {
-                throw new BadRequestException("La fecha de inicio (startDate) no puede ser posterior a la fecha de fin (endDate).");
+                throw new BadRequestException(
+                        "La fecha de inicio (startDate) no puede ser posterior a la fecha de fin (endDate).");
             }
-            return new LocalDate[]{startDate, endDate};
+            return new LocalDate[] { startDate, endDate };
         }
 
         LocalDate hoy = LocalDate.now();
@@ -164,9 +209,11 @@ public class PanelServiceImpl implements PanelService {
             case CUATRIMESTRAL:
                 int mesActualCuatri = hoy.getMonthValue();
                 int inicioMesCuatri = 1;
-                if (mesActualCuatri >= 5 && mesActualCuatri <= 8) inicioMesCuatri = 5;
-                else if (mesActualCuatri >= 9) inicioMesCuatri = 9;
-                
+                if (mesActualCuatri >= 5 && mesActualCuatri <= 8)
+                    inicioMesCuatri = 5;
+                else if (mesActualCuatri >= 9)
+                    inicioMesCuatri = 9;
+
                 inicio = LocalDate.of(hoy.getYear(), inicioMesCuatri, 1);
                 fin = YearMonth.of(hoy.getYear(), inicioMesCuatri + 3).atEndOfMonth();
                 break;
@@ -185,11 +232,12 @@ public class PanelServiceImpl implements PanelService {
                 fin = mesActual.atEndOfMonth();
                 break;
         }
-        
-        return new LocalDate[]{inicio, fin};
+
+        return new LocalDate[] { inicio, fin };
     }
 
-    private record Periodo(String etiqueta, LocalDate inicio, LocalDate fin) {}
+    private record Periodo(String etiqueta, LocalDate inicio, LocalDate fin) {
+    }
 
     private List<Periodo> dividirEnMeses(LocalDate desde, LocalDate hasta) {
         List<Periodo> periodos = new ArrayList<>();
@@ -226,7 +274,8 @@ public class PanelServiceImpl implements PanelService {
         if (mesInicio.equals(mesFin)) {
             return "Semana del " + inicio.getDayOfMonth() + " al " + fin.getDayOfMonth() + " de " + mesInicio;
         }
-        return "Semana del " + inicio.getDayOfMonth() + " de " + mesInicio + " al " + fin.getDayOfMonth() + " de " + mesFin;
+        return "Semana del " + inicio.getDayOfMonth() + " de " + mesInicio + " al " + fin.getDayOfMonth() + " de "
+                + mesFin;
     }
 
     private String nombreMes(LocalDate fecha) {
@@ -260,4 +309,3 @@ public class PanelServiceImpl implements PanelService {
                 .divide(anterior, 1, RoundingMode.HALF_UP);
     }
 }
-

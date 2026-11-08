@@ -20,131 +20,161 @@ import com.finza.backend.model.Movimiento;
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
       boolean existsByCategoriaId(Long categoriaId);
- 
-       @Query("SELECT m FROM Movimiento m WHERE (" +
-                     "  (:cuentaCompartidaId IS NULL AND m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId) " +
-                     "  OR (:cuentaCompartidaId IS NOT NULL AND m.perfil.cuentaCompartida.id = :cuentaCompartidaId " +
-                     "      AND (:perfilId IS NULL OR m.perfil.id = :perfilId))" +
-                     ") " +
-                     "AND (CAST(:fechaInicio AS date) IS NULL OR m.fecha >= :fechaInicio) " +
-                     "AND (CAST(:fechaFin AS date) IS NULL OR m.fecha <= :fechaFin) " +
-                     "AND (:categoriaId IS NULL OR m.categoria.id = :categoriaId) " +
-                     "AND (:esIngreso IS NULL OR m.esIngreso = :esIngreso) " +
-                     "AND (:estado IS NULL OR m.estado = :estado)")
-       Page<Movimiento> buscarConFiltros(
-                     @Param("perfilId") Long perfilId,
-                     @Param("cuentaId") Long cuentaId,
-                     @Param("cuentaCompartidaId") Long cuentaCompartidaId,
-                     @Param("fechaInicio") LocalDate fechaInicio,
-                     @Param("fechaFin") LocalDate fechaFin,
-                     @Param("categoriaId") Long categoriaId,
-                     @Param("esIngreso") Boolean esIngreso,
-                     @Param("estado") Movimiento.EstadoMovimiento estado,
-                     Pageable pageable);
- 
-       @EntityGraph(attributePaths = { "perfil", "perfil.cuentaCompartida", "categoria" })
-       @Query("SELECT m FROM Movimiento m WHERE m.perfil.cuenta.id = :cuentaId " +
-                     "AND (CAST(:fechaInicio AS date) IS NULL OR m.fecha >= :fechaInicio) " +
-                     "AND (CAST(:fechaFin AS date) IS NULL OR m.fecha <= :fechaFin) " +
-                     "AND (:categoriaId IS NULL OR m.categoria.id = :categoriaId) " +
-                     "AND (:esIngreso IS NULL OR m.esIngreso = :esIngreso) " +
-                     "AND (:estado IS NULL OR m.estado = :estado)")
-       Page<Movimiento> buscarConsolidadoPorCuenta(
-                     @Param("cuentaId") Long cuentaId,
-                     @Param("fechaInicio") LocalDate fechaInicio,
-                     @Param("fechaFin") LocalDate fechaFin,
-                     @Param("categoriaId") Long categoriaId,
-                     @Param("esIngreso") Boolean esIngreso,
-                     @Param("estado") Movimiento.EstadoMovimiento estado,
-                     Pageable pageable);
- 
-       Optional<Movimiento> findByIdAndPerfilId(Long id, Long perfilId);
- 
-       boolean existsByExternalId(String externalId);
- 
-       Optional<Movimiento> findByExternalId(String externalId);
- 
-      
-       @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
-                     "FROM Movimiento m JOIN m.categoria c " +
-                     "WHERE m.perfil.id = :perfilId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 " +
-                     "AND m.fecha BETWEEN :desde AND :hasta " +
-                     "GROUP BY c.id, c.nombre, c.color " +
-                     "ORDER BY SUM(m.monto) DESC")
-       List<GastoPorCategoriaDTO> sumarGastosPorCategoria(
-                     @Param("perfilId") Long perfilId,
-                     @Param("desde") LocalDate desde,
-                     @Param("hasta") LocalDate hasta);
- 
-      
-       @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
-                     "FROM Movimiento m JOIN m.categoria c " +
-                     "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 "
-                     +
-                     "AND m.fecha BETWEEN :desde AND :hasta " +
-                     "GROUP BY c.id, c.nombre, c.color " +
-                     "ORDER BY SUM(m.monto) DESC")
-       List<GastoPorCategoriaDTO> sumarGastosPorCategoriaDeCuentaCompartida(
-                     @Param("cuentaCompartidaId") Long cuentaCompartidaId,
-                     @Param("desde") LocalDate desde,
-                     @Param("hasta") LocalDate hasta);
- 
-     
-       @Query("SELECT m.categoria.id, m.perfil.id, SUM(m.monto) FROM Movimiento m " +
-                     "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 "
-                     +
-                     "AND m.fecha BETWEEN :desde AND :hasta " +
-                     "GROUP BY m.categoria.id, m.perfil.id")
-       List<Object[]> sumarGastosPorCategoriaYPerfilDeCuentaCompartida(
-                     @Param("cuentaCompartidaId") Long cuentaCompartidaId,
-                     @Param("desde") LocalDate desde,
-                     @Param("hasta") LocalDate hasta);
- 
-       @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m " +
-                     "WHERE m.perfil.id = :perfilId " +
-                     "AND m.perfil.cuenta.id = :cuentaId " +
-                     "AND m.esIngreso = :esIngreso " +
-                     "AND (cast(:inicio as date) IS NULL OR m.fecha >= :inicio) " +
-                     "AND (cast(:fin as date) IS NULL OR m.fecha <= :fin) " +
-                     "AND m.estado = 'APROBADO'")
-       BigDecimal sumarMontoPorTipoYFechas(
-                     @Param("perfilId") Long perfilId,
-                     @Param("cuentaId") Long cuentaId,
-                     @Param("esIngreso") boolean esIngreso,
-                     @Param("inicio") LocalDate inicio,
-                     @Param("fin") LocalDate fin);
- 
-       @Query("SELECT m FROM Movimiento m " +
-                     "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
-                     "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
-       List<Movimiento> buscarUltimosMovimientos(
-                     @Param("perfilId") Long perfilId,
-                     @Param("cuentaId") Long cuentaId,
-                     Pageable pageable);
- 
-       
-       @Query("SELECT m FROM Movimiento m " +
-                     "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
-                     "AND m.esIngreso = true " +
-                     "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
-       List<Movimiento> buscarUltimosIngresos(
-                     @Param("perfilId") Long perfilId,
-                     @Param("cuentaId") Long cuentaId,
-                     Pageable pageable);
- 
-       
-       @Query("SELECT m FROM Movimiento m " +
-                     "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
-                     "AND m.esIngreso = false " +
-                     "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
-       List<Movimiento> buscarUltimosEgresos(
-                     @Param("perfilId") Long perfilId,
-                     @Param("cuentaId") Long cuentaId,
-                     Pageable pageable);
- 
-       @Query("SELECT m FROM Movimiento m WHERE m.perfil.id = :perfilId AND m.origen = :origen AND m.estado = :estado ORDER BY m.fecha DESC, m.fechaCreacion DESC")
-       List<Movimiento> findPendientesMercadoPago(
-                     @Param("perfilId") Long perfilId,
-                     @Param("origen") Movimiento.OrigenMovimiento origen,
-                     @Param("estado") Movimiento.EstadoMovimiento estado);
+
+      @Query("SELECT m FROM Movimiento m WHERE (" +
+                  "  (:cuentaCompartidaId IS NULL AND m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId) " +
+                  "  OR (:cuentaCompartidaId IS NOT NULL AND m.perfil.cuentaCompartida.id = :cuentaCompartidaId " +
+                  "      AND (:perfilId IS NULL OR m.perfil.id = :perfilId))" +
+                  ") " +
+                  "AND (CAST(:fechaInicio AS date) IS NULL OR m.fecha >= :fechaInicio) " +
+                  "AND (CAST(:fechaFin AS date) IS NULL OR m.fecha <= :fechaFin) " +
+                  "AND (:categoriaId IS NULL OR m.categoria.id = :categoriaId) " +
+                  "AND (:esIngreso IS NULL OR m.esIngreso = :esIngreso) " +
+                  "AND (:estado IS NULL OR m.estado = :estado)")
+      Page<Movimiento> buscarConFiltros(
+                  @Param("perfilId") Long perfilId,
+                  @Param("cuentaId") Long cuentaId,
+                  @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+                  @Param("fechaInicio") LocalDate fechaInicio,
+                  @Param("fechaFin") LocalDate fechaFin,
+                  @Param("categoriaId") Long categoriaId,
+                  @Param("esIngreso") Boolean esIngreso,
+                  @Param("estado") Movimiento.EstadoMovimiento estado,
+                  Pageable pageable);
+
+      @EntityGraph(attributePaths = { "perfil", "perfil.cuentaCompartida", "categoria" })
+      @Query("SELECT m FROM Movimiento m WHERE m.perfil.cuenta.id = :cuentaId " +
+                  "AND (CAST(:fechaInicio AS date) IS NULL OR m.fecha >= :fechaInicio) " +
+                  "AND (CAST(:fechaFin AS date) IS NULL OR m.fecha <= :fechaFin) " +
+                  "AND (:categoriaId IS NULL OR m.categoria.id = :categoriaId) " +
+                  "AND (:esIngreso IS NULL OR m.esIngreso = :esIngreso) " +
+                  "AND (:estado IS NULL OR m.estado = :estado)")
+      Page<Movimiento> buscarConsolidadoPorCuenta(
+                  @Param("cuentaId") Long cuentaId,
+                  @Param("fechaInicio") LocalDate fechaInicio,
+                  @Param("fechaFin") LocalDate fechaFin,
+                  @Param("categoriaId") Long categoriaId,
+                  @Param("esIngreso") Boolean esIngreso,
+                  @Param("estado") Movimiento.EstadoMovimiento estado,
+                  Pageable pageable);
+
+      Optional<Movimiento> findByIdAndPerfilId(Long id, Long perfilId);
+
+      boolean existsByExternalId(String externalId);
+
+      Optional<Movimiento> findByExternalId(String externalId);
+
+      @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
+                  "FROM Movimiento m JOIN m.categoria c " +
+                  "WHERE m.perfil.id = :perfilId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 " +
+                  "AND m.fecha BETWEEN :desde AND :hasta " +
+                  "GROUP BY c.id, c.nombre, c.color " +
+                  "ORDER BY SUM(m.monto) DESC")
+      List<GastoPorCategoriaDTO> sumarGastosPorCategoria(
+                  @Param("perfilId") Long perfilId,
+                  @Param("desde") LocalDate desde,
+                  @Param("hasta") LocalDate hasta);
+
+      @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
+                  "FROM Movimiento m JOIN m.categoria c " +
+                  "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 "
+                  +
+                  "AND m.fecha BETWEEN :desde AND :hasta " +
+                  "GROUP BY c.id, c.nombre, c.color " +
+                  "ORDER BY SUM(m.monto) DESC")
+      List<GastoPorCategoriaDTO> sumarGastosPorCategoriaDeCuentaCompartida(
+                  @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+                  @Param("desde") LocalDate desde,
+                  @Param("hasta") LocalDate hasta);
+
+      @Query("SELECT m.categoria.id, m.perfil.id, SUM(m.monto) FROM Movimiento m " +
+                  "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId AND m.esIngreso = false AND m.estado = APROBADO AND m.monto > 0 "
+                  +
+                  "AND m.fecha BETWEEN :desde AND :hasta " +
+                  "GROUP BY m.categoria.id, m.perfil.id")
+      List<Object[]> sumarGastosPorCategoriaYPerfilDeCuentaCompartida(
+                  @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+                  @Param("desde") LocalDate desde,
+                  @Param("hasta") LocalDate hasta);
+
+      @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m " +
+                  "WHERE m.perfil.id = :perfilId " +
+                  "AND m.perfil.cuenta.id = :cuentaId " +
+                  "AND m.esIngreso = :esIngreso " +
+                  "AND (cast(:inicio as date) IS NULL OR m.fecha >= :inicio) " +
+                  "AND (cast(:fin as date) IS NULL OR m.fecha <= :fin) " +
+                  "AND m.estado = 'APROBADO'")
+      BigDecimal sumarMontoPorTipoYFechas(
+                  @Param("perfilId") Long perfilId,
+                  @Param("cuentaId") Long cuentaId,
+                  @Param("esIngreso") boolean esIngreso,
+                  @Param("inicio") LocalDate inicio,
+                  @Param("fin") LocalDate fin);
+
+      @Query("SELECT m FROM Movimiento m " +
+                  "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
+                  "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+      List<Movimiento> buscarUltimosMovimientos(
+                  @Param("perfilId") Long perfilId,
+                  @Param("cuentaId") Long cuentaId,
+                  Pageable pageable);
+
+      @Query("SELECT m FROM Movimiento m " +
+                  "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
+                  "AND m.esIngreso = true " +
+                  "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+      List<Movimiento> buscarUltimosIngresos(
+                  @Param("perfilId") Long perfilId,
+                  @Param("cuentaId") Long cuentaId,
+                  Pageable pageable);
+
+      @Query("SELECT m FROM Movimiento m " +
+                  "WHERE m.perfil.id = :perfilId AND m.perfil.cuenta.id = :cuentaId " +
+                  "AND m.esIngreso = false " +
+                  "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+      List<Movimiento> buscarUltimosEgresos(
+                  @Param("perfilId") Long perfilId,
+                  @Param("cuentaId") Long cuentaId,
+                  Pageable pageable);
+
+      @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m " +
+                  "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId " +
+                  "AND m.esIngreso = :esIngreso " +
+                  "AND (cast(:inicio as date) IS NULL OR m.fecha >= :inicio) " +
+                  "AND (cast(:fin as date) IS NULL OR m.fecha <= :fin) " +
+                  "AND m.estado = 'APROBADO'")
+      BigDecimal sumarMontoPorTipoYFechasDeCuentaCompartida(
+                  @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+                  @Param("esIngreso") boolean esIngreso,
+                  @Param("inicio") LocalDate inicio,
+                  @Param("fin") LocalDate fin);
+
+      @Query("SELECT m FROM Movimiento m " +
+                  "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId " +
+                  "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+      List<Movimiento> buscarUltimosMovimientosDeCuentaCompartida(
+                  @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+                  Pageable pageable);
+
+      @Query("SELECT m FROM Movimiento m " +
+                  "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId " +
+                  "AND m.esIngreso = true " +
+                  "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+      List<Movimiento> buscarUltimosIngresosDeCuentaCompartida(
+                  @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+                  Pageable pageable);
+
+      @Query("SELECT m FROM Movimiento m " +
+                  "WHERE m.perfil.cuentaCompartida.id = :cuentaCompartidaId " +
+                  "AND m.esIngreso = false " +
+                  "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+      List<Movimiento> buscarUltimosEgresosDeCuentaCompartida(
+                  @Param("cuentaCompartidaId") Long cuentaCompartidaId,
+                  Pageable pageable);
+
+      @Query("SELECT m FROM Movimiento m WHERE m.perfil.id = :perfilId AND m.origen = :origen AND m.estado = :estado ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+      List<Movimiento> findPendientesMercadoPago(
+                  @Param("perfilId") Long perfilId,
+                  @Param("origen") Movimiento.OrigenMovimiento origen,
+                  @Param("estado") Movimiento.EstadoMovimiento estado);
 }
