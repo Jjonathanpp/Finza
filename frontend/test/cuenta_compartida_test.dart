@@ -89,6 +89,7 @@ class _PresupuestosDeMentira extends Fake implements PresupuestoApi {
     required double montoTope,
     required int mes,
     required int anio,
+    required int intervaloAviso,
   }) async {
     if (rechazo != null) throw rechazo!;
     editados.add({'id': id, 'categoriaId': categoriaId, 'montoTope': montoTope, 'mes': mes, 'anio': anio});
@@ -193,6 +194,10 @@ void main() {
       expect(api.creadas, ['Depto']);
       expect(find.text('Nueva cuenta compartida'), findsNothing);
       expect(cuentaActiva.value, {'id': 8, 'nombre': 'Depto', 'perfilId': 21, 'rol': 'ADMIN'});
+
+      // Al pasar a la cuenta nueva, irAlInicio deja la revisión de avisos de presupuesto para
+      // dentro de 700 ms: se deja correr para que el test no termine con ese timer pendiente.
+      await tester.pump(const Duration(milliseconds: 700));
     });
 
     testWidgets('si el backend no la crea, muestra el mensaje y el cuadro sigue abierto', (tester) async {
