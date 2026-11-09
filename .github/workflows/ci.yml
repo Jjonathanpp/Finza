@@ -1,0 +1,55 @@
+name: CI
+
+# Controles automáticos en cada PR a main y en cada push a main (T-1.9.1): compila el backend y corre
+# flutter analyze y flutter test, los mismos controles que hace "Publicar APK" antes de armar la APK.
+# Los dos trabajos corren a la vez. Si alguno falla, el PR queda en rojo y muestra el paso que falló.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# En un PR, si se pushea de nuevo se cancela la corrida vieja. En main no: cada commit termina la suya,
+# porque el deploy automático de Render (T-1.9.3) mira los controles de cada commit.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      # Maven ya viene instalado en las máquinas de GitHub. Con ./mvnw se bajaba en cada corrida, y esa
+      # descarga falló en la primera prueba ("wget: Failed to fetch ... apache-maven-3.9.16-bin.zip").
+      - run: mvn -B -ntp verify
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.9
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
