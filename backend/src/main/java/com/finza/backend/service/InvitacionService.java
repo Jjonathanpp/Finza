@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
+import com.finza.backend.dto.Invitaciones_a_Cuenta.InvitacionDetalleResponse;
 import com.finza.backend.dto.Invitaciones_a_Cuenta.InvitacionRequest;
 import com.finza.backend.dto.Invitaciones_a_Cuenta.InvitacionResponse;
 import com.finza.backend.exception.BadRequestException;
@@ -103,27 +105,71 @@ public class InvitacionService {
         return new InvitacionResponse(inv.getId(), email, inv.getEstado(), inv.getFechaExpiracion(), token);
     }
 
+    // La ruta vieja (POST /api/cuentas-compartidas/{id}/invitaciones/aceptar): se deja igual
+    // para no romper a quien la use (y al test de Cucumber de permisos).
     @Transactional
     public InvitacionResponse aceptarInvitacion(String token, Long cuentaId) {
-        String tokenHash = hash(token);
+        Aceptada aceptada = aceptar(token, cuentaId);
+        InvitacionCuenta inv = aceptada.invitacion();
+        return new InvitacionResponse(inv.getId(), inv.getEmailInvitado(), inv.getEstado(), inv.getFechaExpiracion(), token);
+    }
 
-        InvitacionCuenta inv = invitacionRepository.findByTokenHashForUpdate(tokenHash)
-                .orElseThrow(() -> new BadRequestException("Token de invitación inválido"));
+    // ---------------- Desde el enlace de la invitación (t-11.2.2) ----------------
+    // La app solo tiene el token (finza://invitacion?token=...): por eso estas no piden el id
+    // de la cuenta compartida.
 
-        if (inv.getEstado() != EstadoInvitacion.PENDIENTE) {
-            throw new BadRequestException("La invitación ya no está pendiente");
-        }
-
-        if (inv.getFechaExpiracion().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("La invitación expiró");
-        }
-
+    // Lo que muestra la pantalla antes de aceptar o rechazar. No cambia nada.
+    @Transactional(readOnly = true)
+    public InvitacionDetalleResponse detalle(String token, Long cuentaId) {
+        InvitacionCuenta inv = invitacionRepository.findByTokenHash(hash(token))
+                .orElseThrow(() -> new BadRequestException("La invitación no existe o el enlace está incompleto"));
         Cuenta cuenta = cuentaRepository.findById(cuentaId)
                 .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
 
-        if (!cuenta.getEmail().equalsIgnoreCase(inv.getEmailInvitado())) {
-            throw new BadRequestException("El email de tu cuenta no coincide con el invitado");
-        }
+        boolean esParaVos = cuenta.getEmail().equalsIgnoreCase(inv.getEmailInvitado());
+        boolean yaSosMiembro = perfilRepository
+                .findByCuentaIdAndCuentaCompartidaId(cuentaId, inv.getCuentaCompartida().getId())
+                .isPresent();
+
+        return new InvitacionDetalleResponse(
+                inv.getCuentaCompartida().getNombre(),
+                inv.getInvitadoPor().getNombrePerfil(),
+                // Si el enlace le llegó a otra persona, no se le muestra el email completo.
+                esParaVos ? inv.getEmailInvitado() : enmascarar(inv.getEmailInvitado()),
+                estadoVisible(inv, LocalDateTime.now()),
+                inv.getFechaExpiracion(),
+                esParaVos,
+                yaSosMiembro);
+    }
+
+    // Acepta y devuelve la cuenta compartida con el mismo formato que GET /api/cuentas-compartidas
+    // ({id, nombre, rol, perfilId}): la app la guarda como cuenta activa y entra directo a ella.
+    @Transactional
+    public Map<String, Object> aceptarPorToken(String token, Long cuentaId) {
+        Perfil perfil = aceptar(token, cuentaId).perfil();
+        CuentaCompartida compartida = perfil.getCuentaCompartida();
+        return Map.of(
+                "id", compartida.getId(),
+                "nombre", compartida.getNombre(),
+                "rol", perfil.getRol().name(),
+                "perfilId", perfil.getId());
+    }
+
+    // Con las mismas condiciones que aceptar: pendiente, sin vencer y para el email de quien la rechaza.
+    @Transactional
+    public void rechazar(String token, Long cuentaId) {
+        InvitacionCuenta inv = invitacionValida(token);
+        exigirQueSeaParaVos(inv, cuentaId);
+        inv.setEstado(EstadoInvitacion.RECHAZADA);
+    }
+
+    // ---------------- Compartido entre aceptar y rechazar ----------------
+
+    private record Aceptada(InvitacionCuenta invitacion, Perfil perfil) {}
+
+    private Aceptada aceptar(String token, Long cuentaId) {
+        InvitacionCuenta inv = invitacionValida(token);
+        Cuenta cuenta = exigirQueSeaParaVos(inv, cuentaId);
 
         boolean yaEsMiembro = perfilRepository.findByCuentaIdAndCuentaCompartidaId(
                 cuenta.getId(), inv.getCuentaCompartida().getId()).isPresent();
@@ -143,7 +189,39 @@ public class InvitacionService {
         perfil.setEsActivo(true);
         perfilRepository.save(perfil);
 
-        return new InvitacionResponse(inv.getId(), inv.getEmailInvitado(), inv.getEstado(), inv.getFechaExpiracion(), token);
+        return new Aceptada(inv, perfil);
+    }
+
+    // La invitación del token, bloqueada para que dos pedidos a la vez no la usen dos veces;
+    // tiene que estar pendiente y sin vencer.
+    private InvitacionCuenta invitacionValida(String token) {
+        InvitacionCuenta inv = invitacionRepository.findByTokenHashForUpdate(hash(token))
+                .orElseThrow(() -> new BadRequestException("Token de invitación inválido"));
+
+        if (inv.getEstado() != EstadoInvitacion.PENDIENTE) {
+            throw new BadRequestException("La invitación ya no está pendiente");
+        }
+        if (inv.getFechaExpiracion().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("La invitación expiró");
+        }
+        return inv;
+    }
+
+    private Cuenta exigirQueSeaParaVos(InvitacionCuenta inv, Long cuentaId) {
+        Cuenta cuenta = cuentaRepository.findById(cuentaId)
+                .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
+        if (!cuenta.getEmail().equalsIgnoreCase(inv.getEmailInvitado())) {
+            throw new BadRequestException("El email de tu cuenta no coincide con el invitado");
+        }
+        return cuenta;
+    }
+
+    // juan.perez@gmail.com → ju***@gmail.com
+    private static String enmascarar(String email) {
+        int arroba = email.indexOf('@');
+        if (arroba <= 0) return "***";
+        String usuario = email.substring(0, arroba);
+        return usuario.substring(0, Math.min(2, usuario.length())) + "***" + email.substring(arroba);
     }
 
     private String generarToken() {
