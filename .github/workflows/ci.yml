@@ -33,7 +33,9 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: maven
-      - run: ./mvnw -B verify
+      # Maven ya viene instalado en las máquinas de GitHub. Con ./mvnw se bajaba en cada corrida, y esa
+      # descarga falló en la primera prueba ("wget: Failed to fetch ... apache-maven-3.9.16-bin.zip").
+      - run: mvn -B -ntp verify
 
   frontend:
     runs-on: ubuntu-latest
