@@ -14,6 +14,7 @@ public class HealthController {
 
 	@GetMapping("/health")
 	public ResponseEntity<Object> health() {
+		metodoQueNoExiste(); // PRUEBA DEL CI: no compila a propósito
 		return Response.ok(Map.of("service", "finza-backend"));
 	}
 } 
