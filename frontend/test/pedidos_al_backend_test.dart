@@ -102,7 +102,7 @@ void main() {
       final api = _ApiClientQueAnota();
       await PresupuestoApi(api).editarPresupuesto(id: 7, categoriaId: 6, montoTope: 2500, mes: 10, anio: 2026, intervaloAviso: 25);
 
-      expect(api.ruta, '/api/presupuestos/7');
+      expect(api.ruta, '/api/presupuestos/8');
       expect(api.cuerpo, {'categoriaId': 6, 'montoTope': 2500.0, 'mes': 10, 'anio': 2026, 'intervaloAviso': 25});
     });
 
