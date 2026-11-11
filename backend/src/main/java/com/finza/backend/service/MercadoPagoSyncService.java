@@ -144,7 +144,7 @@ public class MercadoPagoSyncService {
                 .build();
     }
 
-    @Scheduled(cron = "0 0 */4 * * *")
+    //@Scheduled(cron = "0 0 */4 * * *")
     public void sincronizarAutomaticamenteTodasLasCuentas() {
         log.info("Iniciando tarea programada: sincronización periódica de Mercado Pago...");
         List<CuentaMP> cuentasConectadas = cuentaMPRepository.findAll();
