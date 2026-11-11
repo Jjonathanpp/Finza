@@ -8,6 +8,8 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/encabezado_pestana.dart';
+import 'package:frontend/core/widgets/tocable.dart';
 
 class VoiceScreen extends StatefulWidget {
   const VoiceScreen({super.key});
@@ -17,10 +19,13 @@ class VoiceScreen extends StatefulWidget {
 }
 
 class _VoiceScreenState extends State<VoiceScreen> {
+  static const _textoInicial = 'Tocá para grabar';
+
   late final AudioRecorder _audioRecorder;
   bool _isRecording = false;
   bool _isProcessing = false;
-  String _text = 'Tocá el micrófono y hablá...';
+  String _text = _textoInicial;
+  bool _esError = false;
   
   Timer? _timer;
   int _recordDuration = 0;
@@ -48,6 +53,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
         _isRecording = false;
         _isProcessing = true;
         _text = 'Procesando con la IA...';
+        _esError = false;
       });
 
       if (path != null) {
@@ -78,20 +84,18 @@ class _VoiceScreenState extends State<VoiceScreen> {
       setState(() {
         _isRecording = true;
         _recordDuration = 0;
-        _text = 'Grabando... 00:00';
+        _esError = false;
       });
 
       // Cronómetro para feedback visual
       _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
-        setState(() {
-          _recordDuration++;
-          final minutes = _recordDuration ~/ 60;
-          final seconds = _recordDuration % 60;
-          _text = 'Grabando... ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-        });
+        setState(() => _recordDuration++);
       });
     } else {
-      setState(() => _text = 'Se necesita permiso de micrófono.');
+      setState(() {
+        _text = 'Se necesita permiso de micrófono.';
+        _esError = true;
+      });
     }
   }
 
@@ -126,55 +130,151 @@ class _VoiceScreenState extends State<VoiceScreen> {
 
       if (mounted) {
         mostrarExito(context, 'Movimiento registrado correctamente');
-        setState(() => _text = 'Tocá el micrófono y hablá...');
+        setState(() => _text = _textoInicial);
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _text = 'Error al procesar: $e');
+        setState(() {
+          _text = 'Error al procesar: $e';
+          _esError = true;
+        });
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
+  String get _contador {
+    final segundos = (_recordDuration % 60).toString().padLeft(2, '0');
+    return '${_recordDuration ~/ 60}:$segundos';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colores = context.colores;
+    final textos = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: barraConVolver(context, 'Registro por voz'),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: _isProcessing 
-                  ? const CircularProgressIndicator(color: AppColors.accent)
-                  : Text(
-                      _text,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18, 
-                        fontWeight: _isRecording ? FontWeight.bold : FontWeight.normal,
-                        color: _isRecording ? AppColors.danger : AppColors.muted
-                      ),
-                    ),
+      appBar: barraConVolver(context, 'Registro por voz', subtitulo: nombreDeCuentaActiva()),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 90),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 14,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 290),
+                child: Text(
+                  'Contá qué gastaste o cobraste, como se lo dirías a alguien.',
+                  textAlign: TextAlign.center,
+                  style: textos.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
-            ),
-            FloatingActionButton.large(
-              onPressed: _isProcessing ? null : _toggleRecording,
-              backgroundColor: _isRecording ? AppColors.danger : AppColors.accent,
-              foregroundColor: AppColors.accentInk,
-              elevation: _isRecording ? 8 : 2,
-              child: Icon(_isRecording ? Icons.stop : Icons.mic, size: 36),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _isRecording ? 'Tocá para detener y procesar' : 'Tocá para grabar',
-              style: const TextStyle(color: AppColors.faint),
-            ),
-            const SizedBox(height: 24),
-          ],
+              Text(
+                'Por ejemplo: «Gasté 2.500 en el kiosco»',
+                textAlign: TextAlign.center,
+                style: textos.bodyMedium?.copyWith(color: colores.suave),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 22, bottom: 10),
+                child: SizedBox(
+                  width: 136,
+                  height: 136,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (_isRecording) const _Halo(),
+                      Tocable(
+                        alTocar: _isProcessing ? null : _toggleRecording,
+                        etiqueta: _isRecording ? 'Terminar de grabar' : 'Empezar a grabar',
+                        child: Opacity(
+                          opacity: _isProcessing ? .45 : 1,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: colores.primario,
+                              shape: BoxShape.circle,
+                              boxShadow: colores.sombraBoton,
+                            ),
+                            child: Icon(Icons.mic_none, size: 48, color: colores.sobrePrimario),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_isProcessing)
+                const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5)),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _isRecording ? 'Te escucho… tocá para terminar' : _text,
+                  textAlign: TextAlign.center,
+                  style: textos.labelLarge?.copyWith(color: _esError ? colores.coralTexto : colores.texto),
+                ),
+              ),
+              if (_isRecording) Text(_contador, style: textos.bodySmall?.copyWith(color: colores.suave)),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+// .latido de la maqueta: un círculo de 136 en verde que crece a 1,35 y se desvanece (de .45 a 0), en
+// Duraciones.brillo, sin parar. Con "reducir animaciones" queda quieto y suave.
+class _Halo extends StatefulWidget {
+  const _Halo();
+
+  @override
+  State<_Halo> createState() => _HaloState();
+}
+
+class _HaloState extends State<_Halo> with SingleTickerProviderStateMixin {
+  late final _controlador = AnimationController(vsync: this, duration: Duraciones.brillo);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controlador.stop();
+    } else if (!_controlador.isAnimating) {
+      _controlador.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controlador.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.colores.primario;
+    final circulo = DecoratedBox(
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      child: const SizedBox(width: 136, height: 136),
+    );
+    return ExcludeSemantics(
+      child: IgnorePointer(
+        child: MediaQuery.disableAnimationsOf(context)
+            ? Opacity(opacity: .2, child: circulo)
+            : AnimatedBuilder(
+                animation: _controlador,
+                builder: (context, hijo) {
+                  final t = Curves.easeOut.transform(_controlador.value);
+                  return Opacity(
+                    opacity: .45 * (1 - t),
+                    child: Transform.scale(scale: 1 + .35 * t, child: hijo),
+                  );
+                },
+                child: circulo,
+              ),
       ),
     );
   }

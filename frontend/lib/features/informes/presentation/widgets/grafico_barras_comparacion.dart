@@ -1,11 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/widgets/chip_estado.dart';
+import 'package:frontend/core/widgets/esqueleto.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/informes/data/datasources/informe_api.dart';
 import 'package:frontend/features/informes/data/models/comparacion_periodos.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
+// "Ingresos y gastos" (maqueta L506-510): un chip con cuánto cambiaron los gastos respecto del período
+// anterior, columnas de ingresos y gastos por período, la leyenda y una línea con el último período.
 class GraficoBarrasComparacion extends StatefulWidget {
   const GraficoBarrasComparacion({
     super.key,
@@ -25,69 +32,64 @@ class GraficoBarrasComparacion extends StatefulWidget {
 }
 
 class _GraficoBarrasComparacionState extends State<GraficoBarrasComparacion> {
-  late final _futuro = (widget.api ?? InformeApi(ApiClient())).comparacion(
-    startDate: widget.startDate,
-    endDate: widget.endDate,
-    granularidad: widget.granularidad,
-  );
+  static const double _altoMaximo = 120;
+  static const double _anchoMinimoColumna = 56;
+
+  late Future<ComparacionPeriodos> _futuro = _cargar();
+
+  Future<ComparacionPeriodos> _cargar() => (widget.api ?? InformeApi(ApiClient())).comparacion(
+        startDate: widget.startDate,
+        endDate: widget.endDate,
+        granularidad: widget.granularidad,
+      );
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
-      ),
+    final textos = Theme.of(context).textTheme;
+    final c = context.colores;
+    return Tarjeta(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 12,
         children: [
-          const Text('Ingresos y egresos por período',
-              style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          _leyenda(),
-          const SizedBox(height: 12),
+          Semantics(
+            header: true,
+            child: Text(
+              'Ingresos y gastos',
+              style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w800),
+            ),
+          ),
           FutureBuilder<ComparacionPeriodos>(
             future: _futuro,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(
-                  child: SizedBox.square(
-                    dimension: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  ),
-                );
+                return const Esqueleto(alto: 170, radio: Radios.mini);
               }
               if (snapshot.hasError) {
                 final e = snapshot.error;
-                return Text(
-                  e is ApiException ? e.message : 'No se pudieron cargar los datos',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12.5),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 8,
+                  children: [
+                    Text(
+                      e is ApiException ? e.message : 'No se pudieron cargar los datos.',
+                      style: textos.bodySmall?.copyWith(color: c.suave),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _futuro = _cargar()),
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
                 );
               }
-              final data = snapshot.data!;
-              if (data.periodos.isEmpty) {
-                return const Text('Todavía no hay datos en el período.',
-                    style: TextStyle(color: AppColors.muted, fontSize: 12.5));
+              final periodos = snapshot.data!.periodos;
+              if (periodos.isEmpty) {
+                return Text(
+                  'Todavía no hay datos en el período.',
+                  style: textos.bodySmall?.copyWith(color: c.suave),
+                );
               }
-              double maxValor = 0;
-              for (final p in data.periodos) {
-                if (p.ingresos.abs() > maxValor) maxValor = p.ingresos.abs();
-                if (p.egresos.abs() > maxValor) maxValor = p.egresos.abs();
-              }
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final anchoEtiqueta = constraints.maxWidth < 420 ? 70.0 : 110.0;
-                  return Column(
-                    children: [
-                      for (final p in data.periodos)
-                        _filaPeriodo(p, maxValor, anchoEtiqueta),
-                    ],
-                  );
-                },
-              );
+              return _contenido(context, periodos);
             },
           ),
         ],
@@ -95,93 +97,141 @@ class _GraficoBarrasComparacionState extends State<GraficoBarrasComparacion> {
     );
   }
 
-  Widget _leyenda() {
-    return Row(
+  Widget _contenido(BuildContext context, List<PeriodoComparacion> periodos) {
+    final textos = Theme.of(context).textTheme;
+    final c = context.colores;
+    var maximo = 0.0;
+    for (final p in periodos) {
+      maximo = math.max(maximo, math.max(p.ingresos.abs(), p.egresos.abs()));
+    }
+    final ultimo = periodos.last;
+    final chip = _chipVariacion(ultimo.variacionEgresos);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 12,
       children: [
-        _punto(AppColors.accent, 'Ingresos'),
-        const SizedBox(width: 16),
-        _punto(const Color(0xFF7C9CFF), 'Egresos'),
-      ],
-    );
-  }
-
-  Widget _punto(Color color, String texto) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        ?chip,
+        Semantics(
+          label: 'Ingresos y gastos por período',
+          child: _barras(periodos, maximo),
         ),
-        const SizedBox(width: 6),
-        Text(texto, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+        Row(
+          spacing: 16,
+          children: [
+            _referencia(context, c.barra, 'Ingresos'),
+            _referencia(context, c.texto.withValues(alpha: .78), 'Gastos'),
+          ],
+        ),
+        Text(
+          '${ultimo.etiqueta}: entraron ${importe(ultimo.ingresos)} y salieron ${importe(ultimo.egresos)}.',
+          style: textos.bodySmall?.copyWith(color: c.suave),
+        ),
       ],
     );
   }
 
-  Widget _filaPeriodo(PeriodoComparacion p, double maxValor, double anchoEtiqueta) {
-    final fIng = maxValor > 0 ? (p.ingresos.abs() / maxValor) : 0.0;
-    final fEgr = maxValor > 0 ? (p.egresos.abs() / maxValor) : 0.0;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(p.etiqueta,
-              style: const TextStyle(color: AppColors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Row(
+  Widget? _chipVariacion(double? variacion) {
+    if (variacion == null) return null;
+    final porcentaje = variacion.round();
+    final contra = widget.granularidad == 'SEMANA' ? 'la semana anterior' : 'el mes anterior';
+    final texto = porcentaje < 0
+        ? 'Gastaste ${-porcentaje}% menos que $contra'
+        : porcentaje > 0
+            ? 'Gastaste $porcentaje% más que $contra'
+            : 'Gastaste lo mismo que $contra';
+    return ChipEstado(texto, porcentaje <= 0 ? TonoChip.menta : TonoChip.ambar);
+  }
+
+  Widget _barras(List<PeriodoComparacion> periodos, double maximo) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final ancho = math.max(constraints.maxWidth, periodos.length * _anchoMinimoColumna);
+        final columnas = SizedBox(
+          width: ancho,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            spacing: 8,
             children: [
-              SizedBox(
-                width: anchoEtiqueta,
-                child: const Text('Ingresos',
-                    style: TextStyle(color: AppColors.muted, fontSize: 11.5)),
-              ),
-              Expanded(child: _barra(fIng, AppColors.accent)),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 70,
-                child: Text(importe(p.ingresos),
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
-              ),
+              for (final p in periodos)
+                Expanded(child: _columna(context, p, maximo)),
             ],
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              SizedBox(
-                width: anchoEtiqueta,
-                child: const Text('Egresos',
-                    style: TextStyle(color: AppColors.muted, fontSize: 11.5)),
-              ),
-              Expanded(child: _barra(fEgr, const Color(0xFF7C9CFF))),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 70,
-                child: Text(importe(p.egresos),
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
-              ),
-            ],
+        );
+        if (ancho <= constraints.maxWidth) return columnas;
+        // Con muchos períodos se desliza de costado, empezando por el más nuevo.
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          reverse: true,
+          child: columnas,
+        );
+      },
+    );
+  }
+
+  Widget _columna(BuildContext context, PeriodoComparacion p, double maximo) {
+    final textos = Theme.of(context).textTheme;
+    final c = context.colores;
+    double alto(double valor) => maximo > 0 ? math.max(3, (valor.abs() / maximo * _altoMaximo).roundToDouble()) : 3;
+    return Semantics(
+      label: '${p.etiqueta}: ingresos ${importe(p.ingresos)}, gastos ${importe(p.egresos)}',
+      excludeSemantics: true,
+      child: Column(
+        spacing: 6,
+        children: [
+          SizedBox(
+            height: _altoMaximo,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              spacing: 4,
+              children: [
+                _barra(alto(p.ingresos), c.barra),
+                _barra(alto(p.egresos), c.texto.withValues(alpha: .78)),
+              ],
+            ),
+          ),
+          Text(
+            p.etiqueta,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textos.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w600, color: c.suave),
           ),
         ],
       ),
     );
   }
 
-  Widget _barra(double factor, Color color) {
+  Widget _barra(double alto, Color color) {
     return Container(
-      height: 14,
-      decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(6)),
-      alignment: Alignment.centerLeft,
-      child: FractionallySizedBox(
-        widthFactor: factor.clamp(0.0, 1.0),
-        child: Container(
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
+      width: 16,
+      height: alto,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(6),
+          topRight: Radius.circular(6),
+          bottomLeft: Radius.circular(2),
+          bottomRight: Radius.circular(2),
         ),
       ),
+    );
+  }
+
+  Widget _referencia(BuildContext context, Color color, String texto) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 6,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        ),
+        Text(
+          texto,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }

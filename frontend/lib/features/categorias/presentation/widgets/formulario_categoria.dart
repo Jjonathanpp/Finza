@@ -4,13 +4,14 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/campo.dart';
 import 'package:frontend/core/widgets/selector_tipo.dart';
+import 'package:frontend/core/widgets/tocable.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/paleta_categorias.dart';
 import 'package:frontend/features/categorias/presentation/viewmodels/formulario_categoria_view_model.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 
-// Nombre, tipo y color de una categoría. Lo usan las pantallas "Nueva categoría" y
+// Nombre, tipo y color de una categoría. Lo usan las hojas "Nueva categoría" y
 // "Editar categoría" (con editando), y el panel de "Nuevo movimiento".
 // Al guardar, cierra y devuelve la categoría.
 class FormularioCategoria extends StatefulWidget {
@@ -75,24 +76,37 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
             ),
             Campo(
               etiqueta: 'Color',
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [for (final hex in paletaCategorias) _circulo(hex)],
+              // El padding deja lugar al aro del color elegido, que se dibuja por fuera del círculo.
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [for (final hex in _colores) _circulo(hex)],
+                ),
               ),
             ),
             if (error != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: Text(error, style: const TextStyle(color: AppColors.danger, fontSize: 12.5)),
+                child: Text(
+                  error,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: context.colores.coralTexto,
+                  ),
+                ),
               ),
             const SizedBox(height: 4),
-            FilledButton.icon(
+            FilledButton(
               onPressed: _vm.guardando ? null : _guardar,
-              icon: _vm.guardando
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.check),
-              label: Text(widget.editando == null ? 'Crear categoría' : 'Guardar cambios'),
+              child: _vm.guardando
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: context.colores.sobrePrimario),
+                    )
+                  : Text(widget.editando == null ? 'Crear categoría' : 'Guardar cambios'),
             ),
           ],
         );
@@ -100,21 +114,41 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
     );
   }
 
-  // Un círculo de la paleta. El elegido lleva un tilde y un borde oscuro.
+  // Los de la paleta. Si la categoría que se edita tiene un color que ya no está (las viejas usaban otros),
+  // va primero, para que se vea elegido y se pueda conservar.
+  List<String> get _colores {
+    final actual = widget.editando?.color;
+    if (actual == null || paletaCategorias.contains(actual)) return paletaCategorias;
+    return [actual, ...paletaCategorias];
+  }
+
+  // Un círculo de la paleta (.colb): 40 px, con un aro por fuera si es el elegido. El área para tocar es de 44.
   Widget _circulo(String hex) {
+    final colores = context.colores;
     final elegido = hex == _vm.color;
-    return InkWell(
-      onTap: () => _vm.elegirColor(hex),
-      customBorder: const CircleBorder(),
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: colorDesdeHex(hex),
-          shape: BoxShape.circle,
-          border: Border.all(color: elegido ? AppColors.text : Colors.transparent, width: 2),
+    final nombre = nombresColoresCategorias[hex] ?? 'Color actual';
+    return Tocable(
+      alTocar: () => _vm.elegirColor(hex),
+      etiqueta: elegido ? '$nombre, elegido' : nombre,
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Center(
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colorDesdeHex(hex),
+              shape: BoxShape.circle,
+              boxShadow: elegido
+                  ? [
+                      BoxShadow(color: colores.tarjeta, spreadRadius: 3),
+                      BoxShadow(color: colores.texto, spreadRadius: 5),
+                    ]
+                  : null,
+            ),
+          ),
         ),
-        child: elegido ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
       ),
     );
   }

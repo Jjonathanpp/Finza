@@ -1,51 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
-import 'package:frontend/core/widgets/app_drawer.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/widgets/boton_icono.dart';
+import 'package:frontend/core/widgets/chip_estado.dart';
+import 'package:frontend/core/widgets/circulo_categoria.dart';
+import 'package:frontend/core/widgets/confirmar.dart';
+import 'package:frontend/core/widgets/encabezado_pestana.dart';
+import 'package:frontend/core/widgets/esqueleto.dart';
+import 'package:frontend/core/widgets/fila_opcion.dart';
+import 'package:frontend/core/widgets/filtro_pastilla.dart';
+import 'package:frontend/core/widgets/hoja.dart';
+import 'package:frontend/core/widgets/monto.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
-import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/movimientos/data/datasources/movimiento_api.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
-import 'package:frontend/features/movimientos/presentation/viewmodels/movimientos_view_model.dart';
-import 'package:frontend/shared/utils/color_hex.dart';
-import 'package:frontend/shared/utils/importe.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
-import 'package:frontend/core/session/cuenta_activa.dart';
- 
+import 'package:frontend/features/movimientos/presentation/viewmodels/movimientos_view_model.dart';
+import 'package:frontend/features/movimientos/presentation/widgets/controles_paginacion.dart';
+import 'package:frontend/features/movimientos/presentation/widgets/grupos_de_movimientos.dart';
+import 'package:frontend/features/movimientos/presentation/widgets/hoja_edicion_movimiento.dart';
+import 'package:frontend/features/movimientos/presentation/widgets/hoja_filtros_movimientos.dart';
+
+enum _Accion { editar, eliminar }
+
 class MovimientosScreen extends StatefulWidget {
   const MovimientosScreen({super.key});
- 
+
   @override
   State<MovimientosScreen> createState() => _MovimientosScreenState();
 }
- 
+
 class _MovimientosScreenState extends State<MovimientosScreen> {
   late final _vm = MovimientosViewModel(
     MovimientoApi(ApiClient()),
     CategoriaApi(ApiClient()),
   );
- 
+
+  // Hasta que termina la primera carga todavía no se sabe si hay movimientos: se ve el esqueleto.
+  bool _primeraCarga = true;
+
   @override
   void initState() {
     super.initState();
-    _vm.cargarInicial();
+    _vm.cargarInicial().whenComplete(() {
+      if (mounted) setState(() => _primeraCarga = false);
+    });
   }
- 
+
   @override
   void dispose() {
     _vm.dispose();
     super.dispose();
   }
- 
+
   void _abrirFiltros() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => _PanelFiltros(vm: _vm),
+    mostrarHoja<void>(
+      context,
+      titulo: 'Filtrar movimientos',
+      contenido: HojaFiltrosMovimientos(vm: _vm),
     );
   }
- 
+
+  // Tipo, estado e integrante van en las pastillas: cada una cambia lo suyo y conserva el resto.
+  void _filtrar({bool? esIngreso, String? estado, int? perfilId}) {
+    _vm.aplicarFiltros(
+      nuevoDesde: _vm.desde,
+      nuevoHasta: _vm.hasta,
+      nuevaCategoria: _vm.categoriaFiltro,
+      nuevoEsIngreso: esIngreso,
+      nuevoEstado: estado,
+      nuevoPerfilId: perfilId,
+    );
+  }
+
   Future<void> _revisarMovimiento(Movimiento movimientoPendiente) async {
     final modificado = await Navigator.push(
       context,
@@ -54,946 +82,375 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
             RevisionMovimientoScreen(movimiento: movimientoPendiente),
       ),
     );
- 
+
     // Solo recargamos si guardó o descartó (retorna true)
     if (modificado == true) {
       _vm.cargarInicial();
     }
   }
- 
-  Future<void> _confirmarEliminar(Movimiento m) async {
-    final confirmado = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar movimiento'),
-        content: const Text('¿Estás seguro de eliminar este movimiento?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
+
+  // Al tocar un movimiento propio: elegir qué hacer con él.
+  Future<void> _abrirAcciones(Movimiento m) async {
+    final c = context.colores;
+    final accion = await mostrarHoja<_Accion>(
+      context,
+      titulo: m.categoria.nombre,
+      texto: Monto.texto(m.monto, ingreso: m.esIngreso),
+      contenido: Builder(
+        builder: (contexto) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilaOpcion(
+              titulo: 'Editar',
+              leading: CirculoCategoria(
+                icono: Icons.edit_outlined,
+                color: c.primario,
+                fondo: c.menta,
+              ),
+              alTocar: () => Navigator.pop(contexto, _Accion.editar),
+            ),
+            FilaOpcion(
+              titulo: 'Eliminar',
+              colorTitulo: c.coralTexto,
+              leading: CirculoCategoria(
+                icono: Icons.delete_outline,
+                color: c.coralTexto,
+                fondo: c.coralFondo,
+              ),
+              alTocar: () => Navigator.pop(contexto, _Accion.eliminar),
+            ),
+          ],
+        ),
       ),
     );
- 
-    if (confirmado != true) return;
- 
-    final error = await _vm.eliminar(m);
     if (!mounted) return;
- 
-    if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: AppColors.danger),
-      );
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Movimiento eliminado')));
+    switch (accion) {
+      case _Accion.editar:
+        await _mostrarEdicion(m);
+      case _Accion.eliminar:
+        await _confirmarEliminar(m);
+      case null:
+        break;
     }
   }
- 
-  void _mostrarModalEdicion(BuildContext context, Movimiento movimiento) {
-    final montoController = TextEditingController(
-      text: movimiento.monto.toString(),
+
+  Future<void> _confirmarEliminar(Movimiento m) async {
+    final confirmado = await confirmar(
+      context,
+      titulo: 'Eliminar movimiento',
+      texto: '¿Estás seguro de eliminar este movimiento?',
+      textoAccion: 'Eliminar',
+      peligro: true,
     );
-    final descripcionController = TextEditingController(
-      text: movimiento.descripcion ?? '',
+
+    if (!confirmado) return;
+
+    final error = await _vm.eliminar(m);
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      _avisoDeResultado(error ?? 'Movimiento eliminado', esError: error != null),
     );
-    final categoriaController = TextEditingController(
-      text: movimiento.categoria.nombre,
-    );
- 
-    bool esIngresoEdit = movimiento.esIngreso;
-    DateTime fechaEdit = movimiento.fecha;
- 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateModal) {
-          return AlertDialog(
-            title: const Text('Editar Movimiento'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Tipo de movimiento',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  SegmentedButton<bool>(
-                    segments: const [
-                      ButtonSegment<bool>(value: false, label: Text('Egreso')),
-                      ButtonSegment<bool>(value: true, label: Text('Ingreso')),
-                    ],
-                    selected: {esIngresoEdit},
-                    onSelectionChanged: (Set<bool> newSelection) {
-                      setStateModal(() {
-                        esIngresoEdit = newSelection.first;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: montoController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: convierte ? 'Monto en pesos' : 'Monto',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: categoriaController,
-                    decoration: const InputDecoration(labelText: 'Categoría'),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Fecha: ${fechaEdit.day.toString().padLeft(2, '0')}/${fechaEdit.month.toString().padLeft(2, '0')}/${fechaEdit.year}',
-                          style: const TextStyle(color: AppColors.text),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: fechaEdit,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                          );
-                          if (picked != null) {
-                            setStateModal(() {
-                              fechaEdit = picked;
-                            });
-                          }
-                        },
-                        child: const Text('Cambiar fecha'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: descripcionController,
-                    decoration: const InputDecoration(labelText: 'Descripción'),
-                  ),
-                ],
-              ),
+  }
+
+  Future<void> _mostrarEdicion(Movimiento movimiento) async {
+    final resultado = await mostrarHoja<({String? error})>(
+      context,
+      titulo: 'Editar movimiento',
+      contenido: HojaEdicionMovimiento(
+        movimiento: movimiento,
+        alGuardar:
+            ({
+              required esIngreso,
+              required monto,
+              required categoria,
+              required descripcion,
+              required fecha,
+            }) => _vm.editar(
+              movimiento,
+              esIngreso: esIngreso,
+              monto: monto,
+              categoria: categoria,
+              descripcion: descripcion,
+              fecha: fecha,
+              origen: movimiento.origen,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  final error = await _vm.editar(
-                    movimiento,
-                    esIngreso: esIngresoEdit,
-                    monto: montoController.text,
-                    categoria: categoriaController.text,
-                    descripcion: descripcionController.text,
-                    fecha: fechaEdit,
-                    origen: movimiento.origen,
-                  );
- 
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    if (error != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(error),
-                          backgroundColor: AppColors.danger,
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Movimiento actualizado con éxito'),
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: const Text('Guardar'),
-              ),
-            ],
-          );
-        },
+      ),
+    );
+    if (resultado == null || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      _avisoDeResultado(
+        resultado.error ?? 'Movimiento actualizado con éxito',
+        esError: resultado.error != null,
       ),
     );
   }
- 
+
+  // Los errores se ven en coral; los éxitos, con el estilo común del SnackBar.
+  SnackBar _avisoDeResultado(String texto, {required bool esError}) {
+    final c = context.colores;
+    return SnackBar(
+      backgroundColor: esError ? c.coralFondo : null,
+      content: Text(
+        texto,
+        style: esError ? TextStyle(color: c.coralTexto) : null,
+      ),
+    );
+  }
+
+  // Un movimiento ajeno no se toca; uno pendiente se revisa; uno confirmado se edita o se elimina.
+  VoidCallback? _alTocarDe(Movimiento m) {
+    if (esMovimientoAjeno(m)) return null;
+    if (m.estado == 'PENDIENTE') return () => _revisarMovimiento(m);
+    return () => _abrirAcciones(m);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Movimientos'),
-        actions: [
+      body: Column(
+        children: [
           ListenableBuilder(
             listenable: _vm,
             builder: (context, _) {
-              return IconButton(
-                icon: Icon(
-                  _vm.tieneFiltrosActivos
-                      ? Icons.filter_alt
-                      : Icons.filter_alt_outlined,
-                  color: _vm.tieneFiltrosActivos ? AppColors.accent : null,
-                ),
-                onPressed: _abrirFiltros,
-                tooltip: 'Filtrar',
+              // Fechas y categoría son lo único que vive en la hoja; el resto se ve en las pastillas.
+              final conFiltrosDeLaHoja =
+                  _vm.desde != null ||
+                  _vm.hasta != null ||
+                  _vm.categoriaFiltro != null;
+              return EncabezadoPestana(
+                titulo: 'Movimientos',
+                acciones: [
+                  BotonIcono(
+                    icono: conFiltrosDeLaHoja
+                        ? Icons.filter_alt
+                        : Icons.filter_alt_outlined,
+                    ayuda: 'Filtrar',
+                    alTocar: _abrirFiltros,
+                  ),
+                ],
               );
             },
           ),
+          Expanded(
+            child: ListenableBuilder(
+              listenable: _vm,
+              builder: (context, _) => _cuerpo(context),
+            ),
+          ),
+          ListenableBuilder(
+            listenable: _vm,
+            builder: (context, _) => ControlesPaginacion(vm: _vm),
+          ),
         ],
       ),
-      drawer: const AppDrawer(),
-      body: ListenableBuilder(
-        listenable: _vm,
-        builder: (context, _) {
-          if (_vm.cargando && _vm.movimientos.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
- 
-          if (_vm.error != null && _vm.movimientos.isEmpty) {
-            return _VistaError(
-              mensaje: _vm.error!,
-              alReintentar: _vm.cargarInicial,
-            );
-          }
- 
-          if (_vm.movimientos.isEmpty) {
-            return _VistaVacia(
-              conFiltros: _vm.tieneFiltrosActivos,
-              alLimpiarFiltros: _vm.limpiarFiltros,
-              alRecargar: _vm.cargarInicial,
-            );
-          }
- 
-          final nombreFiltrado = _vm.nombrePerfilFiltrado;
- 
-          return Column(
-            children: [
-              // Recarga con la lista ya visible (paginar, filtrar): barra fina arriba.
-              if (_vm.cargando)
-                const LinearProgressIndicator(
-                  minHeight: 2,
-                  color: AppColors.accent,
-                ),
-              if (_vm.enCuentaCompartida && nombreFiltrado != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: InputChip(
-                      avatar: const Icon(Icons.person_outline, size: 16),
-                      label: Text('Solo de ${_nombreCorto(nombreFiltrado)}'),
-                      onDeleted: _vm.verTodosLosIntegrantes,
-                      deleteButtonTooltipMessage: 'Ver todos los integrantes',
-                    ),
-                  ),
-                ),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _vm.cargarInicial,
-                  color: AppColors.accent,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(18),
-                    itemCount: _vm.movimientos.length,
-                    separatorBuilder: (_, _) =>
-                        const Divider(color: AppColors.line, height: 24),
-                    itemBuilder: (context, i) {
-                      final movimiento = _vm.movimientos[i];
-                      return _FilaMovimiento(
-                        movimiento,
-                        mostrarPerfil: _vm.mostrarAutor,
-                        onEditar: () =>
-                            _mostrarModalEdicion(context, movimiento),
-                        onEliminar: () => _confirmarEliminar(movimiento),
-                        onRevisar: () => _revisarMovimiento(movimiento),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              _ControlesPaginacion(vm: _vm),
-            ],
-          );
-        },
-      ),
     );
   }
-}
- 
-// ======================= PANEL DE FILTROS =======================
-class _PanelFiltros extends StatefulWidget {
-  const _PanelFiltros({required this.vm});
-  final MovimientosViewModel vm;
- 
-  @override
-  State<_PanelFiltros> createState() => _PanelFiltrosState();
-}
- 
-class _PanelFiltrosState extends State<_PanelFiltros> {
-  DateTime? desde;
-  DateTime? hasta;
-  Categoria? categoriaSeleccionada;
-  bool? esIngreso;
-  String? estadoSeleccionado; // <-- NUEVO PARA EL ESTADO
-  int? perfilIdSeleccionado;
- 
-  @override
-  void initState() {
-    super.initState();
-    desde = widget.vm.desde;
-    hasta = widget.vm.hasta;
-    categoriaSeleccionada = widget.vm.categoriaFiltro;
-    esIngreso = widget.vm.esIngresoFiltro;
-    estadoSeleccionado = widget.vm.estadoFiltro; // Si lo tenés en tu VM
-    perfilIdSeleccionado = widget.vm.perfilFiltroId;
-  }
- 
-  Future<void> _elegirFecha(bool esDesde) async {
-    final hoy = DateTime.now();
-    final elegida = await showDatePicker(
-      context: context,
-      initialDate: (esDesde ? desde : hasta) ?? hoy,
-      firstDate: DateTime(hoy.year - 5),
-      lastDate: hoy,
-    );
-    if (elegida != null) {
-      setState(() {
-        if (esDesde) {
-          desde = elegida;
-        } else {
-          hasta = elegida;
-        }
-      });
-    }
-  }
- 
-  String _textoFecha(DateTime? f) {
-    if (f == null) return 'Seleccionar';
-    String dos(int n) => n.toString().padLeft(2, '0');
-    return '${dos(f.day)}/${dos(f.month)}/${f.year}';
-  }
- 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        18,
-        0,
-        18,
-        18 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+
+  Widget _cuerpo(BuildContext context) {
+    final lista = _vm.movimientos;
+    final cargandoLista = _primeraCarga || (_vm.cargando && lista.isEmpty);
+    final conError = _vm.error != null && lista.isEmpty && !cargandoLista;
+
+    final Widget contenido;
+    if (cargandoLista) {
+      contenido = const EsqueletoLista();
+    } else if (conError) {
+      contenido = _VistaError(
+        mensaje: _vm.error!,
+        alReintentar: _vm.cargarInicial,
+      );
+    } else if (lista.isEmpty) {
+      contenido = _SinResultados(
+        conFiltros: _vm.tieneFiltrosActivos,
+        alLimpiarFiltros: _vm.limpiarFiltros,
+      );
+    } else {
+      contenido = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12,
         children: [
-          const Text(
-            'Filtrar movimientos',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          GruposDeMovimientos(
+            movimientos: lista,
+            mostrarAutor: _vm.mostrarAutor,
+            alTocarDe: _alTocarDe,
           ),
-          const SizedBox(height: 20),
- 
-          if (widget.vm.perfilesDisponibles.isNotEmpty) ...[
-            const Text(
-              'Perfil',
-              style: TextStyle(fontSize: 13, color: AppColors.muted),
-            ),
-            const SizedBox(height: 4),
-            DropdownButtonFormField<int?>(
-              initialValue: perfilIdSeleccionado,
-              decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-              ),
-              items: [
-                const DropdownMenuItem<int?>(
-                  value: null,
-                  child: Text('Todos los integrantes'),
-                ),
-                ...widget.vm.perfilesDisponibles.map(
-                  (p) => DropdownMenuItem<int?>(
-                    value: p.id,
-                    child: Text(p.nombre),
-                  ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        // Recarga con la lista ya visible (paginar, filtrar): barra fina arriba.
+        if (_vm.cargando && lista.isNotEmpty)
+          const LinearProgressIndicator(minHeight: 2),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _vm.cargarInicial,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
+                  children: [
+                    _CuentaYRol(),
+                    _pastillasDeTipo(),
+                    ?_pastillasDeAutor(),
+                    contenido,
+                  ],
                 ),
               ],
-              onChanged: (id) => setState(() => perfilIdSeleccionado = id),
             ),
-            const SizedBox(height: 20),
-          ],
- 
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Desde',
-                      style: TextStyle(fontSize: 13, color: AppColors.muted),
-                    ),
-                    const SizedBox(height: 4),
-                    OutlinedButton.icon(
-                      onPressed: () => _elegirFecha(true),
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_textoFecha(desde)),
-                      style: OutlinedButton.styleFrom(
-                        alignment: Alignment.centerLeft,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Hasta',
-                      style: TextStyle(fontSize: 13, color: AppColors.muted),
-                    ),
-                    const SizedBox(height: 4),
-                    OutlinedButton.icon(
-                      onPressed: () => _elegirFecha(false),
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_textoFecha(hasta)),
-                      style: OutlinedButton.styleFrom(
-                        alignment: Alignment.centerLeft,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
-          const SizedBox(height: 20),
- 
-          const Text(
-            'Categoría',
-            style: TextStyle(fontSize: 13, color: AppColors.muted),
-          ),
-          const SizedBox(height: 4),
-          DropdownButtonFormField<Categoria>(
-            initialValue: categoriaSeleccionada,
-            hint: const Text('Todas las categorías'),
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
-            ),
-            items: [
-              const DropdownMenuItem<Categoria>(
-                value: null,
-                child: Text('Todas las categorías'),
-              ),
-              ...widget.vm.categorias.map(
-                (c) => DropdownMenuItem(
-                  value: c,
-                  child: Text('${c.emoji ?? ''} ${c.nombre}'),
-                ),
-              ),
-            ],
-            onChanged: (cat) => setState(() => categoriaSeleccionada = cat),
-          ),
-          const SizedBox(height: 20),
- 
-          // --- NUEVO: FILTRO DE ESTADO PENDIENTE ---
-          const Text(
-            'Estado',
-            style: TextStyle(fontSize: 13, color: AppColors.muted),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              FilterChip(
-                label: const Text('Todos'),
-                selected: estadoSeleccionado == null,
-                onSelected: (val) => setState(() => estadoSeleccionado = null),
-              ),
-              const SizedBox(width: 12),
-              FilterChip(
-                label: const Text('Solo Pendientes'),
-                selected: estadoSeleccionado == 'PENDIENTE',
-                selectedColor: Colors.orange.withValues(alpha: 0.2),
-                onSelected: (val) => setState(
-                  () => estadoSeleccionado = val ? 'PENDIENTE' : null,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
- 
-          // ------------------------------------------
-          const Text(
-            'Tipo',
-            style: TextStyle(fontSize: 13, color: AppColors.muted),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              FilterChip(
-                label: const Text('Ingresos'),
-                selected: esIngreso == true,
-                onSelected: (val) =>
-                    setState(() => esIngreso = val ? true : null),
-              ),
-              const SizedBox(width: 12),
-              FilterChip(
-                label: const Text('Egresos'),
-                selected: esIngreso == false,
-                onSelected: (val) =>
-                    setState(() => esIngreso = val ? false : null),
-              ),
-            ],
-          ),
- 
-          const SizedBox(height: 32),
- 
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () {
-                    widget.vm.limpiarFiltros();
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'Limpiar',
-                    style: TextStyle(color: AppColors.muted),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: FilledButton(
-                  onPressed: () {
-                    widget.vm.aplicarFiltros(
-                      nuevoDesde: desde,
-                      nuevoHasta: hasta,
-                      nuevaCategoria: categoriaSeleccionada,
-                      nuevoEsIngreso: esIngreso,
-                      nuevoEstado:
-                          estadoSeleccionado, // Asegurate de agregar esto en tu viewmodel
-                      nuevoPerfilId: perfilIdSeleccionado,
-                    );
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Aplicar filtros'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
-}
- 
-// ======================= COMPONENTES DE VISTA =======================
-class _ControlesPaginacion extends StatelessWidget {
-  const _ControlesPaginacion({required this.vm});
-  final MovimientosViewModel vm;
- 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.line)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            onPressed: vm.hayAnterior && !vm.cargando
-                ? vm.paginaAnterior
-                : null,
-            icon: const Icon(Icons.chevron_left),
-            tooltip: 'Anterior',
-          ),
-          if (vm.cargando)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          else
-            Flexible(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(vm.totalPaginas, (index) {
-                    final pagina = index + 1;
-                    final esActual = pagina == vm.paginaActual;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(8),
-                        onTap: esActual ? null : () => vm.irAPagina(index),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: esActual
-                                ? AppColors.accent
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '$pagina',
-                            style: TextStyle(
-                              color: esActual
-                                  ? AppColors.surface
-                                  : AppColors.text,
-                              fontWeight: esActual
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
-          IconButton(
-            onPressed: vm.hayMas && !vm.cargando ? vm.paginaSiguiente : null,
-            icon: const Icon(Icons.chevron_right),
-            tooltip: 'Siguiente',
-          ),
-        ],
-      ),
-    );
-  }
-}
- 
-class _FilaMovimiento extends StatelessWidget {
-  const _FilaMovimiento(
-    this.movimiento, {
-    required this.mostrarPerfil,
-    required this.onEditar,
-    required this.onEliminar,
-    required this.onRevisar,
-  });
- 
-  final Movimiento movimiento;
-  // true en una cuenta compartida viendo a todos los integrantes: muestra quién lo cargó.
-  final bool mostrarPerfil;
-  final VoidCallback onEditar;
-  final VoidCallback onEliminar;
-  final VoidCallback onRevisar;
- 
-  // En la moneda elegida en Configuración (US-8.2); con pesos, igual que antes: $ 1.000,00.
-  String _formatearMonto(double monto) => importe(monto, centavos: true);
- 
-  String _formatearFecha(DateTime fecha) {
-    String dos(int n) => n.toString().padLeft(2, '0');
-    return '${dos(fecha.day)}/${dos(fecha.month)}/${fecha.year}';
-  }
- 
-  @override
-  Widget build(BuildContext context) {
-    // 1. VARIABLES PARA DETECTAR CUENTA COMPARTIDA Y MOVIMIENTOS AJENOS
-    final cuenta = cuentaActiva.value;
-    final bool enCuentaCompartida = cuenta != null;
-    final bool esAjeno =
-        enCuentaCompartida && movimiento.perfilId != cuenta['perfilId'];
- 
-    final colorCategoria = colorDesdeHex(movimiento.categoria.color);
-    final colorMonto = movimiento.esIngreso ? AppColors.accent : AppColors.text;
-    final signo = movimiento.esIngreso ? '+' : '-';
- 
-    final bool estaPendiente = movimiento.estado == 'PENDIENTE';
- 
-    return Row(
+
+  // .filtros "Qué ver": Todos, Gastos, Ingresos, Por revisar.
+  Widget _pastillasDeTipo() {
+    final sinEstado = _vm.estadoFiltro == null;
+    final todos = _vm.esIngresoFiltro == null && sinEstado;
+    return FilaFiltros(
+      etiqueta: 'Qué ver',
       children: [
-        Container(
-          width: 48,
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: colorCategoria.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Text(
-            movimiento.categoria.emoji ??
-                movimiento.categoria.nombre.characters.first.toUpperCase(),
-            style: TextStyle(
-              fontSize: 20,
-              color: colorCategoria,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        FiltroPastilla(
+          texto: 'Todos',
+          activo: todos,
+          alTocar: () => _filtrar(perfilId: _vm.perfilFiltroId),
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 2. CATEGORÍA + BADGE DEL PERFIL QUE CARGÓ EL MOVIMIENTO (vista consolidada)
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      movimiento.categoria.nombre,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.text,
-                      ),
-                    ),
-                  ),
-                  if (mostrarPerfil && movimiento.perfilNombre != null) ...[
-                    const SizedBox(width: 6),
-                    _BadgePerfil(
-                      nombre: movimiento.perfilNombre!,
-                      esPropio: !esAjeno,
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  if (estaPendiente) ...[
-                    const Icon(
-                      Icons.error_outline,
-                      size: 14,
-                      color: Colors.orange,
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                  Expanded(
-                    child: Text(
-                      movimiento.descripcion?.isNotEmpty == true
-                          ? movimiento.descripcion!
-                          : _formatearFecha(movimiento.fecha),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: estaPendiente ? Colors.orange : AppColors.faint,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        FiltroPastilla(
+          texto: 'Gastos',
+          activo: _vm.esIngresoFiltro == false && sinEstado,
+          alTocar: () => _filtrar(esIngreso: false, perfilId: _vm.perfilFiltroId),
         ),
-        const SizedBox(width: 12),
-        Text(
-          '$signo ${_formatearMonto(movimiento.monto)}',
-          style: TextStyle(
-            fontSize: 15.5,
-            fontWeight: FontWeight.w700,
-            color: colorMonto,
-          ),
+        FiltroPastilla(
+          texto: 'Ingresos',
+          activo: _vm.esIngresoFiltro == true && sinEstado,
+          alTocar: () => _filtrar(esIngreso: true, perfilId: _vm.perfilFiltroId),
         ),
-        const SizedBox(width: 8),
- 
-        // 3. OCULTAR BOTONES DE ACCIÓN PARA MOVIMIENTOS AJENOS
-        if (esAjeno)
-          const SizedBox.shrink()
-        else if (estaPendiente)
-          FilledButton.icon(
-            onPressed: onRevisar,
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.orange,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              minimumSize: const Size(0, 36),
-            ),
-            icon: const Icon(Icons.fact_check_outlined, size: 16),
-            label: const Text('Verificar', style: TextStyle(fontSize: 13)),
-          )
-        else ...[
-          IconButton(
-            icon: const Icon(
-              Icons.edit_outlined,
-              size: 20,
-              color: AppColors.muted,
-            ),
-            onPressed: onEditar,
-            tooltip: 'Editar',
+        FiltroPastilla(
+          texto: 'Por revisar',
+          activo: !sinEstado,
+          ambar: true,
+          alTocar: () => _filtrar(estado: 'PENDIENTE', perfilId: _vm.perfilFiltroId),
+        ),
+      ],
+    );
+  }
+
+  // .filtros "De quién": solo en una cuenta compartida, con los integrantes que trae el backend.
+  Widget? _pastillasDeAutor() {
+    if (!_vm.enCuentaCompartida || _vm.perfilesDisponibles.isEmpty) return null;
+    final miPerfil = cuentaActiva.value?['perfilId'];
+    void elegir(int? perfilId) =>
+        _filtrar(esIngreso: _vm.esIngresoFiltro, estado: _vm.estadoFiltro, perfilId: perfilId);
+    return FilaFiltros(
+      etiqueta: 'De quién',
+      children: [
+        FiltroPastilla(
+          texto: 'De todos',
+          activo: _vm.perfilFiltroId == null,
+          alTocar: () => elegir(null),
+        ),
+        for (final p in _vm.perfilesDisponibles)
+          FiltroPastilla(
+            texto: p.id == miPerfil ? 'Solo míos' : 'De ${nombreCortoPerfil(p.nombre)}',
+            activo: _vm.perfilFiltroId == p.id,
+            alTocar: () => elegir(p.id),
           ),
-          IconButton(
-            icon: const Icon(
-              Icons.delete_outline,
-              size: 20,
-              color: AppColors.danger,
-            ),
-            onPressed: onEliminar,
-            tooltip: 'Eliminar',
-          ),
-        ],
       ],
     );
   }
 }
- 
-// Los integrantes invitados tienen como nombre de perfil su email
-// (InvitacionService): en el badge se muestra solo la parte antes de la @.
-String _nombreCorto(String nombre) {
-  final limpio = nombre.trim();
-  final arroba = limpio.indexOf('@');
-  return arroba > 0 ? limpio.substring(0, arroba) : limpio;
-}
- 
-// Etiqueta tonal con la inicial y el nombre del perfil que cargó el movimiento.
-// Los propios se destacan con el color de acento y dicen "Vos".
-class _BadgePerfil extends StatelessWidget {
-  const _BadgePerfil({required this.nombre, required this.esPropio});
- 
-  final String nombre;
-  final bool esPropio;
- 
+
+// .ctas: el chip de la cuenta y, si es compartida, qué rol tiene el usuario en ella.
+class _CuentaYRol extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final corto = _nombreCorto(nombre);
-    final inicial = corto.isEmpty ? '?' : corto.characters.first.toUpperCase();
-    final color = esPropio ? AppColors.accent : AppColors.muted;
- 
-    return Tooltip(
-      message: esPropio ? 'Cargado por vos' : 'Cargado por $nombre',
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 104),
-        padding: const EdgeInsets.fromLTRB(3, 2, 8, 2),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+    return ValueListenableBuilder<Map<String, dynamic>?>(
+      valueListenable: cuentaActiva,
+      builder: (context, cuenta, _) {
+        final admin = cuenta?['rol'] == 'ADMIN';
+        return Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 8,
-              backgroundColor: color,
-              child: Text(
-                inicial,
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.surface,
-                ),
+            const ChipCuenta(),
+            if (cuenta != null)
+              ChipEstado(
+                admin ? 'Sos administrador' : 'Sos miembro',
+                admin ? TonoChip.menta : TonoChip.hundido,
               ),
-            ),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                esPropio ? 'Vos' : corto,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
- 
-// Lista vacía: distingue "no hay nada cargado" de "los filtros no devuelven nada".
-// Se puede tirar hacia abajo para recargar, igual que la lista con datos.
-class _VistaVacia extends StatelessWidget {
-  const _VistaVacia({
+
+// Un filtro (o la cuenta) sin movimientos: una línea, y para sacar los filtros si hay alguno puesto.
+class _SinResultados extends StatelessWidget {
+  const _SinResultados({
     required this.conFiltros,
     required this.alLimpiarFiltros,
-    required this.alRecargar,
   });
- 
+
   final bool conFiltros;
   final VoidCallback alLimpiarFiltros;
-  final Future<void> Function() alRecargar;
- 
+
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: alRecargar,
-      color: AppColors.accent,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 120),
+    final textos = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        spacing: 4,
         children: [
-          Icon(
-            conFiltros ? Icons.filter_alt_off : Icons.receipt_long_outlined,
-            size: 48,
-            color: AppColors.muted,
-          ),
-          const SizedBox(height: 12),
           Text(
             conFiltros
-                ? 'No hay movimientos que coincidan con los filtros'
-                : 'No hay movimientos registrados en la cuenta',
+                ? 'No hay movimientos con este filtro.'
+                : 'No hay movimientos registrados en la cuenta.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.muted),
+            style: textos.bodyMedium?.copyWith(color: textos.bodySmall?.color),
           ),
-          if (conFiltros) ...[
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton(
-                onPressed: alLimpiarFiltros,
-                child: const Text('Limpiar filtros'),
-              ),
+          if (conFiltros)
+            TextButton(
+              onPressed: alLimpiarFiltros,
+              child: const Text('Limpiar filtros'),
             ),
-          ],
         ],
       ),
     );
   }
 }
- 
+
 class _VistaError extends StatelessWidget {
   const _VistaError({required this.mensaje, required this.alReintentar});
+
   final String mensaje;
   final VoidCallback alReintentar;
- 
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    final textos = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12,
         children: [
-          const Icon(Icons.error_outline, size: 48, color: AppColors.danger),
-          const SizedBox(height: 16),
-          Text(mensaje, style: const TextStyle(color: AppColors.muted)),
-          const SizedBox(height: 16),
-          FilledButton.tonal(
+          Text(
+            mensaje,
+            textAlign: TextAlign.center,
+            style: textos.bodyMedium?.copyWith(color: textos.bodySmall?.color),
+          ),
+          OutlinedButton(
             onPressed: alReintentar,
             child: const Text('Reintentar'),
           ),
@@ -1002,4 +459,3 @@ class _VistaError extends StatelessWidget {
     );
   }
 }
- 

@@ -4,6 +4,12 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/session/deep_link_service.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/storage/token_storage.dart';
+import 'package:frontend/core/widgets/aviso_en_linea.dart';
+import 'package:frontend/core/widgets/avatar_inicial.dart';
+import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/circulo_categoria.dart';
+import 'package:frontend/core/widgets/confirmar.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/invitacion/presentation/viewmodels/invitacion_view_model.dart';
 import 'package:frontend/features/lista-invitaciones/data/datasources/invitacion_api.dart';
 import 'package:frontend/features/lista-invitaciones/data/models/invitacion_enviada.dart';
@@ -62,29 +68,15 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
   }
 
   Future<void> _rechazar(InvitacionRecibida invitacion) async {
-    final seguro = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Rechazar invitación'),
-        content: Text(
-          '¿Rechazar la invitación a ${invitacion.cuentaCompartidaNombre}? '
+    final seguro = await confirmar(
+      context,
+      titulo: 'Rechazar invitación',
+      texto: '¿Rechazar la invitación a ${invitacion.cuentaCompartidaNombre}? '
           'Para entrar después, ${invitacion.invitadoPor} te tendría que mandar otra.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Rechazar'),
-          ),
-        ],
-      ),
+      textoAccion: 'Rechazar',
+      peligro: true,
     );
-    if (seguro != true) return;
+    if (!seguro) return;
     if (await _vm.rechazar()) {
       irAlInicio();
       _avisar('Rechazaste la invitación a ${invitacion.cuentaCompartidaNombre}');
@@ -93,22 +85,13 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
 
   // La invitación es para otro email: cerrar esta sesión y entrar con la cuenta correcta.
   Future<void> _entrarConOtraCuenta() async {
-    final seguro = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Entrar con otra cuenta'),
-        content: const Text('Se va a cerrar la sesión de esta cuenta. Después de entrar, vas a volver a ver la invitación.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Cerrar sesión')),
-        ],
-      ),
+    final seguro = await confirmar(
+      context,
+      titulo: 'Entrar con otra cuenta',
+      texto: 'Se va a cerrar la sesión de esta cuenta. Después de entrar, vas a volver a ver la invitación.',
+      textoAccion: 'Cerrar sesión',
     );
-    if (seguro != true) return;
+    if (!seguro) return;
     await TokenStorage().limpiar();
     _irAlLoginYVolver(widget.token);
   }
@@ -116,7 +99,7 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Invitación')),
+      appBar: barraConVolver(context, 'Te invitaron'),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -152,7 +135,7 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
       titulo: 'No pudimos abrir la invitación',
       texto: _vm.error ?? 'El enlace puede estar incompleto.',
       acciones: [
-        FilledButton.tonal(onPressed: _vm.cargar, child: const Text('Reintentar')),
+        FilledButton(onPressed: _vm.cargar, child: const Text('Reintentar')),
         TextButton(onPressed: irAlInicio, child: const Text('Ir al inicio')),
       ],
     );
@@ -160,96 +143,68 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
 
   Widget _detalle(InvitacionRecibida inv) {
     final motivo = _motivoSinRespuesta(inv);
+    final textos = Theme.of(context).textTheme;
+    final c = context.colores;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
       children: [
-        Center(
-          child: CircleAvatar(
-            radius: 36,
-            backgroundColor: AppColors.accent.withValues(alpha: 0.15),
-            child: const Icon(Icons.group_add_outlined, size: 34, color: AppColors.text),
-          ),
-        ),
-        const SizedBox(height: 18),
-        Text(
-          '${inv.invitadoPor} te invitó a',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14.5, color: AppColors.muted),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          inv.cuentaCompartidaNombre,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: Column(
-            children: [
-              _Dato(icono: Icons.mail_outline, etiqueta: 'Invitación para', valor: inv.emailInvitado),
-              const Divider(height: 1, color: AppColors.line),
-              _Dato(icono: Icons.schedule, etiqueta: 'Vence', valor: _vence(inv.fechaExpiracion)),
-              const Divider(height: 1, color: AppColors.line),
-              const _Dato(
-                icono: Icons.person_outline,
-                etiqueta: 'Vas a entrar como',
-                valor: 'Miembro: vas a ver y cargar los movimientos de la cuenta',
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 12,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 18, bottom: 4),
+              child: Center(
+                child: AvatarInicial(inv.invitadoPor, serie: 0, tamano: 64),
               ),
+            ),
+            Semantics(
+              header: true,
+              child: Text(
+                '${inv.invitadoPor} te invitó a ${inv.cuentaCompartidaNombre}',
+                textAlign: TextAlign.center,
+                style: textos.titleLarge?.copyWith(fontSize: 22),
+              ),
+            ),
+            Text(
+              'Si aceptás, vas a ver y cargar los movimientos de ${inv.cuentaCompartidaNombre}.',
+              textAlign: TextAlign.center,
+              style: textos.bodyMedium?.copyWith(fontSize: 14.5, color: c.suave),
+            ),
+            TarjetaLista(
+              children: [
+                _Dato(etiqueta: 'Cuenta compartida', valor: inv.cuentaCompartidaNombre),
+                _Dato(etiqueta: 'Invitación para', valor: inv.emailInvitado),
+                const _Dato(etiqueta: 'Vas a ser', valor: 'Miembro'),
+                _Dato(etiqueta: 'Vence', valor: _vence(inv.fechaExpiracion)),
+              ],
+            ),
+            if (motivo != null) AvisoEnLinea(motivo, icono: Icons.info_outline),
+            if (_vm.error != null)
+              Text(
+                _vm.error!,
+                textAlign: TextAlign.center,
+                style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: c.coralTexto),
+              ),
+            if (inv.sePuedeResponder) ...[
+              FilledButton(
+                onPressed: _vm.respondiendo ? null : () => _aceptar(inv),
+                child: _vm.respondiendo
+                    ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Aceptar y entrar'),
+              ),
+              OutlinedButton(
+                onPressed: _vm.respondiendo ? null : () => _rechazar(inv),
+                child: const Text('Rechazar'),
+              ),
+            ] else ...[
+              if (inv.estado == EstadoInvitacion.pendiente && !inv.esParaVos)
+                FilledButton(onPressed: _entrarConOtraCuenta, child: const Text('Entrar con otra cuenta')),
+              OutlinedButton(onPressed: irAlInicio, child: const Text('Ir al inicio')),
             ],
-          ),
-        ),
-        if (motivo != null) ...[
-          const SizedBox(height: 16),
-          _Aviso(texto: motivo),
-        ],
-        if (_vm.error != null) ...[
-          const SizedBox(height: 16),
-          Text(_vm.error!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.danger, fontSize: 13.5)),
-        ],
-        const SizedBox(height: 28),
-        if (inv.sePuedeResponder) ...[
-          SizedBox(
-            height: 52,
-            child: FilledButton.icon(
-              onPressed: _vm.respondiendo ? null : () => _aceptar(inv),
-              icon: _vm.respondiendo
-                  ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.check),
-              label: const Text('Aceptar y entrar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 48,
-            child: OutlinedButton(
-              onPressed: _vm.respondiendo ? null : () => _rechazar(inv),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.danger,
-                side: const BorderSide(color: AppColors.line),
-              ),
-              child: const Text('Rechazar'),
-            ),
-          ),
-        ] else ...[
-          if (inv.estado == EstadoInvitacion.pendiente && !inv.esParaVos) ...[
-            SizedBox(
-              height: 48,
-              child: FilledButton(onPressed: _entrarConOtraCuenta, child: const Text('Entrar con otra cuenta')),
-            ),
-            const SizedBox(height: 10),
           ],
-          SizedBox(
-            height: 48,
-            child: FilledButton.tonal(onPressed: irAlInicio, child: const Text('Ir al inicio')),
-          ),
-        ],
+        ),
       ],
     );
   }
@@ -290,19 +245,31 @@ class _Centrado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 12,
           children: [
-            Icon(icono, size: 52, color: AppColors.muted),
-            const SizedBox(height: 16),
-            Text(titulo, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.muted, height: 1.4)),
-            const SizedBox(height: 20),
-            for (final accion in acciones) ...[accion, const SizedBox(height: 8)],
+            Center(
+              child: CirculoCategoria(
+                icono: icono,
+                color: c.suave,
+                fondo: c.hundido,
+                tamano: 72,
+                tamanoIcono: 32,
+              ),
+            ),
+            Semantics(
+              header: true,
+              child: Text(titulo, textAlign: TextAlign.center, style: textos.titleSmall),
+            ),
+            Text(texto, textAlign: TextAlign.center, style: textos.bodyMedium?.copyWith(color: c.suave)),
+            ...acciones,
           ],
         ),
       ),
@@ -310,57 +277,29 @@ class _Centrado extends StatelessWidget {
   }
 }
 
+// Una fila de la tarjeta: lo que es arriba (chico, en suave) y el dato abajo.
 class _Dato extends StatelessWidget {
-  const _Dato({required this.icono, required this.etiqueta, required this.valor});
+  const _Dato({required this.etiqueta, required this.valor});
 
-  final IconData icono;
   final String etiqueta;
   final String valor;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icono, size: 20, color: AppColors.muted),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(etiqueta, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-                const SizedBox(height: 2),
-                Text(valor, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Aviso extends StatelessWidget {
-  const _Aviso({required this.texto});
-
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface2,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, size: 18, color: AppColors.muted),
-          const SizedBox(width: 10),
-          Expanded(child: Text(texto, style: const TextStyle(fontSize: 13.5, height: 1.4))),
-        ],
+    final textos = Theme.of(context).textTheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 56),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          spacing: 2,
+          children: [
+            Text(etiqueta, style: textos.bodySmall),
+            Text(valor, style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }

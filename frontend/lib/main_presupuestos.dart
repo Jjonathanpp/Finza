@@ -20,6 +20,7 @@ void main() {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: temaFinza(),
+        darkTheme: temaFinza(oscuro: true),
         home: const PresupuestosScreen(),
       ),
     ),

@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/widgets/chip_estado.dart';
+import 'package:frontend/core/widgets/circulo_categoria.dart';
+import 'package:frontend/core/widgets/esqueleto.dart';
+import 'package:frontend/core/widgets/fila_movimiento.dart';
+import 'package:frontend/core/widgets/monto.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
+import 'package:frontend/core/widgets/titulo_seccion.dart';
+import 'package:frontend/features/home/presentation/screens/pantalla_principal.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
-import 'package:frontend/shared/utils/color_hex.dart';
-import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/features/panel/presentation/widgets/error_con_reintento.dart';
 
 class UltimosMovimientos extends StatefulWidget {
   const UltimosMovimientos({super.key, this.api, this.startDate, this.endDate});
-  
+
   final PanelApi? api;
   final DateTime? startDate;
   final DateTime? endDate;
@@ -20,7 +27,9 @@ class UltimosMovimientos extends StatefulWidget {
 }
 
 class _UltimosMovimientosState extends State<UltimosMovimientos> {
-  late final _resumen = (widget.api ?? PanelApi(ApiClient())).resumen(
+  late Future<ResumenMes> _resumen = _pedir();
+
+  Future<ResumenMes> _pedir() => (widget.api ?? PanelApi(ApiClient())).resumen(
     startDate: widget.startDate,
     endDate: widget.endDate,
   );
@@ -30,59 +39,51 @@ class _UltimosMovimientosState extends State<UltimosMovimientos> {
     return FutureBuilder<ResumenMes>(
       future: _resumen,
       builder: (context, respuesta) {
+        if (respuesta.connectionState != ConnectionState.done) {
+          return const EsqueletoLista(cantidad: 3);
+        }
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 12,
           children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 20, bottom: 9),
-              child: Text('Últimos movimientos', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+            TituloSeccion(
+              'Últimos movimientos',
+              grande: true,
+              link: 'Ver todos',
+              // La pestaña 1 es Movimientos.
+              alLink: () => pestanaPedida.value = 1,
             ),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.line),
-              ),
-              child: _contenido(respuesta),
-            ),
+            _contenido(context, respuesta),
           ],
         );
       },
     );
   }
 
-  Widget _contenido(AsyncSnapshot<ResumenMes> respuesta) {
-    if (respuesta.connectionState != ConnectionState.done) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5)),
+  Widget _contenido(BuildContext context, AsyncSnapshot<ResumenMes> respuesta) {
+    final error = respuesta.error;
+    if (error != null) {
+      return Tarjeta(
+        child: ErrorConReintento(
+          mensaje: error is ApiException ? error.message : 'No se pudieron cargar los movimientos',
+          alReintentar: () => setState(() => _resumen = _pedir()),
         ),
       );
     }
-    final error = respuesta.error;
-    if (error != null) {
-      return _aviso(error is ApiException ? error.message : 'No se pudieron cargar los movimientos');
-    }
-    
+
     final movimientos = respuesta.data!.ultimosMovimientos;
-    if (movimientos.isEmpty) return _aviso('Todavía no hay movimientos recientes.');
-    
-    return Column(
-      children: movimientos.map((movimiento) => _FilaMovimiento(movimiento)).toList(),
+    if (movimientos.isEmpty) {
+      return Tarjeta(child: Text('Todavía no hay movimientos recientes.', style: Theme.of(context).textTheme.bodySmall));
+    }
+
+    return TarjetaLista(
+      children: [for (final movimiento in movimientos) _Fila(movimiento)],
     );
   }
-
-  Widget _aviso(String texto) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Text(texto, style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
-      );
 }
 
-class _FilaMovimiento extends StatelessWidget {
-  const _FilaMovimiento(this.movimiento);
+class _Fila extends StatelessWidget {
+  const _Fila(this.movimiento);
   final Movimiento movimiento;
 
   String _formatearFecha(DateTime fecha) {
@@ -92,66 +93,24 @@ class _FilaMovimiento extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorCategoria = colorDesdeHex(movimiento.categoria.color);
-    final colorMonto = movimiento.esIngreso ? AppColors.accent : AppColors.text;
-    final signo = movimiento.esIngreso ? '+' : '-';
-    final bool estaPendiente = movimiento.estado == 'PENDIENTE';
+    final ingreso = movimiento.esIngreso;
+    final pendiente = movimiento.estado == 'PENDIENTE';
+    // El autor solo importa en una cuenta compartida.
+    final autor = cuentaActiva.value != null ? movimiento.perfilNombre : null;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: colorCategoria.withValues(alpha: 0.15), 
-              borderRadius: BorderRadius.circular(12)
+    return FilaMovimiento(
+      leading: CirculoCategoria.de(movimiento.categoria),
+      titulo: movimiento.categoria.nombre,
+      subtitulo: movimiento.descripcion?.isNotEmpty == true ? movimiento.descripcion! : _formatearFecha(movimiento.fecha),
+      monto: Monto.texto(movimiento.monto, ingreso: ingreso),
+      colorMonto: Monto.color(context, ingreso),
+      chip: pendiente ? const ChipEstado('Por revisar', TonoChip.ambar, chico: true) : null,
+      pie: autor == null || autor.isEmpty
+          ? null
+          : ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 96),
+              child: Text(autor, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11.5)),
             ),
-            child: Text(
-              movimiento.categoria.emoji ?? movimiento.categoria.nombre.characters.first.toUpperCase(),
-              style: TextStyle(fontSize: 18, color: colorCategoria, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  movimiento.categoria.nombre,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.text),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    if (estaPendiente) ...[
-                      const Icon(Icons.error_outline, size: 12, color: Colors.orange),
-                      const SizedBox(width: 4),
-                    ],
-                    Expanded(
-                      child: Text(
-                        movimiento.descripcion?.isNotEmpty == true ? movimiento.descripcion! : _formatearFecha(movimiento.fecha),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 12, color: estaPendiente ? Colors.orange : AppColors.faint),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$signo ${importe(movimiento.monto)}', 
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: colorMonto, fontFeatures: const [FontFeature.tabularFigures()])
-          ),
-        ],
-      ),
     );
   }
 }

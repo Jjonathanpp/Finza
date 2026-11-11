@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:frontend/config/constants/api_config.dart';
 import 'package:frontend/core/errors/api_exception.dart';
+import 'package:frontend/core/network/estado_conexion.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/session/sesion.dart';
@@ -27,12 +30,12 @@ class ApiClient {
   Future<dynamic> _enviar(Future<Response> Function() pedido) async {
     try {
       final respuesta = await pedido();
+      sinConexion.value = false;
       return respuesta.data['data'];
     } on DioException catch (e) {
       final respuestaError = e.response;
-      if (respuestaError == null) {
-        throw ApiException(null, 'No se pudo conectar con el servidor');
-      }
+      if (respuestaError == null) throw _errorSinRespuesta(e);
+      sinConexion.value = false;
       final cuerpo = respuestaError.data;
       if (cuerpo is Map && cuerpo['message'] != null) {
         throw ApiException(
@@ -41,10 +44,7 @@ class ApiClient {
           cuerpo['data'],
         );
       }
-      throw ApiException(
-        respuestaError.statusCode,
-        'Error inesperado del servidor',
-      );
+      throw ApiException(respuestaError.statusCode, _errorInesperado);
     }
   }
 
@@ -55,18 +55,38 @@ class ApiClient {
         queryParameters: queryParameters,
         options: Options(responseType: ResponseType.bytes),
       );
+      sinConexion.value = false;
       return respuesta.data ?? <int>[];
     } on DioException catch (e) {
       final respuestaError = e.response;
-      if (respuestaError == null) {
-        throw ApiException(null, 'No se pudo conectar con el servidor');
-      }
-      throw ApiException(
-        respuestaError.statusCode,
-        'Error inesperado del servidor',
-      );
+      if (respuestaError == null) throw _errorSinRespuesta(e);
+      sinConexion.value = false;
+      throw ApiException(respuestaError.statusCode, _errorInesperado);
     }
   }
+}
+
+const _errorSinConexion =
+    'No pudimos conectarnos. Revisá tu conexión a internet y probá de nuevo.';
+const _errorInesperado =
+    'Algo salió mal de nuestro lado. Probá de nuevo en un rato.';
+
+// Un pedido que no tuvo respuesta: si fue por falta de conexión (sin red, backend que no contesta o
+// demora de más) se prende el aviso global de la app; si fue por otra cosa, un mensaje genérico.
+ApiException _errorSinRespuesta(DioException e) {
+  final porConexion = switch (e.type) {
+    DioExceptionType.connectionError ||
+    DioExceptionType.connectionTimeout ||
+    DioExceptionType.sendTimeout ||
+    DioExceptionType.receiveTimeout => true,
+    DioExceptionType.unknown => e.error is SocketException,
+    _ => false,
+  };
+  if (porConexion) {
+    sinConexion.value = true;
+    return ApiException(null, _errorSinConexion);
+  }
+  return ApiException(null, 'No pudimos completar la acción. Probá de nuevo.');
 }
 
 // Antes de que salga cada pedido, le agrega el token del login (si hay uno guardado) y, si se eligió

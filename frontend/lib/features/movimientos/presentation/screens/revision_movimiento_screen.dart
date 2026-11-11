@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/widgets/aviso_en_linea.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/boton_peligro.dart';
 import 'package:frontend/core/widgets/campo.dart';
 import 'package:frontend/core/widgets/selector_tipo.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
@@ -10,6 +12,8 @@ import 'package:frontend/features/movimientos/data/datasources/movimiento_api.da
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/monto_formatter.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/revision_movimiento_view_model.dart';
+import 'package:frontend/features/movimientos/presentation/widgets/caja_fecha.dart';
+import 'package:frontend/features/movimientos/presentation/widgets/chip_categoria.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
 class RevisionMovimientoScreen extends StatefulWidget {
@@ -59,39 +63,51 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
     }
   }
 
+  Future<void> _elegirFecha() async {
+    final elegida = await showDatePicker(
+      context: context,
+      initialDate: _vm.fecha,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (elegida != null) _vm.cambiarFecha(elegida);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colores = context.colores;
     return Scaffold(
-      appBar: barraConVolver(context, 'Revisar Inferencia'),
+      appBar: barraConVolver(context, 'Revisá antes de guardar', subtitulo: 'Completado por la IA'),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
           return ListView(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
             children: [
-              _bannerInferencia(),
-              const SizedBox(height: 20),
+              const AvisoEnLinea(
+                'La IA completó estos datos. Cambiá lo que no esté bien y confirmá.',
+                icono: Icons.check,
+                verde: true,
+              ),
+              const SizedBox(height: 14),
               SelectorTipo(esIngreso: _vm.esIngreso, alCambiar: _vm.cambiarTipo),
-              _campoMonto(),
+              const SizedBox(height: 14),
+              Campo(
+                etiqueta: 'Monto',
+                error: _vm.errorMonto,
+                // Con otra moneda elegida se aclara: lo que se carga son pesos (US-8.2).
+                ayuda: convierte ? 'En pesos' : null,
+                child: TextField(
+                  controller: _monto,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [MontoArgentinoFormatter()],
+                  decoration: const InputDecoration(prefixText: '\$ ', hintText: '0'),
+                ),
+              ),
               _categorias(),
               Campo(
                 etiqueta: 'Fecha',
-                child: InkWell(
-                  onTap: () async {
-                    final elegida = await showDatePicker(
-                      context: context,
-                      initialDate: _vm.fecha,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (elegida != null) _vm.cambiarFecha(elegida);
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: InputDecorator(
-                    decoration: const InputDecoration(prefixIcon: Icon(Icons.calendar_today, size: 18)),
-                    child: Text('${_vm.fecha.day}/${_vm.fecha.month}/${_vm.fecha.year}'),
-                  ),
-                ),
+                child: CajaFecha(fecha: _vm.fecha, alTocar: _elegirFecha),
               ),
               Campo(
                 etiqueta: 'Descripción',
@@ -103,75 +119,19 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
               if (_vm.error != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(_vm.error!, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
+                  child: Text(
+                    _vm.error!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colores.coralTexto,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               _botonesAccion(),
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _bannerInferencia() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.auto_awesome, color: AppColors.accent),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Revisá y ajustá los datos inferidos por la IA antes de confirmar la transacción.',
-              style: TextStyle(fontSize: 13, color: AppColors.text),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _campoMonto() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 22, bottom: 18),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('\$', style: TextStyle(fontSize: 24, color: AppColors.faint, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 230,
-                child: TextField(
-                  controller: _monto,
-                  textAlign: TextAlign.center,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [MontoArgentinoFormatter()],
-                  style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w700),
-                  decoration: const InputDecoration.collapsed(hintText: '0'),
-                ),
-              ),
-            ],
-          ),
-          if (_vm.errorMonto != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(_vm.errorMonto!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
-            )
-          // Con otra moneda elegida se aclara: lo que se carga son pesos (US-8.2).
-          else if (convierte)
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text('En pesos', style: TextStyle(color: AppColors.faint, fontSize: 12)),
-            ),
-        ],
       ),
     );
   }
@@ -181,43 +141,42 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
       etiqueta: 'Categoría',
       error: _vm.errorCategoria,
       child: Wrap(
-        spacing: 7,
-        runSpacing: 7,
-        children: _vm.categoriasDelTipo.map((c) {
-          final seleccionado = c.nombre == _vm.categoria;
-          return ChoiceChip(
-            label: Text('${c.emoji ?? ''} ${c.nombre}'),
-            selected: seleccionado,
-            onSelected: (_) => _vm.elegirCategoria(c.nombre),
-            backgroundColor: AppColors.surface2,
-            selectedColor: AppColors.accent.withValues(alpha: 0.12),
-            side: BorderSide(color: seleccionado ? AppColors.accent : AppColors.line),
-          );
-        }).toList(),
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final c in _vm.categoriasDelTipo)
+            ChipCategoria(
+              categoria: c,
+              elegida: c.nombre == _vm.categoria,
+              alTocar: () => _vm.elegirCategoria(c.nombre),
+            ),
+        ],
       ),
     );
   }
 
+  // .acciones de la maqueta: dos botones de igual ancho, 8 de separación.
   Widget _botonesAccion() {
     return Row(
+      spacing: 8,
       children: [
         Expanded(
-          child: OutlinedButton.icon(
+          child: FilledButton(
             onPressed: _vm.cargando ? null : _descartar,
-            icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-            label: const Text('Descartar', style: TextStyle(color: AppColors.danger)),
-            style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.danger)),
+            style: estiloBotonPeligro(context),
+            child: const Text('Descartar'),
           ),
         ),
-        const SizedBox(width: 12),
         Expanded(
-          flex: 2,
-          child: FilledButton.icon(
+          child: FilledButton(
             onPressed: _vm.cargando ? null : _confirmar,
-            icon: _vm.cargando 
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.check),
-            label: const Text('Confirmar'),
+            child: _vm.cargando
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: context.colores.sobrePrimario),
+                  )
+                : const Text('Confirmar'),
           ),
         ),
       ],

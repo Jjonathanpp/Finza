@@ -5,16 +5,30 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/storage/token_storage.dart';
+import 'package:frontend/core/widgets/circulo_categoria.dart';
+import 'package:frontend/core/widgets/fila_opcion.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/cuentas_compartidas/data/datasources/cuenta_compartida_api.dart';
-import 'package:frontend/features/cuentas_compartidas/presentation/screens/miembros_screen.dart';
 
-// Configuración → "Cuenta" (t-13.1.2): en cuál está la app y para pasarse a otra, como los perfiles
-// de Netflix. Al elegir, la guarda y arma la pantalla principal de cero con los datos de esa cuenta.
+// El selector de cuenta (t-13.1.2): en cuál está la app y para pasarse a otra, como los perfiles de
+// Netflix. Al elegir, la guarda y arma la pantalla principal de cero con los datos de esa cuenta.
 // Abajo, el botón para crear una cuenta compartida (t-11.1.4).
+// Se abre como hoja con SelectorDeCuenta.mostrar (desde el chip de cuenta y el saludo del Inicio); con
+// el constructor suelto es la versión en línea que usa Configuración.
 class SelectorDeCuenta extends StatefulWidget {
-  const SelectorDeCuenta({super.key, this.api});
+  const SelectorDeCuenta({super.key, this.api, this.comoHoja = false});
 
   final CuentaCompartidaApi? api;
+  final bool comoHoja;
+
+  static Future<void> mostrar(BuildContext context, {CuentaCompartidaApi? api}) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => SelectorDeCuenta(api: api, comoHoja: true),
+    );
+  }
 
   @override
   State<SelectorDeCuenta> createState() => _SelectorDeCuentaState();
@@ -42,101 +56,156 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
   @override
   Widget build(BuildContext context) {
     final actual = cuentaActiva.value;
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _cuentas,
       builder: (context, respuesta) {
         // La personal siempre está; las compartidas, cuando llegan.
         final opciones = <Map<String, dynamic>?>[null, ...?respuesta.data];
+        final filas = [
+          for (final (i, cuenta) in opciones.indexed)
+            _opcion(
+              context,
+              cuenta,
+              indice: i,
+              elegida: cuenta?['perfilId'] == actual?['perfilId'],
+              enLinea: !widget.comoHoja,
+            ),
+        ];
+        final error = respuesta.hasError
+            ? Text(
+                'No se pudieron cargar las cuentas compartidas.',
+                style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: c.coralTexto),
+              )
+            : null;
+        final crear = OutlinedButton.icon(
+          onPressed: _crear,
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('Crear cuenta compartida'),
+        );
+
+        // La hoja (maqueta L687-695): título, bajada, las cuentas en una caja hundida y crear.
+        if (widget.comoHoja) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                Text('¿Qué cuenta querés ver?', style: textos.titleLarge),
+                Text(
+                  'En una cuenta compartida ves y cargás lo de esa cuenta.',
+                  style: textos.bodyMedium?.copyWith(color: c.suave),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: c.hundido,
+                    borderRadius: BorderRadius.circular(Radios.tarjeta),
+                  ),
+                  child: Column(
+                    children: [
+                      for (final (i, fila) in filas.indexed) ...[
+                        if (i > 0) Divider(color: c.linea),
+                        fila,
+                      ],
+                    ],
+                  ),
+                ),
+                ?error,
+                crear,
+              ],
+            ),
+          );
+        }
+
+        // En línea (Configuración): las cuentas como filas de una lista, con el rol y la marca en la
+        // elegida. El título de la sección y los miembros los pone Configuración.
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 12,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(18, 12, 18, 4),
-              child: Text('Cuenta', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Text(
-                'Estás en ${actual == null ? 'tu cuenta personal' : actual['nombre']}. '
-                'En una cuenta compartida se ve y se carga lo de esa cuenta.',
-                style: const TextStyle(color: AppColors.muted, fontSize: 12.5),
-              ),
-            ),
-            // En una cuenta compartida: quiénes están y con qué rol (t-11.3.2). La pantalla
-            // trabaja sobre la cuenta activa, así que solo se ofrece para esa.
-            if (actual != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 4),
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => MiembrosScreen(nombreCuenta: actual['nombre'] as String, api: _api),
-                    ),
-                  ),
-                  icon: const Icon(Icons.group_outlined),
-                  label: Text(actual['rol'] == 'ADMIN' ? 'Miembros y roles' : 'Ver miembros'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    foregroundColor: AppColors.text,
-                    backgroundColor: AppColors.surface,
-                    side: const BorderSide(color: AppColors.line),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            for (final cuenta in opciones)
-              _opcion(cuenta, elegida: cuenta?['perfilId'] == actual?['perfilId']),
-            if (respuesta.hasError)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 18),
-                child: Text(
-                  'No se pudieron cargar las cuentas compartidas.',
-                  style: TextStyle(color: AppColors.danger, fontSize: 12.5),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
-              child: OutlinedButton.icon(
-                onPressed: _crear,
-                icon: const Icon(Icons.add),
-                label: const Text('Crear cuenta compartida'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  foregroundColor: AppColors.text,
-                  backgroundColor: AppColors.surface,
-                  side: const BorderSide(color: AppColors.line),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
+            TarjetaLista(children: filas),
+            ?error,
+            crear,
           ],
         );
       },
     );
   }
 
-  Widget _opcion(Map<String, dynamic>? cuenta, {required bool elegida}) {
+  // Una cuenta (.fila): el ícono en su círculo, nombre y rol, y la marca en la que está la app.
+  Widget _opcion(
+    BuildContext context,
+    Map<String, dynamic>? cuenta, {
+    required int indice,
+    required bool elegida,
+    required bool enLinea,
+  }) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
     final nombre = cuenta == null ? 'Personal' : cuenta['nombre'] as String;
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: elegida ? AppColors.accent : AppColors.surface2,
-        child: Text(
-          nombre.isEmpty ? '' : nombre[0].toUpperCase(),
-          style: TextStyle(color: elegida ? Colors.white : AppColors.text, fontWeight: FontWeight.w700),
+    final detalle = cuenta == null
+        ? 'Solo vos'
+        : cuenta['rol'] == 'ADMIN'
+            ? 'Compartida · Administrador'
+            : 'Compartida · Miembro';
+    // La personal va en menta; las compartidas, cada una con un color de la serie.
+    final colorSerie = const [3, 2, 4, 1][(indice - 1) % 4];
+    final fondoIcono = cuenta == null ? c.menta : c.serieFondo[colorSerie];
+    final colorIcono = cuenta == null ? c.primario : c.serie[colorSerie];
+    if (enLinea) {
+      return FilaOpcion(
+        titulo: nombre,
+        subtitulo: detalle,
+        leading: CirculoCategoria(
+          icono: cuenta == null ? Icons.person_outline : Icons.group_outlined,
+          color: colorIcono,
+          fondo: fondoIcono,
+        ),
+        trailing: elegida ? Icon(Icons.check, size: 22, color: c.primario, semanticLabel: 'Elegida') : null,
+        alTocar: elegida ? null : () => _elegir(cuenta),
+      );
+    }
+    return InkWell(
+      onTap: elegida ? null : () => _elegir(cuenta),
+      borderRadius: BorderRadius.circular(Radios.control),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          spacing: 12,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: fondoIcono, shape: BoxShape.circle),
+              child: Icon(
+                cuenta == null ? Icons.person_outline : Icons.group_outlined,
+                size: 20,
+                color: colorIcono,
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 2,
+                children: [
+                  Text(
+                    nombre,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  Text(detalle, style: textos.bodySmall),
+                ],
+              ),
+            ),
+            if (elegida) Icon(Icons.check, size: 22, color: c.primario, semanticLabel: 'Elegida'),
+          ],
         ),
       ),
-      title: Text(nombre),
-      subtitle: Text(
-        cuenta == null
-            ? 'Solo vos'
-            : cuenta['rol'] == 'ADMIN'
-                ? 'Compartida · Administrador'
-                : 'Compartida · Miembro',
-      ),
-      trailing: elegida ? const Icon(Icons.check_circle, color: AppColors.accent) : null,
-      onTap: elegida ? null : () => _elegir(cuenta),
     );
   }
 }
@@ -185,10 +254,8 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
   @override
   Widget build(BuildContext context) {
     final puedeCrear = _nombre.text.trim().isNotEmpty && !_creando;
-    const borde = OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(12)),
-      borderSide: BorderSide(color: AppColors.danger),
-    );
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
     return PopScope(
       canPop: !_creando,
       child: AlertDialog(
@@ -197,7 +264,7 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Nombre', style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
+            Text('Nombre', style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextField(
               controller: _nombre,
@@ -213,46 +280,49 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
                 hintText: 'Por ejemplo, Casa',
                 counterText: '',
                 helperText: 'Vas a ser el administrador.',
-                helperStyle: const TextStyle(color: AppColors.muted, fontSize: 12.5),
                 errorText: _error,
-                errorStyle: const TextStyle(color: AppColors.danger, fontSize: 12.5),
-                errorBorder: borde,
-                focusedErrorBorder: borde,
               ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              spacing: 8,
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _creando ? null : () => Navigator.of(context).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                ),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: puedeCrear ? _crear : null,
+                    // Mientras crea sigue verde, con la ruedita: no está apagado, está esperando.
+                    style: _creando
+                        ? FilledButton.styleFrom(
+                            disabledBackgroundColor: c.primario,
+                            disabledForegroundColor: c.sobrePrimario,
+                          )
+                        : null,
+                    child: _creando
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: c.sobrePrimario),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text('Creando…'),
+                            ],
+                          )
+                        : const Text('Crear'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: _creando ? null : () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: puedeCrear ? _crear : null,
-            // Mientras crea sigue verde, con la ruedita: no está apagado, está esperando.
-            style: _creando
-                ? FilledButton.styleFrom(
-                    disabledBackgroundColor: AppColors.accent,
-                    disabledForegroundColor: AppColors.accentInk,
-                  )
-                : null,
-            child: _creando
-                ? const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentInk),
-                      ),
-                      SizedBox(width: 8),
-                      Text('Creando…'),
-                    ],
-                  )
-                : const Text('Crear'),
-          ),
-        ],
       ),
     );
   }

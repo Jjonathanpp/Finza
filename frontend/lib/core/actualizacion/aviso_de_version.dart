@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/session/portero.dart';
+import 'package:frontend/core/widgets/logo_finza.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Aviso de versión nueva (t-1.8.5): al abrir la app, si en GitHub Releases hay una más nueva que la
@@ -56,14 +58,46 @@ Future<void> avisarSiHayVersionNueva({
 
   final actualizar = await showDialog<bool>(
     context: contexto,
-    builder: (contexto) => AlertDialog(
-      title: const Text('Hay una versión nueva de Finza'),
-      content: Text('Tenés la $instalada y ya salió la $version. Se instala encima, sin perder nada.'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Más tarde')),
-        FilledButton(onPressed: () => Navigator.pop(contexto, true), child: const Text('Actualizar')),
-      ],
-    ),
+    builder: (contexto) {
+      final textos = Theme.of(contexto).textTheme;
+      return Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const LogoFinza(tamano: 56),
+              const SizedBox(height: 14),
+              Text('Hay una versión nueva de Finza', style: textos.titleLarge),
+              const SizedBox(height: 14),
+              Text(
+                'Tenés la $instalada y ya salió la $version. Se instala encima, sin perder nada.',
+                style: textos.bodyMedium?.copyWith(color: contexto.colores.suave),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(contexto, false),
+                      child: const Text('Más tarde'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(contexto, true),
+                      child: const Text('Actualizar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
   );
   if (actualizar == true) await abrir(Uri.parse(apk));
 }

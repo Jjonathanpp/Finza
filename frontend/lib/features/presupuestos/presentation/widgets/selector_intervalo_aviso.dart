@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/widgets/filtro_pastilla.dart';
 
 // "Avisarme cada": el intervalo del popup de presupuesto (ver core/avisos/aviso_de_presupuestos.dart).
 // Opciones rápidas y "Otro" para escribir cualquier valor entre 5 y 100. Debajo dice en qué
@@ -49,27 +50,31 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final opcion in _opciones)
-              ChoiceChip(
-                label: Text('$opcion%'),
-                selected: !_otro && widget.valor == opcion,
-                onSelected: widget.habilitado
-                    ? (_) {
-                        setState(() => _otro = false);
-                        widget.alCambiar(opcion);
-                      }
-                    : null,
-              ),
-            ChoiceChip(
-              label: const Text('Otro'),
-              selected: _otro,
-              onSelected: widget.habilitado ? (_) => setState(() => _otro = true) : null,
+        // Las pastillas (.filtros) en un Wrap y no en la fila que se desliza: así no queda ninguna escondida.
+        IgnorePointer(
+          ignoring: !widget.habilitado,
+          child: Opacity(
+            opacity: widget.habilitado ? 1 : .5,
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final opcion in _opciones)
+                  FiltroPastilla(
+                    texto: '$opcion%',
+                    activo: !_otro && widget.valor == opcion,
+                    alTocar: () {
+                      setState(() => _otro = false);
+                      widget.alCambiar(opcion);
+                    },
+                  ),
+                FiltroPastilla(
+                  texto: 'Otro',
+                  activo: _otro,
+                  alTocar: () => setState(() => _otro = true),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
         if (_otro) ...[
           const SizedBox(height: 12),
@@ -99,12 +104,12 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.notifications_active_outlined, size: 16, color: AppColors.muted),
+            Icon(Icons.notifications_active_outlined, size: 16, color: context.colores.suave),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
                 describirAvisos(widget.valor),
-                style: const TextStyle(fontSize: 12.5, color: AppColors.muted, height: 1.4),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
           ],

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/core/session/cuenta_activa.dart';
-import 'package:frontend/core/widgets/app_drawer.dart';
+import 'package:frontend/core/widgets/encabezado_pestana.dart';
 import 'package:frontend/features/home/presentation/widgets/acciones_rapidas.dart';
 import 'package:frontend/features/panel/presentation/widgets/gastos_por_categoria.dart';
 import 'package:frontend/features/panel/presentation/widgets/tarjeta_saldo.dart';
@@ -31,30 +30,34 @@ class _HomeScreenState extends State<HomeScreen> {
     final recargaKey = ValueKey('${_startDate?.toIso8601String()}_${_endDate?.toIso8601String()}');
 
     return Scaffold(
-      appBar: AppBar(title: Text(conCuentaActiva('Finza'))),
-      drawer: const AppDrawer(),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(18),
-          children: [
-            SelectorRangoFechas(onCambio: _onFechasCambiadas),
-            const SizedBox(height: 16),
-            
-            TarjetaSaldo(key: recargaKey, startDate: _startDate, endDate: _endDate),
-            const SizedBox(height: 16),
-            
-            GraficoBalanceMes(key: recargaKey, startDate: _startDate, endDate: _endDate),
-            const SizedBox(height: 16),
+      body: Column(
+        children: [
+          const EncabezadoInicio(),
+          Expanded(
+            child: ListView(
+              // .scroll de la maqueta: 20 a los costados, 12 entre bloques.
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+              children: [
+                SelectorRangoFechas(onCambio: _onFechasCambiadas),
+                const SizedBox(height: 12),
 
-            const AccionesRapidas(),
-            const SizedBox(height: 16),
+                TarjetaSaldo(key: recargaKey, startDate: _startDate, endDate: _endDate),
+                const SizedBox(height: 12),
 
-            UltimosMovimientos(key: recargaKey, startDate: _startDate, endDate: _endDate),
-            const SizedBox(height: 16),
+                GastosPorCategoria(key: recargaKey, startDate: _startDate, endDate: _endDate),
+                const SizedBox(height: 12),
 
-            GastosPorCategoria(key: recargaKey, startDate: _startDate, endDate: _endDate),
-          ],
-        ),
+                GraficoBalanceMes(key: recargaKey, startDate: _startDate, endDate: _endDate),
+                const SizedBox(height: 12),
+
+                UltimosMovimientos(key: recargaKey, startDate: _startDate, endDate: _endDate),
+                const SizedBox(height: 12),
+
+                const AccionesRapidas(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

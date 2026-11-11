@@ -23,9 +23,9 @@ class _SelectorMiembrosState extends State<SelectorMiembros> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Mostrar',
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.muted),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: context.colores.suave),
         ),
         const SizedBox(height: 8),
         Wrap(

@@ -1,106 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/widgets/esqueleto.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
 
-// Mientras llegan los presupuestos del mes (t-13.2.2): tarjetas grises con la forma de las de verdad,
-// que laten, en vez de una ruedita en el medio. Con "reducir animaciones" del teléfono, quietas.
-class TarjetasCargando extends StatefulWidget {
-  const TarjetasCargando({super.key});
+// Mientras llegan los presupuestos del mes (t-13.2.2): tarjetas con la forma de las de verdad hechas de
+// Esqueleto (bloques grises con un destello). No lleva padding horizontal: lo pone la pantalla. Con
+// "reducir animaciones" del teléfono, quietas.
+class TarjetasCargando extends StatelessWidget {
+  const TarjetasCargando({super.key, this.cantidad = 4});
 
-  @override
-  State<TarjetasCargando> createState() => _TarjetasCargandoState();
-}
+  final int cantidad;
 
-class _TarjetasCargandoState extends State<TarjetasCargando> with SingleTickerProviderStateMixin {
-  late final _latido = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 700),
-    lowerBound: 0.55,
-    value: 1,
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _latido.stop();
-      _latido.value = 1;
-    } else if (!_latido.isAnimating) {
-      _latido.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _latido.dispose();
-    super.dispose();
-  }
+  // El ancho de la línea del nombre en cada tarjeta, para que no sean todas iguales.
+  static const _nombres = [120.0, 96.0, 140.0, 108.0];
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      container: true,
+      liveRegion: true,
       label: 'Cargando presupuestos',
       child: ExcludeSemantics(
-        child: FadeTransition(
-          opacity: _latido,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              for (final ancho in const [120.0, 96.0, 140.0])
-                Padding(padding: const EdgeInsets.only(bottom: 16), child: _TarjetaGris(anchoNombre: ancho)),
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 12,
+          children: [
+            for (var i = 0; i < cantidad; i++) _TarjetaEsqueleto(anchoNombre: _nombres[i % _nombres.length]),
+          ],
         ),
       ),
     );
   }
 }
 
-class _TarjetaGris extends StatelessWidget {
-  const _TarjetaGris({required this.anchoNombre});
+class _TarjetaEsqueleto extends StatelessWidget {
+  const _TarjetaEsqueleto({required this.anchoNombre});
 
   final double anchoNombre;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 2))],
-      ),
+    return Tarjeta(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 8,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [_Barra(ancho: anchoNombre, alto: 14), const _Barra(ancho: 44, alto: 14)],
+            spacing: 12,
+            children: [
+              const Esqueleto(ancho: 36, alto: 36, radio: Radios.pastilla),
+              Esqueleto(ancho: anchoNombre, alto: 12, radio: Radios.pastilla),
+              const Spacer(),
+              const Esqueleto(ancho: 40, alto: 12, radio: Radios.pastilla),
+            ],
           ),
-          const SizedBox(height: 14),
-          const _Barra(alto: 8),
-          const SizedBox(height: 14),
+          const Esqueleto(alto: 8, radio: Radios.pastilla),
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [_Barra(ancho: 110, alto: 12), _Barra(ancho: 90, alto: 12)],
+            children: [
+              Esqueleto(ancho: 110, alto: 10, radio: Radios.pastilla),
+              Esqueleto(ancho: 80, alto: 10, radio: Radios.pastilla),
+            ],
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Barra extends StatelessWidget {
-  const _Barra({this.ancho = double.infinity, required this.alto});
-
-  final double ancho;
-  final double alto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: ancho,
-      height: alto,
-      decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(alto / 2)),
     );
   }
 }

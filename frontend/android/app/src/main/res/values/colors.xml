@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Verde Finza: fondo del ícono adaptativo -->
+    <color name="ic_launcher_background">#15784F</color>
+    <!-- Hueso: fondo de la pantalla de arranque en modo claro -->
+    <color name="splash_background">#F4F2EC</color>
+</resources>

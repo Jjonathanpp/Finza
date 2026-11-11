@@ -9,7 +9,6 @@ import 'package:frontend/core/session/sesion.dart';
 import 'package:frontend/core/storage/token_storage.dart';
 import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
-import 'package:frontend/features/presupuestos/presentation/widgets/barra_progreso_presupuesto.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
 // Aviso de presupuesto: "Che, estás llegando al límite". Cada presupuesto avisa cada X % de
@@ -120,6 +119,15 @@ Future<Map<String, dynamic>> _leer(String clave) async {
 
 // ---------------- El cuadro ----------------
 
+// Cómo se ve un presupuesto según lo consumido (en la maqueta: ok, cerca, pasado). Sale del porcentaje,
+// que es lo que ya se usaba para decidir el aviso.
+({Color barra, Color texto}) _coloresDeConsumo(BuildContext context, double porcentaje) {
+  final colores = context.colores;
+  if (porcentaje >= 100) return (barra: colores.coral, texto: colores.coralTexto);
+  if (porcentaje >= 80) return (barra: colores.ambar, texto: colores.ambarTexto);
+  return (barra: colores.barra, texto: colores.primario);
+}
+
 class _CuadroAviso extends StatelessWidget {
   const _CuadroAviso({required this.presupuestos});
 
@@ -127,39 +135,58 @@ class _CuadroAviso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colores = context.colores;
     final excedido = presupuestos.any((p) => p.porcentajeConsumo >= 100);
-    final peor = presupuestos.map((p) => p.porcentajeConsumo).reduce((a, b) => a > b ? a : b);
 
-    return AlertDialog(
-      icon: Icon(
-        excedido ? Icons.error_outline : Icons.warning_amber_rounded,
-        size: 40,
-        color: colorTextoPorConsumo(peor),
-      ),
-      title: Text(excedido ? 'Che, te pasaste del presupuesto' : 'Che, estás llegando al límite'),
-      // Ancho fijo: AlertDialog mide su contenido antes de dibujarlo, y así no depende de lo
-      // que haya adentro (además, en la compu no se estira a toda la pantalla).
-      content: SizedBox(
-        width: 380,
+    return Dialog(
+      child: Semantics(
+        scopesRoute: true,
+        explicitChildNodes: true,
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final (i, p) in presupuestos.indexed) ...[
-                if (i > 0) const SizedBox(height: 18),
-                _FilaAviso(presupuesto: p),
+          padding: const EdgeInsets.all(24),
+          // Ancho fijo: así no depende de lo que haya adentro (además, en la compu no se estira a toda la pantalla).
+          child: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // El círculo de 52 con la alerta: coral si se pasó, ámbar si está llegando
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: excedido ? colores.coralFondo : colores.serieFondo[4],
+                    shape: BoxShape.circle,
+                  ),
+                  child: SizedBox(
+                    width: 52,
+                    height: 52,
+                    child: Icon(
+                      excedido ? Icons.error_outline : Icons.warning_amber_rounded,
+                      size: 26,
+                      color: excedido ? colores.coralTexto : colores.serie[4],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  excedido ? 'Che, te pasaste del presupuesto' : 'Che, estás llegando al límite',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 14),
+                for (final (i, p) in presupuestos.indexed) ...[
+                  if (i > 0) const SizedBox(height: 18),
+                  _FilaAviso(presupuesto: p),
+                ],
+                const SizedBox(height: 14),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Entendido'),
+                ),
               ],
-            ],
+            ),
           ),
         ),
       ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Entendido'),
-        ),
-      ],
     );
   }
 }
@@ -177,6 +204,8 @@ class _FilaAviso extends StatelessWidget {
     final textoPorcentaje = porcentaje == porcentaje.roundToDouble()
         ? porcentaje.toStringAsFixed(0)
         : porcentaje.toStringAsFixed(1);
+    final textos = Theme.of(context).textTheme;
+    final consumo = _coloresDeConsumo(context, porcentaje);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,25 +217,72 @@ class _FilaAviso extends StatelessWidget {
                 p.categoriaNombre,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                style: textos.labelLarge,
               ),
             ),
+            const SizedBox(width: 8),
             Text(
               '$textoPorcentaje%',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: colorTextoPorConsumo(porcentaje)),
+              style: textos.labelLarge?.copyWith(fontWeight: FontWeight.w800, color: consumo.texto),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        BarraProgresoPresupuesto(porcentaje: porcentaje, altura: 8),
+        _BarraAviso(porcentaje: porcentaje, color: consumo.barra),
         const SizedBox(height: 8),
         Text(
           diferencia < 0
               ? 'Gastaste ${importe(p.montoGastado)} de ${importe(p.montoTope)}: te pasaste ${importe(-diferencia)}.'
               : 'Gastaste ${importe(p.montoGastado)} de ${importe(p.montoTope)}. Te quedan ${importe(diferencia)}.',
-          style: const TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4),
+          style: textos.bodyMedium?.copyWith(color: context.colores.suave),
         ),
       ],
+    );
+  }
+}
+
+// La .pista de 8 px con su relleno, que se llena en Duraciones.llenar (quieta con "reducir animaciones").
+class _BarraAviso extends StatelessWidget {
+  const _BarraAviso({required this.porcentaje, required this.color});
+
+  final double porcentaje;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final valor = porcentaje.isNaN ? 0.0 : (porcentaje / 100).clamp(0.0, 1.0);
+    final animar = !MediaQuery.disableAnimationsOf(context);
+
+    return Semantics(
+      label: 'Consumo del presupuesto',
+      value: '${porcentaje.toStringAsFixed(0)}%',
+      child: ExcludeSemantics(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: context.colores.pista,
+            borderRadius: BorderRadius.circular(Radios.pastilla),
+          ),
+          child: SizedBox(
+            height: 8,
+            width: double.infinity,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: valor),
+              duration: animar ? Duraciones.llenar : Duration.zero,
+              curve: Curvas.salida,
+              builder: (context, v, _) => Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: v,
+                  heightFactor: 1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(Radios.pastilla)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

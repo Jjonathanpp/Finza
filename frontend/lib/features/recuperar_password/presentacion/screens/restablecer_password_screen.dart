@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
+import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/recuperar_password/data/dataresources/recuperacion_api.dart';
 import 'package:frontend/features/recuperar_password/presentacion/widgets/campo_codigo.dart';
 import 'package:frontend/features/recuperar_password/presentacion/widgets/campo_password.dart';
@@ -114,25 +115,42 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colores = context.colores;
+    final textos = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Restablecer contraseña')),
+      appBar: barraConVolver(context, 'Nueva contraseña'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Ingresá el código de 6 dígitos que enviamos a '
-                  '${widget.email} y elegí tu nueva contraseña.',
-                  style: const TextStyle(color: AppColors.muted),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(text: 'Ingresá el código que te mandamos a '),
+                      TextSpan(
+                        text: widget.email,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: colores.texto,
+                        ),
+                      ),
+                      const TextSpan(text: ' y elegí una contraseña nueva.'),
+                    ],
+                  ),
+                  style: textos.bodyMedium?.copyWith(
+                    fontSize: 14.5,
+                    color: colores.suave,
+                  ),
                 ),
-                const SizedBox(height: 16),
-                ContadorExpiracion(segundosRestantes: _restantes),
-                const SizedBox(height: 20),
-                CampoCodigo(controller: _codigoCtrl),
+                const SizedBox(height: 12),
+                CampoCodigo(
+                  controller: _codigoCtrl,
+                  pie: ContadorExpiracion(segundosRestantes: _restantes),
+                ),
                 CampoPassword(
                   controller: _passCtrl,
                   etiqueta: 'Nueva contraseña',
@@ -147,8 +165,8 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
                 ),
                 CampoPassword(
                   controller: _confirmCtrl,
-                  etiqueta: 'Confirmar contraseña',
-                  hint: 'Repetí la contraseña',
+                  etiqueta: 'Repetila',
+                  hint: 'La misma de arriba',
                   validator: (v) => v != _passCtrl.text
                       ? 'Las contraseñas no coinciden'
                       : null,
@@ -158,38 +176,40 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
                     padding: const EdgeInsets.only(bottom: 14),
                     child: Text(
                       _errorGeneral!,
-                      style: const TextStyle(
-                        color: AppColors.danger,
-                        fontSize: 12.5,
+                      style: textos.bodySmall?.copyWith(
+                        color: colores.coralTexto,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                const SizedBox(height: 10),
                 FilledButton(
                   onPressed: (_loading || _expirado) ? null : _submit,
                   child: _loading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.accentInk,
+                            color: colores.sobrePrimario,
                           ),
                         )
-                      : const Text('Restablecer contraseña'),
+                      : const Text('Cambiar contraseña'),
                 ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: (_puedeReenviar && !_reenviando)
-                      ? _reenviar
-                      : null,
-                  child: _reenviando
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Reenviar código'),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.center,
+                  child: TextButton(
+                    onPressed: (_puedeReenviar && !_reenviando)
+                        ? _reenviar
+                        : null,
+                    child: _reenviando
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Reenviar el código'),
+                  ),
                 ),
               ],
             ),

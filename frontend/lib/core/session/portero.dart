@@ -59,8 +59,15 @@ class _PorteroState extends State<Portero> {
       future: _haySesion,
       builder: (context, respuesta) {
         if (respuesta.connectionState != ConnectionState.done) {
+          // Mientras se revisa la sesión: el fondo del tema y un indicador chico, sin textos.
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(strokeWidth: 3, semanticsLabel: 'Cargando'),
+              ),
+            ),
           );
         }
         // Si no se pudo leer el token (error), data queda vacío y va al login.

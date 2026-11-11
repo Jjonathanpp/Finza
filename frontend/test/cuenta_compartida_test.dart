@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/widgets/fila_opcion.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/screens/categorias_screen.dart';
@@ -14,7 +16,9 @@ import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/screens/presupuestos_screen.dart';
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
+import 'package:frontend/features/presupuestos/presentation/screens/presupuesto_detalle_screen.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/desglose_integrantes.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/editar_presupuesto_sheet.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/tarjetas_cargando.dart';
 import 'package:provider/provider.dart';
 
@@ -129,16 +133,26 @@ Future<void> _abrirPresupuestos(WidgetTester tester, PresupuestoApi api) async {
   await tester.pumpAndSettle();
 }
 
-// En Casa, el admin edita desde la tarjeta abierta (t-13.2.2). Arriba está el resumen del mes, así que
-// "Editar tope" puede quedar debajo del borde de la pantalla de la prueba: se scrollea hasta él.
-Future<void> _abrirEditar(WidgetTester tester) async {
-  await tester.tap(find.text('Comida'));
+// Al tocar la tarjeta se abre el detalle del presupuesto (ya no se expande en la lista).
+Future<void> _abrirDetalle(WidgetTester tester, String categoria) async {
+  await tester.tap(find.text(categoria));
   await tester.pumpAndSettle();
+  expect(find.byType(PresupuestoDetalleScreen), findsOneWidget);
+}
+
+// El admin edita desde el detalle: "Editar tope" sube la hoja con el tope, el aviso, Guardar y Desactivar.
+Future<void> _abrirEditar(WidgetTester tester) async {
+  await _abrirDetalle(tester, 'Comida');
   await tester.ensureVisible(find.text('Editar tope'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Editar tope'));
   await tester.pumpAndSettle();
+  expect(find.byType(EditarPresupuestoSheet), findsOneWidget);
 }
+
+// El "Desactivar presupuesto" de la hoja de editar (el detalle tiene otro igual atrás).
+Finder _desactivarDeLaHoja() =>
+    find.descendant(of: find.byType(EditarPresupuestoSheet), matching: find.text('Desactivar presupuesto'));
 
 Future<void> _abrirCategorias(WidgetTester tester) async {
   await tester.pumpWidget(MaterialApp(home: CategoriasScreen(api: _CategoriasDeMentira())));
@@ -153,15 +167,19 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: SelectorDeCuenta(api: _CuentasDeMentira()))));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Estás en tu cuenta personal'), findsOneWidget);
     expect(find.text('Solo vos'), findsOneWidget);
     expect(find.text('Compartida · Administrador'), findsOneWidget);
-    expect(find.byIcon(Icons.check_circle), findsOneWidget); // la personal, que es la elegida
+    expect(find.byIcon(Icons.check), findsOneWidget); // la tilde está en una sola cuenta
+    // ...y es la personal, que es la elegida.
+    expect(find.descendant(of: find.widgetWithText(FilaOpcion, 'Personal'), matching: find.byIcon(Icons.check)), findsOneWidget);
+    expect(find.descendant(of: find.widgetWithText(FilaOpcion, 'Casa'), matching: find.byIcon(Icons.check)), findsNothing);
 
     await tester.tap(find.text('Casa'));
     await tester.pumpAndSettle();
 
     expect(cuentaActiva.value, _casaAdmin);
+    // irAlInicio deja la revisión de avisos de presupuesto para dentro de 700 ms: se deja correr.
+    await tester.pump(const Duration(milliseconds: 700));
   });
 
   group('crear una cuenta compartida (t-11.1.4)', () {
@@ -229,14 +247,15 @@ void main() {
   });
 
   group('presupuestos', () {
-    testWidgets('en la personal: se puede agregar y las tarjetas no abren nada', (tester) async {
+    testWidgets('en la personal: se puede agregar, y el detalle no trae el desglose por integrante', (tester) async {
       await _abrirPresupuestos(tester, _PresupuestosDeMentira());
 
       expect(find.text('Presupuestos'), findsOneWidget);
-      expect(find.text('Agregar presupuesto'), findsOneWidget);
-      await tester.tap(find.text('Comida'));
-      await tester.pumpAndSettle();
-      expect(find.text('Desactivar presupuesto'), findsNothing);
+      expect(find.byTooltip('Nuevo presupuesto'), findsOneWidget);
+      expect(find.text('Sos administrador'), findsNothing, reason: 'el rol es solo de las compartidas');
+      await _abrirDetalle(tester, 'Comida');
+      expect(find.text('Editar tope'), findsOneWidget);
+      expect(find.text('Desactivar presupuesto'), findsOneWidget);
       expect(find.text('Cuánto gastó cada uno'), findsNothing);
     });
 
@@ -244,19 +263,26 @@ void main() {
       cuentaActiva.value = _casaMiembro;
       await _abrirPresupuestos(tester, _PresupuestosDeMentira());
 
-      expect(find.text('Presupuestos · Casa'), findsOneWidget);
-      expect(find.text('Agregar presupuesto'), findsNothing);
-      expect(find.text('Solo los administradores de Casa pueden agregar o cambiar presupuestos.'), findsOneWidget);
-      await tester.tap(find.text('Comida'));
-      await tester.pumpAndSettle();
+      expect(find.text('Presupuestos'), findsOneWidget);
+      expect(find.text('Casa'), findsOneWidget, reason: 'el chip de la cuenta en la que está');
+      expect(find.text('Sos miembro'), findsOneWidget);
+      expect(find.byTooltip('Nuevo presupuesto'), findsNothing);
+      expect(
+        find.text('En Casa los presupuestos los maneja un administrador. Vos ves cuánto gastó cada uno.'),
+        findsOneWidget,
+      );
+      await _abrirDetalle(tester, 'Comida');
+      expect(find.text('Editar tope'), findsNothing);
       expect(find.text('Desactivar presupuesto'), findsNothing);
+      expect(find.text('Solo un administrador puede cambiar este presupuesto.'), findsOneWidget);
     });
 
-    testWidgets('admin de Casa: desde la tarjeta abierta cambia el tope', (tester) async {
+    testWidgets('admin de Casa: desde el detalle cambia el tope', (tester) async {
       cuentaActiva.value = _casaAdmin;
       final api = _PresupuestosDeMentira();
       await _abrirPresupuestos(tester, api);
-      expect(find.text('Agregar presupuesto'), findsOneWidget);
+      expect(find.byTooltip('Nuevo presupuesto'), findsOneWidget);
+      expect(find.text('Sos administrador'), findsOneWidget);
 
       await _abrirEditar(tester);
       await tester.enterText(find.byType(TextField), '2500');
@@ -267,16 +293,35 @@ void main() {
       expect(api.editados, [
         {'id': 7, 'categoriaId': 6, 'montoTope': 2500.0, 'mes': hoy.month, 'anio': hoy.year},
       ]);
-      expect(find.text('Desactivar presupuesto'), findsNothing, reason: 'el panel se cierra');
+      expect(find.byType(EditarPresupuestoSheet), findsNothing, reason: 'la hoja se cierra');
+      expect(find.byType(PresupuestoDetalleScreen), findsOneWidget, reason: 'y queda el detalle');
     });
 
-    testWidgets('admin de Casa: desactivar pide confirmación', (tester) async {
+    testWidgets('admin de Casa: desactivar desde el detalle pide confirmación', (tester) async {
+      cuentaActiva.value = _casaAdmin;
+      final api = _PresupuestosDeMentira();
+      await _abrirPresupuestos(tester, api);
+
+      await _abrirDetalle(tester, 'Comida');
+      await tester.ensureVisible(find.text('Desactivar presupuesto'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Desactivar presupuesto'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('para todos los de Casa'), findsOneWidget);
+      expect(api.desactivados, isEmpty, reason: 'hasta confirmar no se manda nada');
+      await tester.tap(find.text('Desactivar'));
+      await tester.pumpAndSettle();
+
+      expect(api.desactivados, [7]);
+    });
+
+    testWidgets('admin de Casa: desactivar desde la hoja de editar pide confirmación', (tester) async {
       cuentaActiva.value = _casaAdmin;
       final api = _PresupuestosDeMentira();
       await _abrirPresupuestos(tester, api);
 
       await _abrirEditar(tester);
-      await tester.tap(find.text('Desactivar presupuesto'));
+      await tester.tap(_desactivarDeLaHoja());
       await tester.pumpAndSettle();
       expect(find.textContaining('para todos los de Casa'), findsOneWidget);
       await tester.tap(find.text('Desactivar'));
@@ -285,7 +330,7 @@ void main() {
       expect(api.desactivados, [7]);
     });
 
-    testWidgets('si el backend no deja, el panel muestra su mensaje y queda abierto', (tester) async {
+    testWidgets('si el backend no deja, la hoja muestra su mensaje y queda abierta', (tester) async {
       cuentaActiva.value = _casaAdmin;
       await _abrirPresupuestos(
         tester,
@@ -297,7 +342,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Solo el administrador de la cuenta compartida puede hacer esto'), findsOneWidget);
-      expect(find.text('Desactivar presupuesto'), findsOneWidget);
+      expect(find.byType(EditarPresupuestoSheet), findsOneWidget);
+      expect(_desactivarDeLaHoja(), findsOneWidget);
     });
 
     testWidgets('un tope vacío o en cero no se manda', (tester) async {
@@ -317,42 +363,46 @@ void main() {
     testWidgets('miembro de Casa: al tocar una tarjeta ve cuánto gastó cada uno', (tester) async {
       cuentaActiva.value = _casaMiembro;
       await _abrirPresupuestos(tester, _PresupuestosDeMentira());
-      expect(find.text('Cuánto gastó cada uno'), findsNothing, reason: 'cerrada hasta tocarla');
-      expect(find.text('\$ 1.500'), findsOneWidget);
-      // El porcentaje se tiene que leer sobre blanco: contraste de 4,5:1 o más (t-13.2.2).
+      expect(find.text('Cuánto gastó cada uno'), findsNothing, reason: 'la lista no lo trae, está en el detalle');
+      expect(find.textContaining('\$ 1.500 de \$ 2.000'), findsOneWidget);
+      // El porcentaje se tiene que leer sobre el fondo de la tarjeta: contraste de 4,5:1 o más (t-13.2.2).
       final colorPorcentaje = tester.widget<Text>(find.text('75%')).style!.color!;
-      expect(1.05 / (colorPorcentaje.computeLuminance() + 0.05), greaterThanOrEqualTo(4.5));
+      final fondo = ColoresFinza.claro.tarjeta.computeLuminance();
+      final texto = colorPorcentaje.computeLuminance();
+      final contraste = (fondo > texto ? fondo + 0.05 : texto + 0.05) / (fondo > texto ? texto + 0.05 : fondo + 0.05);
+      expect(contraste, greaterThanOrEqualTo(4.5));
 
-      await tester.tap(find.text('Comida'));
-      await tester.pumpAndSettle();
+      await _abrirDetalle(tester, 'Comida');
 
       expect(find.text('Cuánto gastó cada uno'), findsOneWidget);
       expect(find.text('Ana'), findsOneWidget);
-      expect(find.text('\$ 1.000'), findsOneWidget);
-      expect(find.text('50.0%'), findsOneWidget);
+      expect(find.textContaining('\$ 1.000 · 50%'), findsOneWidget);
       expect(find.text('vos'), findsOneWidget, reason: 'Beto es el perfil 13, el del miembro');
       expect(find.text('ya no está'), findsOneWidget, reason: 'Caro se fue');
       expect(find.text('Editar tope'), findsNothing);
 
-      await tester.tap(find.text('Comida'));
+      await tester.tap(find.byTooltip('Volver'));
       await tester.pumpAndSettle();
-      expect(find.text('Cuánto gastó cada uno'), findsNothing, reason: 'se cierra al tocarla de nuevo');
+      expect(find.byType(PresupuestoDetalleScreen), findsNothing, reason: 'Volver deja la lista');
+      expect(find.text('Cuánto gastó cada uno'), findsNothing);
     });
 
-    testWidgets('en Casa se abre una tarjeta por vez, y si nadie gastó lo dice', (tester) async {
+    testWidgets('en Casa cada tarjeta abre su detalle, y si nadie gastó lo dice', (tester) async {
       cuentaActiva.value = _casaAdmin;
       await _abrirPresupuestos(tester, _PresupuestosDeMentira());
 
-      await tester.tap(find.text('Comida'));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('Servicios'), 100);
-      await tester.tap(find.text('Servicios'));
+      await _abrirDetalle(tester, 'Comida');
+      expect(find.text('Todavía nadie gastó en Comida este mes.'), findsNothing);
+      await tester.tap(find.byTooltip('Volver'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Cuánto gastó cada uno'), findsOneWidget, reason: 'Comida se cerró');
+      await tester.scrollUntilVisible(find.text('Servicios'), 100);
+      await _abrirDetalle(tester, 'Servicios');
+
+      expect(find.text('Cuánto gastó cada uno'), findsOneWidget);
       expect(find.text('Todavía nadie gastó en Servicios este mes.'), findsOneWidget);
-      // Los dos integrantes, en $ 0 (la tarjeta también muestra "Gastado $ 0", afuera del desglose).
-      expect(find.descendant(of: find.byType(DesgloseIntegrantes), matching: find.text('\$ 0')), findsNWidgets(2));
+      // Los dos integrantes, en $ 0 (el detalle también muestra "Gastado $ 0", afuera del desglose).
+      expect(find.descendant(of: find.byType(DesgloseIntegrantes), matching: find.textContaining('\$ 0')), findsNWidgets(2));
       expect(find.text('vos'), findsOneWidget, reason: 'Ana es el perfil 12, el del admin');
     });
 
@@ -383,6 +433,7 @@ void main() {
       await _abrirCategorias(tester);
 
       expect(find.text('Categorías'), findsOneWidget);
+      expect(find.text('Personal'), findsOneWidget, reason: 'el subtítulo dice en qué cuenta está');
       expect(find.byTooltip('Nueva categoría'), findsOneWidget);
       expect(find.byTooltip('Editar'), findsOneWidget);
       expect(find.byTooltip('Eliminar'), findsOneWidget);
@@ -392,7 +443,8 @@ void main() {
       cuentaActiva.value = _casaMiembro;
       await _abrirCategorias(tester);
 
-      expect(find.text('Categorías · Casa'), findsOneWidget);
+      expect(find.text('Categorías'), findsOneWidget);
+      expect(find.text('Casa'), findsOneWidget, reason: 'el subtítulo dice en qué cuenta está');
       expect(find.text('Expensas'), findsOneWidget);
       expect(find.byTooltip('Nueva categoría'), findsOneWidget);
       expect(find.byTooltip('Editar'), findsNothing);

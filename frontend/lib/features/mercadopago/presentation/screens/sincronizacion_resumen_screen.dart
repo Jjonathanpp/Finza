@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/circulo_categoria.dart';
+import 'package:frontend/core/widgets/fila_opcion.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/mercadopago/data/models/sincronizacion_resumen.dart';
 
 class SincronizacionResumenScreen extends StatelessWidget {
@@ -13,137 +16,110 @@ class SincronizacionResumenScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
     return Scaffold(
       appBar: barraConVolver(context, 'Resumen de importación'),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
         children: [
-          Container(
+          Tarjeta(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.line),
-            ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(16),
+                Align(
+                  child: CirculoCategoria(
+                    icono: Icons.check_circle_outline,
+                    color: c.primario,
+                    fondo: c.menta,
+                    tamano: 52,
+                    tamanoIcono: 28,
                   ),
-                  child: const Icon(Icons.check_circle_outline, color: AppColors.accent, size: 30),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Sincronización completada',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
+                Text('Sincronización completada', textAlign: TextAlign.center, style: textos.titleLarge),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Los nuevos movimientos quedaron registrados como pendientes para tu revisión.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: AppColors.muted),
+                  style: textos.bodySmall,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          _itemMetrica(
-            titulo: 'Procesadas',
-            subtitulo: 'Total consultado en Mercado Pago',
-            valor: resumen.procesadas.toString(),
-            color: AppColors.blue,
-          ),
-          const SizedBox(height: 10),
-          _itemMetrica(
-            titulo: 'Nuevas creadas',
-            subtitulo: 'Movimientos listos para revisar',
-            valor: resumen.creadas.toString(),
-            color: AppColors.accent,
-          ),
-          const SizedBox(height: 10),
-          _itemMetrica(
-            titulo: 'Omitidas',
-            subtitulo: 'Transacciones ya existentes',
-            valor: resumen.omitidas.toString(),
-            color: AppColors.muted,
-          ),
-          if (resumen.errores > 0) ...[
-            const SizedBox(height: 10),
-            _itemMetrica(
-              titulo: 'Errores',
-              subtitulo: 'No se pudieron procesar',
-              valor: resumen.errores.toString(),
-              color: AppColors.danger,
-            ),
-          ],
-          const SizedBox(height: 28),
-          SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: AppColors.accentInk,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+          const SizedBox(height: 12),
+          TarjetaLista(
+            children: [
+              _itemMetrica(
+                context,
+                icono: Icons.sync,
+                color: c.serie[2],
+                fondo: c.serieFondo[2],
+                titulo: 'Procesadas',
+                subtitulo: 'Total consultado en Mercado Pago',
+                valor: resumen.procesadas,
               ),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14.5,
-                ),
+              _itemMetrica(
+                context,
+                icono: Icons.add_circle_outline,
+                color: c.primario,
+                fondo: c.menta,
+                titulo: 'Nuevas creadas',
+                subtitulo: 'Movimientos listos para revisar',
+                valor: resumen.creadas,
               ),
-            ),
+              _itemMetrica(
+                context,
+                icono: Icons.skip_next_outlined,
+                color: c.suave,
+                fondo: c.hundido,
+                titulo: 'Omitidas',
+                subtitulo: 'Transacciones ya existentes',
+                valor: resumen.omitidas,
+              ),
+              if (resumen.errores > 0)
+                _itemMetrica(
+                  context,
+                  icono: Icons.error_outline,
+                  color: c.coralTexto,
+                  fondo: c.coralFondo,
+                  titulo: 'Errores',
+                  subtitulo: 'No se pudieron procesar',
+                  valor: resumen.errores,
+                  colorValor: c.coralTexto,
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('Entendido'),
           ),
         ],
       ),
     );
   }
 
-  Widget _itemMetrica({
+  Widget _itemMetrica(
+    BuildContext context, {
+    required IconData icono,
+    required Color color,
+    required Color fondo,
     required String titulo,
     required String subtitulo,
-    required String valor,
-    required Color color,
+    required int valor,
+    Color? colorValor,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(titulo, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                Text(subtitulo, style: const TextStyle(fontSize: 11.5, color: AppColors.muted)),
-              ],
-            ),
-          ),
-          Text(
-            valor,
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: color),
-          ),
-        ],
+    return FilaOpcion(
+      leading: CirculoCategoria(icono: icono, color: color, fondo: fondo),
+      titulo: titulo,
+      subtitulo: subtitulo,
+      trailing: Text(
+        valor.toString(),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colorValor),
       ),
     );
   }

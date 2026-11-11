@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/widgets/aviso_en_linea.dart';
+import 'package:frontend/core/widgets/barra_progreso.dart';
+import 'package:frontend/core/widgets/boton_icono.dart';
+import 'package:frontend/core/widgets/chip_estado.dart';
+import 'package:frontend/core/widgets/circulo_categoria.dart';
+import 'package:frontend/core/widgets/encabezado_pestana.dart';
+import 'package:frontend/core/widgets/esqueleto.dart';
+import 'package:frontend/core/widgets/monto.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
+import 'package:frontend/features/presupuestos/presentation/nombres_de_meses.dart';
 import 'package:frontend/features/presupuestos/presentation/screens/alta_presupuestos_screen.dart'; // Nombre con "s" como lo guardaste
+import 'package:frontend/features/presupuestos/presentation/screens/presupuesto_detalle_screen.dart';
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/barra_progreso_presupuesto.dart';
-import 'package:frontend/features/presupuestos/presentation/widgets/desglose_integrantes.dart';
-import 'package:frontend/features/presupuestos/presentation/widgets/editar_presupuesto_sheet.dart';
+import 'package:frontend/features/presupuestos/presentation/widgets/categoria_del_presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/tarjetas_cargando.dart';
-import 'package:frontend/shared/utils/color_hex.dart';
-import 'package:frontend/shared/utils/importe.dart';
 import 'package:provider/provider.dart';
 
 class PresupuestosScreen extends StatefulWidget {
@@ -20,14 +28,6 @@ class PresupuestosScreen extends StatefulWidget {
 }
 
 class _PresupuestosScreenState extends State<PresupuestosScreen> {
-  final List<String> _meses = [
-    '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-
-  // En una cuenta compartida, el presupuesto cuya tarjeta está abierta (una a la vez, t-13.2.2).
-  int? _abierto;
-
   @override
   void initState() {
     super.initState();
@@ -37,7 +37,6 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
   }
 
   void _cambiarMes(PresupuestosViewModel vm, int delta) {
-    setState(() => _abierto = null);
     int m = vm.mesActual + delta;
     int a = vm.anioActual;
     if (m < 1) {
@@ -50,85 +49,51 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
     vm.cargarPresupuestos(mes: m, anio: a);
   }
 
+  Future<void> _nuevo(PresupuestosViewModel vm) async {
+    final creado = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AltaPresupuestoScreen()),
+    );
+    // Si se creó uno, recargamos la vista del mes actual
+    if (creado == true && mounted) {
+      vm.cargarPresupuestos();
+    }
+  }
+
+  // El detalle usa el mismo view model que la lista: se le pasa con .value para que no lo cree de nuevo.
+  void _abrirDetalle(PresupuestosViewModel vm, Presupuesto p) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: vm,
+          child: PresupuestoDetalleScreen(presupuestoId: p.presupuestoId),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(conCuentaActiva('Presupuestos')),
-        elevation: 0,
-      ),
       body: Consumer<PresupuestosViewModel>(
         builder: (context, vm, child) {
           return Column(
             children: [
-              // 1. Selector de Mes y Año
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left, size: 28),
-                      onPressed: () => _cambiarMes(vm, -1),
-                      tooltip: 'Mes anterior',
+              // Crear presupuestos: en una cuenta compartida, solo para el admin (t-13.1.2).
+              EncabezadoPestana(
+                titulo: 'Presupuestos',
+                acciones: [
+                  if (esAdminDeCuentaActiva)
+                    BotonIcono(
+                      icono: Icons.add,
+                      principal: true,
+                      ayuda: 'Nuevo presupuesto',
+                      alTocar: () => _nuevo(vm),
                     ),
-                    Text(
-                      '${_meses[vm.mesActual]} ${vm.anioActual}',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right, size: 28),
-                      onPressed: () => _cambiarMes(vm, 1),
-                      tooltip: 'Mes siguiente',
-                    ),
-                  ],
-                ),
+                ],
               ),
-
-              // 2. Botón Grande "Agregar presupuesto". En una cuenta compartida, solo para el admin (t-13.1.2)
-              if (!esAdminDeCuentaActiva)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                  child: Text(
-                    'Solo los administradores de ${cuentaActiva.value!['nombre']} pueden agregar o cambiar presupuestos.',
-                    style: const TextStyle(color: AppColors.muted, fontSize: 13),
-                  ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add_circle_outline, size: 22),
-                      label: const Text('Agregar presupuesto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 0,
-                      ),
-                      onPressed: () async {
-                        final creado = await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AltaPresupuestoScreen()),
-                        );
-                        // Si se creó uno, recargamos la vista del mes actual
-                        if (creado == true && mounted) {
-                          vm.cargarPresupuestos();
-                        }
-                      },
-                    ),
-                  ),
-                ),
-
-              const SizedBox(height: 4),
-
-              // 3. Resumen + lista de presupuestos (o estado de carga/vacío)
-              Expanded(
-                child: _construirContenido(vm),
-              ),
+              Expanded(child: _construirContenido(vm)),
             ],
           );
         },
@@ -137,116 +102,77 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
   }
 
   Widget _construirContenido(PresupuestosViewModel vm) {
-    if (vm.cargando) {
-      return const TarjetasCargando();
-    }
-
-    if (vm.error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(vm.error!, style: const TextStyle(color: AppColors.danger)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => vm.cargarPresupuestos(),
-              child: const Text('Reintentar'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (vm.presupuestos.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.pie_chart_outline, size: 64, color: AppColors.faint),
-            const SizedBox(height: 16),
-            Text(
-              cuentaActiva.value == null
-                  ? 'No hay presupuestos en ${_meses[vm.mesActual]}'
-                  : '${cuentaActiva.value!['nombre']} no tiene presupuestos en ${_meses[vm.mesActual]}',
-              style: const TextStyle(color: AppColors.muted, fontSize: 16),
-            ),
-            if (cuentaActiva.value != null) ...[
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Text(
-                  esAdminDeCuentaActiva
-                      ? 'Cuando agregues uno, acá vas a ver cuánto gastó cada integrante.'
-                      : 'Cuando un administrador agregue uno, acá vas a ver cuánto gastó cada integrante.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.45),
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
-
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
+    final cuenta = cuentaActiva.value;
+    final compartida = cuenta != null;
     final lista = vm.presupuestosOrdenados;
-    // En una cuenta compartida la tarjeta se abre y muestra cuánto gastó cada integrante; si sos
-    // admin, desde ahí se edita el tope (t-13.2.2). En la personal no se abre.
-    final enCompartida = cuentaActiva.value != null;
+
+    final Widget debajo;
+    if (vm.cargando) {
+      debajo = const TarjetasCargando();
+    } else if (vm.error != null) {
+      debajo = Column(
+        spacing: 12,
+        children: [
+          Text(vm.error!, textAlign: TextAlign.center, style: textos.bodyMedium?.copyWith(color: c.coralTexto)),
+          OutlinedButton(onPressed: () => vm.cargarPresupuestos(), child: const Text('Reintentar')),
+        ],
+      );
+    } else if (lista.isEmpty) {
+      debajo = Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          cuenta == null
+              ? 'No hay presupuestos en ${nombresDeMeses[vm.mesActual]}'
+              : '${cuenta['nombre']} no tiene presupuestos en ${nombresDeMeses[vm.mesActual]}',
+          textAlign: TextAlign.center,
+          style: textos.bodyMedium?.copyWith(color: c.suave),
+        ),
+      );
+    } else {
+      debajo = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12,
+        children: [
+          for (final p in lista)
+            _TarjetaPresupuesto(presupuesto: p, alTocar: () => _abrirDetalle(vm, p)),
+        ],
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () => vm.cargarPresupuestos(),
-      color: AppColors.accent,
-      child: ListView.separated(
+      child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-        itemCount: lista.length + 1,
-        // Entre el resumen y la primera tarjeta va el título de la sección.
-        separatorBuilder: (_, i) => i == 0
-            ? const Padding(
-                padding: EdgeInsets.fromLTRB(4, 24, 4, 10),
-                child: Text(
-                  'POR CATEGORÍA',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.muted, letterSpacing: 0.8),
-                ),
-              )
-            : const SizedBox(height: 14),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return _ResumenMes(vm: vm, nombreMes: _meses[vm.mesActual]);
-          }
-
-          final p = lista[index - 1];
-          final abierta = enCompartida && _abierto == p.presupuestoId;
-
-          return _TarjetaPresupuesto(
-            presupuesto: p,
-            enCompartida: enCompartida,
-            abierta: abierta,
-            diasRestantes: vm.diasRestantes,
-            alTocar: enCompartida ? () => setState(() => _abierto = abierta ? null : p.presupuestoId) : null,
-            desglose: abierta
-                ? DesgloseIntegrantes(
-                    presupuesto: p,
-                    miPerfilId: cuentaActiva.value!['perfilId'] as int?,
-                    alEditar: esAdminDeCuentaActiva ? () => _editar(vm, p) : null,
-                  )
-                : null,
-          );
-        },
-      ),
-    );
-  }
-
-  void _editar(PresupuestosViewModel vm, Presupuesto p) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true, // sube con el teclado
-      builder: (_) => EditarPresupuestoSheet(
-        presupuesto: p,
-        periodo: '${_meses[vm.mesActual]} ${vm.anioActual}',
-        cuenta: cuentaActiva.value!['nombre'] as String,
-        alGuardar: (tope, intervalo) => vm.editarTope(p, tope, intervaloAviso: intervalo),
-        alDesactivar: () => vm.desactivar(p),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 12,
+          children: [
+            // La cuenta en la que estás y, si es compartida, tu rol (.ctas).
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const ChipCuenta(),
+                if (compartida)
+                  ChipEstado(
+                    esAdminDeCuentaActiva ? 'Sos administrador' : 'Sos miembro',
+                    esAdminDeCuentaActiva ? TonoChip.menta : TonoChip.hundido,
+                  ),
+              ],
+            ),
+            if (!esAdminDeCuentaActiva)
+              AvisoEnLinea(
+                'En ${cuenta!['nombre']} los presupuestos los maneja un administrador. Vos ves cuánto gastó cada uno.',
+                icono: Icons.lock_outline,
+              ),
+            _ResumenMes(vm: vm, onAnterior: () => _cambiarMes(vm, -1), onSiguiente: () => _cambiarMes(vm, 1)),
+            debajo,
+          ],
+        ),
       ),
     );
   }
@@ -254,389 +180,185 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
 
 // ======================= RESUMEN DEL MES =======================
 
-// Tarjeta de arriba: cuánto se gastó del total presupuestado, cuánto queda (y a
-// qué ritmo diario se puede gastar) y cuántas categorías están bien, cerca del
-// tope o pasadas. El fondo toma el color del consumo total.
+// Tarjeta de arriba: el mes con las flechas para cambiarlo y, si hay presupuestos, cuánto se gastó del total
+// presupuestado, la barra grande y cuánto queda. El tono sale del consumo total.
 class _ResumenMes extends StatelessWidget {
-  const _ResumenMes({required this.vm, required this.nombreMes});
+  const _ResumenMes({required this.vm, required this.onAnterior, required this.onSiguiente});
 
   final PresupuestosViewModel vm;
-  final String nombreMes;
+  final VoidCallback onAnterior;
+  final VoidCallback onSiguiente;
 
   @override
   Widget build(BuildContext context) {
-    final porcentaje = vm.porcentajeTotal;
-    final color = colorPorConsumo(porcentaje);
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
+    final conDatos = !vm.cargando && vm.error == null && vm.presupuestos.isNotEmpty;
+
+    return Tarjeta(
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 10,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left, size: 22),
+                color: c.suave,
+                tooltip: 'Mes anterior',
+                onPressed: onAnterior,
+              ),
+              Flexible(
+                child: Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    '${nombresDeMeses[vm.mesActual]} ${vm.anioActual}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right, size: 22),
+                color: c.suave,
+                tooltip: 'Mes siguiente',
+                onPressed: onSiguiente,
+              ),
+            ],
+          ),
+          if (vm.cargando) ...[
+            const Esqueleto(ancho: 160, alto: 28, radio: Radios.pastilla),
+            const Esqueleto(alto: 10, radio: Radios.pastilla),
+          ] else if (conDatos)
+            ..._totales(context),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _totales(BuildContext context) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
+    final estado = EstadoConsumo.de(vm.porcentajeTotal);
     final disponible = vm.totalTope - vm.totalGastado;
     final dias = vm.diasRestantes;
 
     final String textoSaldo;
     if (disponible < 0) {
-      textoSaldo = 'Te pasaste ${importe(-disponible)} del total presupuestado';
-    } else if (vm.esMesPasado) {
-      textoSaldo = 'Te sobraron ${importe(disponible)} ese mes';
+      textoSaldo = 'Te pasaste ${Monto.texto(-disponible)} del total presupuestado.';
+    } else if (disponible == 0) {
+      textoSaldo = 'Llegaste al total de los topes.';
+    } else if (dias == null) {
+      textoSaldo = 'Te sobraron ${Monto.texto(disponible)} ese mes.';
     } else {
-      textoSaldo = 'Te quedan ${importe(disponible)} para el resto del mes';
+      textoSaldo = 'Te quedan ${Monto.texto(disponible)} para ${dias == 1 ? 'el último día' : 'los próximos $dias días'}.';
     }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color.withValues(alpha: 0.18), AppColors.surface],
-        ),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 2))],
-      ),
-      child: Column(
+    return [
+      Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 2,
         children: [
-          Row(
-            children: [
-              Text(
-                'Resumen de $nombreMes',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.muted),
-              ),
-              const Spacer(),
-              _ChipPorcentaje(porcentaje: porcentaje),
-            ],
-          ),
-          const SizedBox(height: 10),
+          Text('Llevás gastado', style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
           Text.rich(
             TextSpan(
+              text: Monto.texto(vm.totalGastado),
+              style: textos.displaySmall?.copyWith(fontSize: 26, letterSpacing: -0.26),
               children: [
                 TextSpan(
-                  text: importe(vm.totalGastado),
-                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.text),
-                ),
-                TextSpan(
-                  text: '  de ${importe(vm.totalTope)}',
-                  style: const TextStyle(fontSize: 15, color: AppColors.muted),
+                  text: ' de ${Monto.texto(vm.totalTope)}',
+                  style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w600, color: c.suave),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          BarraProgresoPresupuesto(porcentaje: porcentaje, altura: 12),
-          const SizedBox(height: 14),
-          Text(
-            textoSaldo,
-            style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: disponible < 0 ? AppColors.danger : AppColors.text,
-            ),
-          ),
-          if (disponible > 0 && dias != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Unos ${importe(disponible / dias)} por día durante ${dias == 1 ? 'el último día' : '$dias días'}',
-              style: const TextStyle(fontSize: 12.5, color: AppColors.muted),
-            ),
-          ],
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (vm.cantidadEnOrden > 0)
-                _ChipEstado(cantidad: vm.cantidadEnOrden, texto: 'en orden', color: colorPorConsumo(0)),
-              if (vm.cantidadCercaDelTope > 0)
-                _ChipEstado(cantidad: vm.cantidadCercaDelTope, texto: 'cerca del tope', color: colorPorConsumo(80)),
-              if (vm.cantidadExcedidos > 0)
-                _ChipEstado(
-                  cantidad: vm.cantidadExcedidos,
-                  texto: vm.cantidadExcedidos == 1 ? 'excedido' : 'excedidos',
-                  color: colorPorConsumo(100),
-                ),
-            ],
-          ),
         ],
       ),
-    );
+      BarraProgreso(
+        grande: true,
+        valor: vm.porcentajeTotal / 100,
+        tono: estado.tonoBarra,
+        etiqueta: 'Gastado del total',
+      ),
+      Text(textoSaldo, style: textos.bodySmall),
+    ];
   }
 }
 
 // ======================= TARJETA DE UN PRESUPUESTO =======================
 
+// Una categoría con su presupuesto: la inicial con su color, el nombre, el porcentaje, la barra y cuánto
+// se gastó y cuánto queda. Al tocarla se abre el detalle.
 class _TarjetaPresupuesto extends StatelessWidget {
-  const _TarjetaPresupuesto({
-    required this.presupuesto,
-    required this.enCompartida,
-    required this.abierta,
-    required this.diasRestantes,
-    required this.alTocar,
-    required this.desglose,
-  });
+  const _TarjetaPresupuesto({required this.presupuesto, required this.alTocar});
 
   final Presupuesto presupuesto;
-  final bool enCompartida;
-  final bool abierta;
-  final int? diasRestantes;
-  final VoidCallback? alTocar;
-  // El detalle por integrante (solo con la tarjeta abierta en una cuenta compartida).
-  final Widget? desglose;
+  final VoidCallback alTocar;
 
   @override
   Widget build(BuildContext context) {
     final p = presupuesto;
-    final porcentaje = p.porcentajeConsumo;
-    final color = colorPorConsumo(porcentaje);
-    final colorTexto = colorTextoPorConsumo(porcentaje);
-    final colorCat = colorDesdeHex(p.categoriaColor);
-    final disponible = p.montoTope - p.montoGastado;
-    final (iconoEstado, textoEstado) = _estado(porcentaje);
-    final inicial = p.categoriaNombre.isEmpty ? '?' : p.categoriaNombre.characters.first.toUpperCase();
-    final sinAnimaciones = MediaQuery.disableAnimationsOf(context);
+    final textos = Theme.of(context).textTheme;
+    final estado = EstadoConsumo.de(p.porcentajeConsumo);
+    final porcentaje = textoPorcentaje(p.porcentajeConsumo);
+    final restante = textoRestante(p.montoGastado, p.montoTope);
+    final gastado = '${Monto.texto(p.montoGastado)} de ${Monto.texto(p.montoTope)}';
 
-    return AnimatedContainer(
-      duration: sinAnimaciones ? Duration.zero : const Duration(milliseconds: 300),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        // Desde el 80% el borde toma el color del consumo: se nota sin abrir nada.
-        border: Border.all(
-          color: porcentaje >= 80 ? color.withValues(alpha: 0.5) : Colors.transparent,
-          width: 1.2,
-        ),
-        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 2))],
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Semantics(
-              expanded: enCompartida ? abierta : null,
-              child: InkWell(
-                onTap: alTocar,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Encabezado: categoría, estado y porcentaje
-                      Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: colorCat.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              inicial,
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colorCat),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  p.categoriaNombre,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                                ),
-                                const SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Icon(iconoEstado, size: 14, color: colorTexto),
-                                    const SizedBox(width: 4),
-                                    Flexible(
-                                      child: Text(
-                                        textoEstado,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: colorTexto),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _ChipPorcentaje(porcentaje: porcentaje),
-                          if (enCompartida) ...[
-                            const SizedBox(width: 2),
-                            Icon(abierta ? Icons.expand_less : Icons.expand_more, size: 20, color: AppColors.muted),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      BarraProgresoPresupuesto(porcentaje: porcentaje, altura: 10),
-                      const SizedBox(height: 12),
-                      // Gastado · Disponible (o Excedido) · Tope
-                      Row(
-                        children: [
-                          Expanded(child: _Dato(etiqueta: 'Gastado', valor: importe(p.montoGastado))),
-                          Expanded(
-                            child: _Dato(
-                              etiqueta: disponible >= 0 ? 'Disponible' : 'Excedido',
-                              valor: importe(disponible.abs()),
-                              color: disponible < 0 ? AppColors.danger : null,
-                              alineacion: CrossAxisAlignment.center,
-                            ),
-                          ),
-                          Expanded(
-                            child: _Dato(
-                              etiqueta: 'Tope',
-                              valor: importe(p.montoTope),
-                              alineacion: CrossAxisAlignment.end,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (disponible > 0 && diasRestantes != null) ...[
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.muted),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Podés gastar ${importe(disponible / diasRestantes!)} por día',
-                                style: const TextStyle(fontSize: 12.5, color: AppColors.muted),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
+    return Tarjeta(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      alTocar: alTocar,
+      etiqueta: '${p.categoriaNombre}, $porcentaje usado. $gastado. $restante',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 8,
+        children: [
+          Row(
+            spacing: 12,
+            children: [
+              CirculoCategoria.de(categoriaDelPresupuesto(p), tamano: 36),
+              Expanded(
+                child: Text(
+                  p.categoriaNombre,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text(
+                porcentaje,
+                style: textos.bodyMedium?.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: estado.colorTexto(context),
+                ),
+              ),
+            ],
+          ),
+          BarraProgreso(valor: p.porcentajeConsumo / 100, tono: estado.tonoBarra),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            spacing: 8,
+            children: [
+              Flexible(child: Text(gastado, maxLines: 1, overflow: TextOverflow.ellipsis, style: textos.bodySmall)),
+              Flexible(
+                child: Text(
+                  restante,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: textos.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: estado.colorSecundario(context),
                   ),
                 ),
               ),
-            ),
-            AnimatedSize(
-              duration: sinAnimaciones ? Duration.zero : const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-              alignment: Alignment.topCenter,
-              child: desglose ?? const SizedBox(width: double.infinity),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Qué decir según el consumo. Los cortes de 80% y 100% son los de la alerta del backend.
-(IconData, String) _estado(double porcentaje) {
-  if (porcentaje >= 100) return (Icons.error_outline, 'Tope superado');
-  if (porcentaje >= 80) return (Icons.warning_amber_rounded, 'Cerca del tope');
-  if (porcentaje >= 50) return (Icons.info_outline, 'Usaste más de la mitad');
-  if (porcentaje > 0) return (Icons.check_circle_outline, 'Vas bien');
-  return (Icons.check_circle_outline, 'Sin gastos todavía');
-}
-
-// ======================= PIEZAS CHICAS =======================
-
-// El porcentaje en una pastilla del color del consumo.
-class _ChipPorcentaje extends StatelessWidget {
-  const _ChipPorcentaje({required this.porcentaje});
-
-  final double porcentaje;
-
-  @override
-  Widget build(BuildContext context) {
-    // Sin decimales si es entero (50%), con uno si no (79,6% no es lo mismo que 80%).
-    final texto = porcentaje == porcentaje.roundToDouble()
-        ? porcentaje.toStringAsFixed(0)
-        : porcentaje.toStringAsFixed(1);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: colorPorConsumo(porcentaje).withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        '$texto%',
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: colorTextoPorConsumo(porcentaje),
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
-    );
-  }
-}
-
-// "3 en orden", "1 cerca del tope", "1 excedido".
-class _ChipEstado extends StatelessWidget {
-  const _ChipEstado({required this.cantidad, required this.texto, required this.color});
-
-  final int cantidad;
-  final String texto;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 6),
-          Text(
-            '$cantidad $texto',
-            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: oscurecerParaTexto(color)),
+            ],
           ),
         ],
       ),
-    );
-  }
-}
-
-// Una cifra con su etiqueta chiquita arriba.
-class _Dato extends StatelessWidget {
-  const _Dato({
-    required this.etiqueta,
-    required this.valor,
-    this.color,
-    this.alineacion = CrossAxisAlignment.start,
-  });
-
-  final String etiqueta;
-  final String valor;
-  final Color? color;
-  final CrossAxisAlignment alineacion;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: alineacion,
-      children: [
-        Text(etiqueta, style: const TextStyle(fontSize: 11.5, color: AppColors.muted)),
-        const SizedBox(height: 2),
-        Text(
-          valor,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: color ?? AppColors.text,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-      ],
     );
   }
 }

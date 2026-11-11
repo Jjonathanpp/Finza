@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
+import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/core/widgets/campo.dart';
 import 'package:frontend/features/recuperar_password/data/dataresources/recuperacion_api.dart';
 import 'package:frontend/features/recuperar_password/presentacion/screens/restablecer_password_screen.dart';
@@ -57,28 +58,33 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colores = context.colores;
+    final textos = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Recuperar contraseña')),
+      appBar: barraConVolver(context, 'Recuperar contraseña'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Ingresá el email asociado a tu cuenta y te enviaremos '
-                  'un código de 6 dígitos para restablecer tu contraseña.',
-                  style: TextStyle(color: AppColors.muted),
+                Text(
+                  'Ingresá el email de tu cuenta y te mandamos un código de '
+                  '6 dígitos.',
+                  style: textos.bodyMedium?.copyWith(
+                    fontSize: 14.5,
+                    color: colores.suave,
+                  ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 Campo(
                   etiqueta: 'Email',
                   child: TextFormField(
                     controller: _emailCtrl,
                     decoration: const InputDecoration(
-                      hintText: 'maria@correo.com',
+                      hintText: 'tu@email.com',
                     ),
                     keyboardType: TextInputType.emailAddress,
                     validator: (v) {
@@ -96,22 +102,21 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
                     padding: const EdgeInsets.only(bottom: 14),
                     child: Text(
                       _errorGeneral!,
-                      style: const TextStyle(
-                        color: AppColors.danger,
-                        fontSize: 12.5,
+                      style: textos.bodySmall?.copyWith(
+                        color: colores.coralTexto,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                const SizedBox(height: 10),
                 FilledButton(
                   onPressed: _loading ? null : _submit,
                   child: _loading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.accentInk,
+                            color: colores.sobrePrimario,
                           ),
                         )
                       : const Text('Enviar código'),

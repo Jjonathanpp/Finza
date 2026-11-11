@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/widgets/aviso_en_linea.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/core/widgets/encabezado_pestana.dart';
+import 'package:frontend/core/widgets/hoja.dart';
 import 'package:frontend/core/widgets/selector_tipo.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
 import 'package:frontend/features/categorias/data/models/categoria.dart';
@@ -12,7 +16,9 @@ import 'package:frontend/features/categorias/presentation/widgets/formulario_cat
 import 'package:frontend/features/movimientos/data/datasources/movimiento_api.dart';
 import 'package:frontend/features/movimientos/presentation/monto_formatter.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/alta_movimiento_view_model.dart';
-import 'package:frontend/shared/utils/color_hex.dart';
+import 'package:frontend/features/movimientos/presentation/widgets/caja_fecha.dart';
+import 'package:frontend/features/movimientos/presentation/widgets/chip_categoria.dart';
+import 'package:frontend/features/voice/voice_screen.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
 class AltaMovimientoScreen extends StatefulWidget {
@@ -53,28 +59,13 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
     _vm.limpiar();
   }
 
-  // Un panel chico desde abajo, para no salir del movimiento. La categoría se crea en el momento,
+  // Una hoja chica desde abajo, para no salir del movimiento. La categoría se crea en el momento,
   // con el tipo del movimiento, y queda elegida.
   Future<void> _nuevaCategoria() async {
-    final creada = await showModalBottomSheet<Categoria>(
-      context: context,
-      isScrollControlled: true, // así el panel sube cuando aparece el teclado
-      showDragHandle: true,
-      builder: (context) => SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(18, 0, 18, 18 + MediaQuery.viewInsetsOf(context).bottom),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Nueva categoría de ${_vm.esIngreso ? 'ingreso' : 'egreso'}',
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 16),
-            FormularioCategoria(esIngreso: _vm.esIngreso, tipoFijo: true),
-          ],
-        ),
-      ),
+    final creada = await mostrarHoja<Categoria>(
+      context,
+      titulo: 'Nueva categoría de ${_vm.esIngreso ? 'ingreso' : 'egreso'}',
+      contenido: FormularioCategoria(esIngreso: _vm.esIngreso, tipoFijo: true),
     );
     if (creada != null) _vm.agregarCategoria(creada);
   }
@@ -94,28 +85,23 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colores = context.colores;
+    final cuenta = cuentaActiva.value;
     return Scaffold(
-      appBar: barraConVolver(context, 'Nuevo movimiento'),
+      appBar: barraConVolver(context, 'Nuevo movimiento', subtitulo: nombreDeCuentaActiva()),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
           final error = _vm.error;
           return ListView(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
             children: [
               SelectorTipo(esIngreso: _vm.esIngreso, alCambiar: _vm.cambiarTipo),
               _campoMonto(),
               _categorias(),
               Campo(
                 etiqueta: 'Fecha',
-                child: InkWell(
-                  onTap: _elegirFecha,
-                  borderRadius: BorderRadius.circular(12),
-                  child: InputDecorator(
-                    decoration: const InputDecoration(prefixIcon: Icon(Icons.calendar_today, size: 18)),
-                    child: Text(_textoFecha(_vm.fecha)),
-                  ),
-                ),
+                child: CajaFecha(fecha: _vm.fecha, alTocar: _elegirFecha),
               ),
               Campo(
                 etiqueta: 'Descripción (opcional)',
@@ -125,17 +111,44 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
                   decoration: const InputDecoration(hintText: 'Por ejemplo, el comercio'),
                 ),
               ),
+              if (cuenta != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: AvisoEnLinea(
+                    'Se guarda en ${cuenta['nombre']} y lo ven todos.',
+                    icono: Icons.group_outlined,
+                  ),
+                ),
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(error, style: const TextStyle(color: AppColors.danger, fontSize: 12.5)),
+                  child: Text(
+                    error,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colores.coralTexto,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              FilledButton.icon(
+              FilledButton(
                 onPressed: _vm.guardando ? null : _guardar,
-                icon: _vm.guardando
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.check),
-                label: const Text('Registrar movimiento'),
+                child: _vm.guardando
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: colores.sobrePrimario),
+                      )
+                    : const Text('Guardar'),
+              ),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const VoiceScreen()),
+                  ),
+                  icon: const Icon(Icons.mic_none, size: 18),
+                  label: const Text('Prefiero dictarlo'),
+                ),
               ),
             ],
           );
@@ -144,36 +157,40 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
     );
   }
 
+  // .grande de la maqueta: la pregunta arriba (en suave) y el monto en 44/800, centrado.
   Widget _campoMonto() {
+    final colores = context.colores;
+    final textos = Theme.of(context).textTheme;
     final error = _vm.errorMonto;
     return Padding(
-      padding: const EdgeInsets.only(top: 22, bottom: 18),
+      padding: const EdgeInsets.only(top: 6, bottom: 14),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('\$', style: TextStyle(fontSize: 24, color: AppColors.faint, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 230,
-                child: TextField(
-                  controller: _monto,
-                  textAlign: TextAlign.center,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [MontoArgentinoFormatter()],
-                  style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w700),
-                  decoration: const InputDecoration.collapsed(hintText: '0'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
           Text(
             // Con otra moneda elegida se aclara: lo que se carga son pesos (US-8.2).
-            error ?? '${_vm.esIngreso ? 'Cuánto entró' : 'Cuánto gastaste'}${convierte ? ', en pesos' : ''}',
-            style: TextStyle(fontSize: 12, color: error != null ? AppColors.danger : AppColors.faint),
+            '${_vm.esIngreso ? 'Cuánto entró' : 'Cuánto gastaste'}${convierte ? ', en pesos' : ''}',
+            style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: TextField(
+              controller: _monto,
+              textAlign: TextAlign.center,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [MontoArgentinoFormatter()],
+              style: textos.displayMedium,
+              decoration: InputDecoration.collapsed(
+                hintText: '\$ 0',
+                hintStyle: textos.displayMedium?.copyWith(color: colores.suave),
+              ),
+            ),
+          ),
+          if (error != null)
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: textos.bodySmall?.copyWith(color: colores.coralTexto, fontWeight: FontWeight.w600),
+            ),
         ],
       ),
     );
@@ -183,55 +200,19 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
     return Campo(
       etiqueta: 'Categoría',
       error: _vm.errorCategoria,
-      ayuda: 'Se muestran solo las categorías de ${_vm.esIngreso ? 'ingreso' : 'egreso'}.',
       child: Wrap(
-        spacing: 7,
-        runSpacing: 7,
+        spacing: 8,
+        runSpacing: 8,
         children: [
-          for (final c in _vm.categoriasDelTipo) _chip(c),
-          ActionChip(
-            avatar: const Icon(Icons.add, size: 16),
-            label: const Text('Nueva'),
-            onPressed: _nuevaCategoria,
-            backgroundColor: AppColors.surface2,
-            side: const BorderSide(color: AppColors.line),
-            shape: const StadiumBorder(),
-          ),
+          for (final c in _vm.categoriasDelTipo)
+            ChipCategoria(
+              categoria: c,
+              elegida: c.nombre == _vm.categoria,
+              alTocar: () => _vm.elegirCategoria(c.nombre),
+            ),
+          ChipNuevaCategoria(alTocar: _nuevaCategoria),
         ],
       ),
     );
-  }
-
-  // Las predefinidas llevan su emoji; las propias, un punto de su color.
-  Widget _chip(Categoria categoria) {
-    final seleccionado = categoria.nombre == _vm.categoria;
-    return ChoiceChip(
-      avatar: categoria.emoji != null
-          ? Text(categoria.emoji!)
-          : Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(color: colorDesdeHex(categoria.color), shape: BoxShape.circle),
-            ),
-      label: Text(categoria.nombre),
-      selected: seleccionado,
-      onSelected: (_) => _vm.elegirCategoria(categoria.nombre),
-      showCheckmark: false,
-      backgroundColor: AppColors.surface2,
-      selectedColor: AppColors.accent.withValues(alpha: 0.12),
-      side: BorderSide(color: seleccionado ? AppColors.accent : AppColors.line),
-      labelStyle: TextStyle(
-        color: seleccionado ? AppColors.accent : AppColors.muted,
-        fontWeight: FontWeight.w600,
-      ),
-      shape: const StadiumBorder(),
-    );
-  }
-
-  String _textoFecha(DateTime fecha) {
-    final hoy = DateTime.now();
-    if (fecha.year == hoy.year && fecha.month == hoy.month && fecha.day == hoy.day) return 'Hoy';
-    String dos(int n) => n.toString().padLeft(2, '0');
-    return '${dos(fecha.day)}/${dos(fecha.month)}/${fecha.year}';
   }
 }

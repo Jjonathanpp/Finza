@@ -6,6 +6,7 @@ void main() => runApp(
       MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: temaFinza(),
+        darkTheme: temaFinza(oscuro: true),
         home: const MovimientosScreen(),
       ),
     );

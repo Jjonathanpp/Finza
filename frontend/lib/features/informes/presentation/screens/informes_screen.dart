@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/segmento.dart';
 import 'package:frontend/features/informes/data/datasources/informe_api.dart';
 import 'package:frontend/features/informes/presentation/widgets/grafico_barras_comparacion.dart';
 import 'package:frontend/features/informes/presentation/widgets/grafico_torta_categorias.dart';
@@ -25,9 +27,13 @@ class _InformesScreenState extends State<InformesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Informes')),
+      appBar: barraConVolver(
+        context,
+        'Informes',
+        subtitulo: cuentaActiva.value?['nombre'] as String? ?? 'Personal',
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
         children: [
           SelectorRangoFechas(
             key: const PageStorageKey('selector_rango_informes'),
@@ -37,16 +43,31 @@ class _InformesScreenState extends State<InformesScreen> {
             }),
            ),
           const SizedBox(height: 12),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'MES', label: Text('Por mes')),
-              ButtonSegment(value: 'SEMANA', label: Text('Por semana')),
+          Segmento<String>(
+            opciones: const [
+              ('MES', 'Por mes'),
+              ('SEMANA', 'Por semana'),
             ],
-            selected: {_granularidad},
-            onSelectionChanged: (s) => setState(() => _granularidad = s.first),
+            valor: _granularidad,
+            alCambiar: (g) => setState(() => _granularidad = g),
           ),
           const SizedBox(height: 12),
-          FilledButton.icon(
+          GraficoTortaCategorias(
+            key: ValueKey('torta_$_inicio$_fin'),
+            api: InformeApi(ApiClient()),
+            startDate: _inicio,
+            endDate: _fin,
+          ),
+          const SizedBox(height: 12),
+          GraficoBarrasComparacion(
+            key: ValueKey('${_inicio}_${_fin}_$_granularidad'),
+            api: InformeApi(ApiClient()),
+            startDate: _inicio,
+            endDate: _fin,
+            granularidad: _granularidad,
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
             onPressed: () => ExportarReporteDialog.mostrar(
               context,
               fechaInicial: _inicio,
@@ -70,23 +91,8 @@ class _InformesScreenState extends State<InformesScreen> {
                 );
               },
             ),
-            icon: const Icon(Icons.picture_as_pdf),
-            label: const Text('Exportar reporte'),
-          ),
-          const SizedBox(height: 12),
-          GraficoBarrasComparacion(
-            key: ValueKey('${_inicio}_${_fin}_$_granularidad'),
-            api: InformeApi(ApiClient()),
-            startDate: _inicio,
-            endDate: _fin,
-            granularidad: _granularidad,
-          ),
-          const SizedBox(height: 12),
-          GraficoTortaCategorias(
-            key: ValueKey('torta_$_inicio$_fin'),
-            api: InformeApi(ApiClient()),
-            startDate: _inicio,
-            endDate: _fin,
+            icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+            label: const Text('Exportar reporte en PDF'),
           ),
         ],
       ),

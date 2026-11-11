@@ -1,27 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
+import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/core/widgets/confirmar.dart';
+import 'package:frontend/core/widgets/hoja.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
 
-// El panel que sube desde abajo (showModalBottomSheet) al tocar un presupuesto de una cuenta compartida,
-// si sos admin (t-13.1.2): cambiar el tope o desactivarlo para todos. Se cierra solo cuando el backend
-// dice que sí; si dice que no, muestra su mensaje.
+// "Editar tope": la hoja que sube desde abajo en el detalle de un presupuesto, si podés cambiarlo (sos
+// admin de la cuenta compartida, t-13.1.2, o es tu cuenta personal): cambiar el tope y el aviso, o
+// desactivarlo. Se cierra sola cuando el backend dice que sí; si dice que no, muestra su mensaje.
+// Se abre con EditarPresupuestoSheet.mostrar: la hoja (título, texto y agarre) la pone mostrarHoja y
+// este widget es lo de adentro.
 class EditarPresupuestoSheet extends StatefulWidget {
   const EditarPresupuestoSheet({
     super.key,
     required this.presupuesto,
     required this.periodo,
-    required this.cuenta,
+    this.cuenta,
     required this.alGuardar,
     required this.alDesactivar,
   });
 
   final Presupuesto presupuesto;
   final String periodo;
-  final String cuenta;
+  // El nombre de la cuenta compartida; null en la personal.
+  final String? cuenta;
   final Future<void> Function(double tope, int intervaloAviso) alGuardar;
   final Future<void> Function() alDesactivar;
+
+  static Future<void> mostrar(
+    BuildContext context, {
+    required Presupuesto presupuesto,
+    required String periodo,
+    String? cuenta,
+    required Future<void> Function(double tope, int intervaloAviso) alGuardar,
+    required Future<void> Function() alDesactivar,
+  }) {
+    return mostrarHoja<void>(
+      context,
+      titulo: 'Editar tope · ${presupuesto.categoriaNombre}',
+      texto: '${cuenta ?? 'Personal'} · ${periodo.toLowerCase()}${cuenta == null ? '.' : '. Lo ven todos.'}',
+      contenido: EditarPresupuestoSheet(
+        presupuesto: presupuesto,
+        periodo: periodo,
+        cuenta: cuenta,
+        alGuardar: alGuardar,
+        alDesactivar: alDesactivar,
+      ),
+    );
+  }
 
   @override
   State<EditarPresupuestoSheet> createState() => _EditarPresupuestoSheetState();
@@ -67,80 +95,60 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
 
   Future<void> _desactivar() async {
     final nombre = widget.presupuesto.categoriaNombre;
-    final seguro = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Desactivar presupuesto'),
-        content: Text('¿Desactivar el presupuesto de $nombre de ${widget.periodo} para todos los de ${widget.cuenta}?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Desactivar'),
-          ),
-        ],
-      ),
+    final paraTodos = widget.cuenta == null ? '' : ' para todos los de ${widget.cuenta}';
+    final seguro = await confirmar(
+      context,
+      titulo: 'Desactivar presupuesto',
+      texto: '¿Desactivar el presupuesto de $nombre de ${widget.periodo}$paraTodos?',
+      textoAccion: 'Desactivar',
+      peligro: true,
     );
-    if (seguro == true) await _enviar(widget.alDesactivar);
+    if (seguro) await _enviar(widget.alDesactivar);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(18, 18, 18, 18 + MediaQuery.of(context).viewInsets.bottom),
-      // Con el selector de avisos y el teclado abierto puede no entrar: que se pueda deslizar.
-      child: SingleChildScrollView(
-        child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            '${widget.presupuesto.categoriaNombre} · ${widget.periodo}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 14),
-          TextField(
+    final c = context.colores;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Campo(
+          etiqueta: 'Tope del mes',
+          child: TextField(
             controller: _tope,
             enabled: !_guardando,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: r'Tope ($)'),
+            decoration: const InputDecoration(prefixText: r'$ '),
           ),
-          const SizedBox(height: 18),
-          const Text('Avisarme cada', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          SelectorIntervaloAviso(
+        ),
+        Campo(
+          etiqueta: 'Avisarme cada',
+          child: SelectorIntervaloAviso(
             valor: _intervaloAviso,
             habilitado: !_guardando,
             alCambiar: (valor) => setState(() => _intervaloAviso = valor),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
-          ],
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _guardando ? null : _guardar,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 0,
-              ),
-              child: const Text('Guardar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Text(
+              _error!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: c.coralTexto),
             ),
           ),
-          const SizedBox(height: 6),
-          TextButton(
-            onPressed: _guardando ? null : _desactivar,
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Desactivar presupuesto'),
-          ),
-        ],
+        FilledButton(
+          onPressed: _guardando ? null : _guardar,
+          child: const Text('Guardar'),
         ),
-      ),
+        const SizedBox(height: 12),
+        FilledButton(
+          onPressed: _guardando ? null : _desactivar,
+          style: estiloBotonPeligro(context),
+          child: const Text('Desactivar presupuesto'),
+        ),
+      ],
     );
   }
 }

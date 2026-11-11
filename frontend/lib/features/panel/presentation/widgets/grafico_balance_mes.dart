@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/widgets/barra_progreso.dart';
+import 'package:frontend/core/widgets/esqueleto.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
 import 'package:frontend/shared/utils/importe.dart';
@@ -24,68 +26,45 @@ class _GraficoBalanceMesState extends State<GraficoBalanceMes> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Ingresos y egresos del mes',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+    final textos = Theme.of(context).textTheme;
+    return FutureBuilder<ResumenMes>(
+      future: _resumen,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) return const Esqueleto(alto: 96);
+
+        final data = snapshot.data;
+        final ingresos = (data?.totalIngresos ?? 0.0).abs();
+        final egresos = (data?.totalEgresos ?? 0.0).abs();
+        final mayor = ingresos > egresos ? ingresos : egresos;
+
+        return Tarjeta(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 12,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(
+                  'Ingresos y egresos del mes',
+                  style: textos.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              _FilaBarra(
+                etiqueta: 'Ingresos',
+                monto: ingresos,
+                factor: mayor > 0 ? ingresos / mayor : 0.0,
+                tono: TonoBarra.barra,
+              ),
+              _FilaBarra(
+                etiqueta: 'Egresos',
+                monto: egresos,
+                factor: mayor > 0 ? egresos / mayor : 0.0,
+                tono: TonoBarra.coral,
+              ),
+            ],
           ),
-          const SizedBox(height: 18),
-          FutureBuilder<ResumenMes>(
-            future: _resumen,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const SizedBox(
-                  height: 60,
-                  child: Center(
-                    child: SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                );
-              }
-
-              final data = snapshot.data;
-              final ingresos = (data?.totalIngresos ?? 0.0).abs();
-              final egresos = (data?.totalEgresos ?? 0.0).abs();
-              final mayor = ingresos > egresos ? ingresos : egresos;
-
-              final factorIngresos = mayor > 0 ? (ingresos / mayor) : 0.0;
-              final factorEgresos = mayor > 0 ? (egresos / mayor) : 0.0;
-
-              return Column(
-                children: [
-                  _FilaBarra(
-                    etiqueta: 'Ingresos',
-                    monto: data?.totalIngresos ?? 0.0,
-                    factor: factorIngresos,
-                    colorBarra: AppColors.accent,
-                  ),
-                  const SizedBox(height: 12),
-                  _FilaBarra(
-                    etiqueta: 'Egresos',
-                    monto: data?.totalEgresos ?? 0.0,
-                    factor: factorEgresos,
-                    colorBarra: const Color(0xFF7C9CFF),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -95,58 +74,42 @@ class _FilaBarra extends StatelessWidget {
     required this.etiqueta,
     required this.monto,
     required this.factor,
-    required this.colorBarra,
+    required this.tono,
   });
 
   final String etiqueta;
   final double monto;
   final double factor;
-  final Color colorBarra;
+  final TonoBarra tono;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final textos = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 6,
       children: [
-        SizedBox(
-          width: 65,
-          child: Text(
-            etiqueta,
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Container(
-            height: 18,
-            decoration: BoxDecoration(
-              color: AppColors.surface3,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: factor.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: colorBarra,
-                  borderRadius: BorderRadius.circular(6),
-                ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          spacing: 8,
+          children: [
+            Flexible(
+              child: Text(
+                etiqueta,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
-          ),
+            Text(
+              importe(monto),
+              maxLines: 1,
+              softWrap: false,
+              style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Text(
-          importe(monto),
-          textAlign: TextAlign.right,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        BarraProgreso(valor: factor, tono: tono, etiqueta: etiqueta),
       ],
     );
   }

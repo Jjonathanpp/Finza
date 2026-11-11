@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/widgets/filtro_pastilla.dart';
 
 class SelectorRangoFechas extends StatefulWidget {
   const SelectorRangoFechas({super.key, required this.onCambio});
@@ -91,64 +91,47 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
 
   @override
   Widget build(BuildContext context) {
-      super.build(context);
-      return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Período de informes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _opcionElegida,
-            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
-            items: _opciones.map((op) => DropdownMenuItem(value: op, child: Text(op))).toList(),
-            onChanged: (val) {
-              if (val != null) _aplicarFiltro(val);
-            },
-          ),
-          if (_opcionElegida == 'Personalizado') ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Desde', style: TextStyle(fontSize: 12, color: AppColors.muted)),
-                      const SizedBox(height: 4),
-                      OutlinedButton.icon(
-                        onPressed: () => _elegirFechaPersonalizada(true),
-                        icon: const Icon(Icons.calendar_today, size: 14),
-                        label: Text(_formatoFecha(_inicioPersonalizado), style: const TextStyle(fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Hasta', style: TextStyle(fontSize: 12, color: AppColors.muted)),
-                      const SizedBox(height: 4),
-                      OutlinedButton.icon(
-                        onPressed: () => _elegirFechaPersonalizada(false),
-                        icon: const Icon(Icons.calendar_today, size: 14),
-                        label: Text(_formatoFecha(_finPersonalizado), style: const TextStyle(fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    super.build(context);
+    final textos = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 4,
+      children: [
+        FilaFiltros(
+          etiqueta: 'Período de informes',
+          children: [
+            for (final op in _opciones)
+              FiltroPastilla(
+                texto: op,
+                activo: op == _opcionElegida,
+                alTocar: () => _aplicarFiltro(op),
+              ),
           ],
-        ],
-      ),
+        ),
+        if (_opcionElegida == 'Personalizado')
+          Row(
+            spacing: 12,
+            children: [
+              Expanded(child: _campoFecha(textos, 'Desde', _inicioPersonalizado, true)),
+              Expanded(child: _campoFecha(textos, 'Hasta', _finPersonalizado, false)),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _campoFecha(TextTheme textos, String etiqueta, DateTime? fecha, bool esInicio) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 4,
+      children: [
+        Text(etiqueta, style: textos.bodySmall),
+        OutlinedButton.icon(
+          onPressed: () => _elegirFechaPersonalizada(esInicio),
+          icon: const Icon(Icons.calendar_today, size: 16),
+          label: Text(_formatoFecha(fecha), maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+      ],
     );
   }
 }

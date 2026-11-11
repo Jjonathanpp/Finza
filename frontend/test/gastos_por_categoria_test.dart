@@ -46,18 +46,25 @@ void main() {
     for (final texto in ['\$ 200.000', '50%', '\$ 120.000', '30%', '\$ 80.000', '20%']) {
       expect(find.text(texto), findsOneWidget, reason: texto);
     }
-    final altura = [for (final nombre in ['Comida', 'Gimnasio', 'Transporte']) tester.getTopLeft(find.text(nombre)).dy];
-    expect(altura[0] < altura[1] && altura[1] < altura[2], isTrue, reason: 'de mayor a menor gasto: $altura');
+    // La leyenda va en dos columnas: el orden del backend se lee de izquierda a derecha y de arriba abajo.
+    final lugar = [for (final nombre in ['Comida', 'Gimnasio', 'Transporte']) tester.getTopLeft(find.text(nombre))];
+    expect(lugar[0].dy, lugar[1].dy, reason: 'la primera y la segunda comparten fila');
+    expect(lugar[0].dx < lugar[1].dx, isTrue, reason: 'la segunda va a la derecha de la primera');
+    expect(lugar[2].dy > lugar[1].dy, isTrue, reason: 'la tercera baja a la fila siguiente');
+    expect(lugar[2].dx, lugar[0].dx, reason: 'y vuelve a la columna de la izquierda');
   });
 
   testWidgets('cada fila lleva el color de su categoría, y gris si no tiene', (tester) async {
     await _mostrar(tester, _BackendDeMentira(_octubre));
 
-    final cuadraditos = tester
-        .widgetList<Container>(find.byWidgetPredicate((w) => w is Container && w.constraints?.maxWidth == 9))
+    final circulos = tester
+        .widgetList<Container>(find.byWidgetPredicate((w) =>
+            w is Container &&
+            w.constraints?.maxWidth == 10 &&
+            (w.decoration as BoxDecoration?)?.shape == BoxShape.circle))
         .map((c) => (c.decoration as BoxDecoration).color)
         .toList();
-    expect(cuadraditos, const [Color(0xFFEF4444), Color(0xFF94A3B8), Color(0xFF8B5CF6)]);
+    expect(circulos, const [Color(0xFFEF4444), Color(0xFF94A3B8), Color(0xFF8B5CF6)]);
   });
 
   testWidgets('un porcentaje con decimales va con coma', (tester) async {

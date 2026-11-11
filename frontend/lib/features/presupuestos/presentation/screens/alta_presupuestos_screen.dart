@@ -2,10 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/widgets/aviso_en_linea.dart';
+import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/core/widgets/circulo_categoria.dart';
+import 'package:frontend/core/widgets/encabezado_pestana.dart';
+import 'package:frontend/core/widgets/esqueleto.dart';
+import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
+import 'package:frontend/features/presupuestos/presentation/nombres_de_meses.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
-import 'package:frontend/shared/utils/color_hex.dart';
 
 class AltaPresupuestoScreen extends StatefulWidget {
   const AltaPresupuestoScreen({super.key});
@@ -93,187 +101,154 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
     final aniosOpciones = [DateTime.now().year, DateTime.now().year + 1];
+    final cuenta = cuentaActiva.value;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nuevo Presupuesto', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-      ),
+      appBar: barraConVolver(context, 'Nuevo presupuesto', subtitulo: nombreDeCuentaActiva()),
       body: _cargandoCategorias
-          ? const Center(child: CircularProgressIndicator())
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+              child: Semantics(
+                container: true,
+                liveRegion: true,
+                label: 'Cargando',
+                child: const ExcludeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: 14,
+                    children: [
+                      Esqueleto(alto: 76, radio: Radios.control),
+                      Esqueleto(alto: 76, radio: Radios.control),
+                      Esqueleto(alto: 76, radio: Radios.control),
+                    ],
+                  ),
+                ),
+              ),
+            )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (_errorMensaje != null)
                       Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        margin: const EdgeInsets.only(bottom: 14),
                         decoration: BoxDecoration(
-                          color: AppColors.danger.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.danger),
+                          color: c.coralFondo,
+                          borderRadius: BorderRadius.circular(Radios.aviso),
                         ),
-                        child: Text(_errorMensaje!, style: const TextStyle(color: AppColors.danger, fontSize: 13.5)),
-                      ),
-                      
-                    const Text('Categoría', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<int>(
-                      initialValue: _categoriaId,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: AppColors.surface,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
+                        child: Text(
+                          _errorMensaje!,
+                          style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: c.coralTexto),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       ),
-                      hint: const Text('Seleccionar categoría...'),
-                      items: _categorias.map((cat) {
-                        return DropdownMenuItem<int>(
-                          value: cat['id'] as int,
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: colorDesdeHex(cat['color']),
-                                  shape: BoxShape.circle,
+
+                    Campo(
+                      etiqueta: 'Categoría',
+                      child: DropdownButtonFormField<int>(
+                        initialValue: _categoriaId,
+                        isExpanded: true,
+                        hint: const Text('Seleccionar categoría...'),
+                        items: _categorias.map((cat) {
+                          return DropdownMenuItem<int>(
+                            value: cat['id'] as int,
+                            child: Row(
+                              spacing: 10,
+                              children: [
+                                CirculoCategoria.de(Categoria.fromJson(cat), tamano: 30),
+                                Expanded(
+                                  child: Text(cat['nombre'] as String, maxLines: 1, overflow: TextOverflow.ellipsis),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(cat['nombre'] as String),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) => setState(() => _categoriaId = val),
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    const Text('Monto Límite (\$)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _montoController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: AppColors.surface,
-                        prefixText: '\$ ',
-                        prefixStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.text),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) => setState(() => _categoriaId = val),
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) return 'El monto es obligatorio';
-                        final numValue = double.tryParse(value.replaceAll(',', '.'));
-                        if (numValue == null) return 'Ingresá un número válido';
-                        if (numValue <= 0) return 'El monto debe ser mayor a 0';
-                        return null;
-                      },
                     ),
 
-                    const SizedBox(height: 20),
-                    
+                    Campo(
+                      etiqueta: 'Tope del mes',
+                      child: TextFormField(
+                        controller: _montoController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(prefixText: r'$ ', hintText: '100.000'),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) return 'El monto es obligatorio';
+                          final numValue = double.tryParse(value.replaceAll(',', '.'));
+                          if (numValue == null) return 'Ingresá un número válido';
+                          if (numValue <= 0) return 'El monto debe ser mayor a 0';
+                          return null;
+                        },
+                      ),
+                    ),
+
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 12,
                       children: [
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Mes', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                              const SizedBox(height: 8),
-                              DropdownButtonFormField<int>(
-                                initialValue: _mes,
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: AppColors.surface,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                                items: List.generate(12, (i) => i + 1).map((m) {
-                                  return DropdownMenuItem(value: m, child: Text(m.toString().padLeft(2, '0')));
-                                }).toList(),
-                                onChanged: (val) => setState(() => _mes = val!),
-                              ),
-                            ],
+                          child: Campo(
+                            etiqueta: 'Mes',
+                            child: DropdownButtonFormField<int>(
+                              initialValue: _mes,
+                              isExpanded: true,
+                              items: List.generate(12, (i) => i + 1).map((m) {
+                                return DropdownMenuItem(
+                                  value: m,
+                                  child: Text(nombresDeMeses[m], maxLines: 1, overflow: TextOverflow.ellipsis),
+                                );
+                              }).toList(),
+                              onChanged: (val) => setState(() => _mes = val!),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 16),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Año', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                              const SizedBox(height: 8),
-                              DropdownButtonFormField<int>(
-                                initialValue: _anio,
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: AppColors.surface,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                                items: aniosOpciones.map((a) {
-                                  return DropdownMenuItem(value: a, child: Text(a.toString()));
-                                }).toList(),
-                                onChanged: (val) => setState(() => _anio = val!),
-                              ),
-                            ],
+                          child: Campo(
+                            etiqueta: 'Año',
+                            child: DropdownButtonFormField<int>(
+                              initialValue: _anio,
+                              isExpanded: true,
+                              items: aniosOpciones.map((a) {
+                                return DropdownMenuItem(value: a, child: Text(a.toString()));
+                              }).toList(),
+                              onChanged: (val) => setState(() => _anio = val!),
+                            ),
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 24),
-
                     // Cada cuánto avisar que el presupuesto se está llenando (popup).
-                    const Text('Avisarme cada', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    SelectorIntervaloAviso(
-                      valor: _intervaloAviso,
-                      habilitado: !_guardando,
-                      alCambiar: (valor) => setState(() => _intervaloAviso = valor),
+                    Campo(
+                      etiqueta: 'Avisarme cada',
+                      child: SelectorIntervaloAviso(
+                        valor: _intervaloAviso,
+                        habilitado: !_guardando,
+                        alCambiar: (valor) => setState(() => _intervaloAviso = valor),
+                      ),
                     ),
 
-                    const SizedBox(height: 40),
-                    
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: _guardando ? null : _guardar,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 0,
-                        ),
-                        child: _guardando
-                            ? const SizedBox.square(
-                                dimension: 24,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                              )
-                            : const Text('Crear Presupuesto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    if (cuenta != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: AvisoEnLinea('Lo ven todos en ${cuenta['nombre']}.', icono: Icons.group_outlined),
                       ),
+
+                    FilledButton(
+                      onPressed: _guardando ? null : _guardar,
+                      child: _guardando
+                          ? SizedBox.square(
+                              dimension: 22,
+                              child: CircularProgressIndicator(color: c.sobrePrimario, strokeWidth: 2.5),
+                            )
+                          : const Text('Crear presupuesto'),
                     ),
                   ],
                 ),

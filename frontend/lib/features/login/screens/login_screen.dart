@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/widgets/logo_finza.dart';
 import '../widgets/login_form.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -7,43 +8,37 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            children: [
-              const SizedBox(height: 32),
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  color: AppColors.accent,
-                ),
-                child: const Center(
-                  child: Text(
-                    'F',
-                    style: TextStyle(
-                      color: AppColors.accentInk,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+        child: LayoutBuilder(
+          builder: (context, restricciones) => SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: restricciones.maxHeight - 48,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Center(child: LogoFinza(tamano: 72)),
+                  const SizedBox(height: 10),
+                  const Center(child: NombreFinza()),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Tus finanzas claras, en un solo lugar.',
+                    textAlign: TextAlign.center,
+                    style: textos.bodyMedium?.copyWith(
+                      fontSize: 15,
+                      color: context.colores.suave,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  const LoginForm(),
+                ],
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Finza',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
-                ),
-              ),
-              const SizedBox(height: 32),
-              const LoginForm(),
-            ],
+            ),
           ),
         ),
       ),
