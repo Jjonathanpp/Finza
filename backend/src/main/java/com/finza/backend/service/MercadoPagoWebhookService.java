@@ -27,7 +27,7 @@ public class MercadoPagoWebhookService {
     private final PerfilRepository perfilRepository;
     private final MercadoPagoSyncService syncService;
 
-    @Scheduled(fixedDelay = 60000)
+    //@Scheduled(fixedDelay = 60000)
     @Transactional
     public void procesarWebhooksPendientes() {
         List<WebhookMP> pendientes = webhookRepository.findByProcesadoFalse();
