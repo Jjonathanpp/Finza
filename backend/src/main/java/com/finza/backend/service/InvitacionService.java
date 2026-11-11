@@ -69,10 +69,6 @@ public class InvitacionService {
             throw new BadRequestException("No podés invitarte a vos mismo");
         }
 
-        if (!cuentaRepository.existsByEmailIgnoreCase(email)) {
-            throw new BadRequestException("Ese email no existe en la app");
-        }
-
         boolean yaEsMiembro = cuentaRepository.findByEmailIgnoreCase(email)
                 .flatMap(c -> perfilRepository.findByCuentaIdAndCuentaCompartidaId(c.getId(), cuentaCompartidaId))
                 .isPresent();
