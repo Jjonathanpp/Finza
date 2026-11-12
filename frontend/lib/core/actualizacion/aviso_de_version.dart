@@ -5,7 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 // Aviso de versión nueva (t-1.8.5): al abrir la app, si en GitHub Releases hay una más nueva que la
 // instalada, un cuadro para bajarla. La versión instalada la pasa el workflow "Publicar APK" al armar
-// la APK (--dart-define=APP_VERSION, la de pubspec.yaml); en la compu queda vacía y no se consulta nada.
+// la APK (--dart-define=APP_VERSION, la siguiente a la última release); en la compu queda vacía y no
+// se consulta nada.
 const versionInstalada = String.fromEnvironment('APP_VERSION');
 
 const _ultimaRelease = 'https://api.github.com/repos/Jjonathanpp/Finza/releases/latest';
