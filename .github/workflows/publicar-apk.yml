@@ -1,9 +1,10 @@
 name: Publicar APK
 
 # Arma la APK de Finza firmada con la clave de release y la publica en GitHub Releases (t-1.8.5).
-# Se corre a mano: Actions → Publicar APK → Run workflow, sobre main. Antes, un PR tiene que subir
-# "version:" en frontend/pubspec.yaml. Con "Solo probar" (marcado de entrada) arma la APK y la deja
-# para bajar desde la corrida, sin publicar nada.
+# Se corre a mano: Actions → Publicar APK → Run workflow, sobre main. La versión la calcula solo:
+# la siguiente a la última publicada, según "Tipo" (t-1.9.4). No hace falta subir "version:" en
+# frontend/pubspec.yaml. Con "Solo probar" (marcado de entrada) arma la APK y la deja para bajar
+# desde la corrida, sin publicar nada.
 #
 # Necesita, en Settings → Secrets and variables → Actions:
 #   secrets   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
@@ -16,6 +17,13 @@ on:
         description: "Solo probar: armar la APK sin publicarla"
         type: boolean
         default: true
+      tipo:
+        description: "Versión nueva. Por ejemplo, desde la 1.1.3: arreglo da 1.1.4 y novedad, 1.2.0"
+        type: choice
+        options:
+          - arreglo
+          - novedad
+        default: arreglo
 
 permissions:
   contents: write
@@ -45,23 +53,32 @@ jobs:
           echo "::error::Para publicar hay que correrlo sobre main."
           exit 1
 
-      - name: Versión de pubspec.yaml
+      - name: Versión nueva
         id: version
+        env:
+          TIPO: ${{ inputs.tipo }}
         run: |
-          completa=$(grep -E '^version:' pubspec.yaml | awk '{print $2}')
-          version=${completa%%+*}
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Versión: $completa"
+          # La siguiente a la última release publicada (t-1.9.4): pubspec.yaml no se lee.
           # Los tags viejos mezclan v y V (v1.0.0, V1.0.2): se comparan sin mirar mayúsculas.
-          if git tag | grep -qix "v$version"; then
-            echo "::error::La versión $version ya está publicada. Subí version: en frontend/pubspec.yaml."
-            exit 1
-          fi
           ultima=$(git tag | sed 's/^[vV]//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-          if [ -n "$ultima" ] && [ "$(printf '%s\n%s\n' "$ultima" "$version" | sort -V | tail -1)" != "$version" ]; then
-            echo "::error::La versión $version no es mayor que la última publicada ($ultima)."
+          if [ -z "$ultima" ]; then
+            echo "::error::No hay ninguna versión publicada de la cual partir."
             exit 1
           fi
+          IFS=. read -r mayor menor arreglo <<< "$ultima"
+          if [ "$TIPO" = "novedad" ]; then
+            menor=$((menor + 1))
+            arreglo=0
+          else
+            arreglo=$((arreglo + 1))
+          fi
+          version="$mayor.$menor.$arreglo"
+          # Número interno de Android (versionCode): tiene que subir siempre para que el celular
+          # acepte la actualización. Sale de la versión: 1.1.4 → 10104, 1.2.0 → 10200.
+          codigo=$((mayor * 10000 + menor * 100 + arreglo))
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "codigo=$codigo" >> "$GITHUB_OUTPUT"
+          echo "Última publicada: $ultima → nueva: $version (número interno $codigo)"
 
       - uses: actions/setup-java@v6
         with:
@@ -95,8 +112,11 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         # APP_VERSION: la versión que la app compara con la última de GitHub para avisar que hay una nueva.
+        # --build-name y --build-number pisan la versión de pubspec.yaml solo para esta APK.
         run: >-
           flutter build apk --release
+          --build-name=${{ steps.version.outputs.version }}
+          --build-number=${{ steps.version.outputs.codigo }}
           --dart-define=API_URL=${{ env.API_URL }}
           --dart-define=APP_VERSION=${{ steps.version.outputs.version }}
 
