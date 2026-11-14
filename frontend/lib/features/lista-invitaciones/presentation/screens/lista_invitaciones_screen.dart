@@ -154,14 +154,17 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _abrirModalInvitar,
-                    child: const Text('Invitar a cuenta compartida'),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: _abrirModalInvitar,
+                      child: const Text('Invitar a cuenta compartida'),
+                    ),
                   ),
                 ),
               ),

@@ -119,5 +119,20 @@ void main() {
 
       expect(api.ruta, '/api/cuentas-compartidas');
     });
+
+    test('eliminar una cuenta compartida: DELETE en la ruta de eliminación', () async {
+      final api = _ApiClientQueAnota();
+      await CuentaCompartidaApi(api).eliminarCuenta(5);
+
+      expect(api.ruta, '/api/cuentas-compartidas/5/eliminar');
+    });
+
+    test('abandonar una cuenta compartida: POST en la ruta de abandono', () async {
+      final api = _ApiClientQueAnota();
+      await CuentaCompartidaApi(api).abandonarCuenta(5);
+
+      expect(api.ruta, '/api/cuentas-compartidas/5/abandonar');
+      expect(api.cuerpo, isEmpty);
+    });
   });
 }

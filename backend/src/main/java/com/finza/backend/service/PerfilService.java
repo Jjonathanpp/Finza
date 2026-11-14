@@ -236,4 +236,11 @@ public class PerfilService {
         saliente.setCuenta(null);
         saliente.setEsActivo(false);
     }
+
+
+    @Transactional 
+    public void eliminarCuentaCompartida(Long cuentaId, Long cuentaCompartidaId) {
+        Perfil admin = exigirAdmin(cuentaId, cuentaCompartidaId);
+        borrarCuentaCompartida(admin.getCuentaCompartida());
+    }
 }
