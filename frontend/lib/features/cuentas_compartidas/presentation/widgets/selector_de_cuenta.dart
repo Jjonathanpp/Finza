@@ -22,7 +22,15 @@ class SelectorDeCuenta extends StatefulWidget {
 
 class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
   late final _api = widget.api ?? CuentaCompartidaApi(ApiClient());
-  late final _cuentas = _api.listarMias();
+  late Future<List<Map<String, dynamic>>> _cuentas;
+  final Set<int> _eliminando = {};
+  bool _abandonando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cuentas = _api.listarMias();
+  }
 
   Future<void> _elegir(Map<String, dynamic>? cuenta) async {
     await TokenStorage().guardarCuentaActiva(cuenta);
@@ -37,6 +45,111 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
       builder: (_) => _CuadroNuevaCuenta(api: _api),
     );
     if (creada != null) await _elegir({...creada, 'rol': 'ADMIN'});
+  }
+
+  Future<void> _eliminar(Map<String, dynamic> cuenta) async {
+    final id = cuenta['id'] as int;
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text('Eliminar cuenta compartida'),
+        content: Text(
+          'Se eliminarán definitivamente ${cuenta['nombre']} y sus movimientos, '
+          'presupuestos y categorías para todos sus integrantes. Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(contexto).pop(false),
+            style: TextButton.styleFrom(foregroundColor: AppColors.muted),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(contexto).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger, foregroundColor: Colors.white),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+
+    setState(() => _eliminando.add(id));
+    try {
+      await _api.eliminarCuenta(id);
+      if (!mounted) return;
+
+      if (cuentaActiva.value?['id'] == id) {
+        await _elegir(null);
+        return;
+      }
+
+      setState(() {
+        _eliminando.remove(id);
+        _cuentas = _api.listarMias();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cuenta compartida eliminada')));
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _eliminando.remove(id));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: AppColors.danger));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _eliminando.remove(id));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo eliminar la cuenta compartida. Intentá de nuevo.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
+  }
+
+  Future<void> _abandonar(Map<String, dynamic> cuenta) async {
+    final id = cuenta['id'] as int;
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text('Abandonar cuenta compartida'),
+        content: Text(
+          'Vas a dejar de formar parte de ${cuenta['nombre']}. '
+          'Ya no tendrás acceso a sus movimientos, presupuestos ni categorías. '
+          'Si sos la última persona de la cuenta, esta se eliminará con sus datos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(contexto).pop(false),
+            style: TextButton.styleFrom(foregroundColor: AppColors.muted),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(contexto).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger, foregroundColor: Colors.white),
+            child: const Text('Sí, abandonar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+
+    setState(() => _abandonando = true);
+    try {
+      await _api.abandonarCuenta(id);
+      if (!mounted) return;
+      await _elegir(null);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _abandonando = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: AppColors.danger));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _abandonando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo abandonar la cuenta compartida. Intentá de nuevo.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
   }
 
   @override
@@ -111,6 +224,30 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
                 ),
               ),
             ),
+            if (actual != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _abandonando ? null : () => _abandonar(actual),
+                    icon: _abandonando
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.exit_to_app),
+                    label: Text(_abandonando ? 'Abandonando…' : 'Abandonar cuenta compartida'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      backgroundColor: AppColors.danger,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ),
           ],
         );
       },
@@ -119,6 +256,9 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
 
   Widget _opcion(Map<String, dynamic>? cuenta, {required bool elegida}) {
     final nombre = cuenta == null ? 'Personal' : cuenta['nombre'] as String;
+    final id = cuenta?['id'] as int?;
+    final eliminando = id != null && _eliminando.contains(id);
+    final puedeEliminar = cuenta != null && cuenta['rol'] == 'ADMIN';
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: elegida ? AppColors.accent : AppColors.surface2,
@@ -132,11 +272,30 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
         cuenta == null
             ? 'Solo vos'
             : cuenta['rol'] == 'ADMIN'
-                ? 'Compartida · Administrador'
-                : 'Compartida · Miembro',
+            ? 'Compartida · Administrador'
+            : 'Compartida · Miembro',
       ),
-      trailing: elegida ? const Icon(Icons.check_circle, color: AppColors.accent) : null,
-      onTap: elegida ? null : () => _elegir(cuenta),
+      trailing: cuenta == null
+          ? (elegida ? const Icon(Icons.check_circle, color: AppColors.accent) : null)
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (elegida) const Icon(Icons.check_circle, color: AppColors.accent),
+                if (puedeEliminar)
+                  eliminando
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                        )
+                      : IconButton(
+                          tooltip: 'Eliminar cuenta compartida',
+                          onPressed: () => _eliminar(cuenta),
+                          icon: const Icon(Icons.delete_outline),
+                          color: AppColors.danger,
+                        ),
+              ],
+            ),
+      onTap: elegida || eliminando ? null : () => _elegir(cuenta),
     );
   }
 }

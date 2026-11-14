@@ -25,13 +25,17 @@ const _casaAdmin = {'id': 5, 'nombre': 'Casa', 'rol': 'ADMIN', 'perfilId': 12};
 const _casaMiembro = {'id': 5, 'nombre': 'Casa', 'rol': 'MIEMBRO', 'perfilId': 13};
 
 class _CuentasDeMentira extends Fake implements CuentaCompartidaApi {
-  _CuentasDeMentira({this.rechazo});
+  _CuentasDeMentira({this.rechazo, this.cuentas = const [_casaAdmin]});
 
   final ApiException? rechazo;
+  final List<Map<String, dynamic>> cuentas;
   final creadas = <String>[];
+  final eliminadas = <int>[];
+  final abandonadas = <int>[];
 
   @override
-  Future<List<Map<String, dynamic>>> listarMias() async => [_casaAdmin];
+  Future<List<Map<String, dynamic>>> listarMias() async =>
+      cuentas.where((cuenta) => !eliminadas.contains(cuenta['id'])).toList();
 
   // Como responde el backend al crearla: sin el rol (t-11.1.4).
   @override
@@ -39,6 +43,18 @@ class _CuentasDeMentira extends Fake implements CuentaCompartidaApi {
     creadas.add(nombre);
     if (rechazo != null) throw rechazo!;
     return {'id': 8, 'nombre': nombre, 'perfilId': 21};
+  }
+
+  @override
+  Future<void> eliminarCuenta(int cuentaCompartidaId) async {
+    if (rechazo != null) throw rechazo!;
+    eliminadas.add(cuentaCompartidaId);
+  }
+
+  @override
+  Future<void> abandonarCuenta(int cuentaCompartidaId) async {
+    if (rechazo != null) throw rechazo!;
+    abandonadas.add(cuentaCompartidaId);
   }
 }
 
@@ -162,6 +178,117 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(cuentaActiva.value, _casaAdmin);
+  });
+
+  group('eliminar una cuenta compartida', () {
+    testWidgets('el admin confirma el borrado y la cuenta desaparece del selector', (tester) async {
+      final api = _CuentasDeMentira();
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SelectorDeCuenta(api: api))));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Eliminar cuenta compartida'), findsOneWidget);
+      await tester.tap(find.byTooltip('Eliminar cuenta compartida'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Se eliminarán definitivamente Casa'), findsOneWidget);
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      expect(api.eliminadas, isEmpty);
+
+      await tester.tap(find.byTooltip('Eliminar cuenta compartida'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Eliminar'));
+      await tester.pumpAndSettle();
+
+      expect(api.eliminadas, [5]);
+      expect(find.text('Casa'), findsNothing);
+      expect(find.text('Cuenta compartida eliminada'), findsOneWidget);
+    });
+
+    testWidgets('un miembro no tiene disponible la acción de eliminar', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SelectorDeCuenta(api: _CuentasDeMentira(cuentas: const [_casaMiembro])),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Eliminar cuenta compartida'), findsNothing);
+    });
+
+    testWidgets('si falla el backend, muestra el error y conserva la cuenta', (tester) async {
+      final api = _CuentasDeMentira(rechazo: ApiException(403, 'Solo el administrador puede eliminar esta cuenta'));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SelectorDeCuenta(api: api))));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Eliminar cuenta compartida'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Eliminar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Solo el administrador puede eliminar esta cuenta'), findsOneWidget);
+      expect(find.text('Casa'), findsOneWidget);
+    });
+  });
+
+  group('abandonar una cuenta compartida', () {
+    testWidgets('pide confirmación y vuelve a la cuenta personal al abandonar', (tester) async {
+      cuentaActiva.value = _casaMiembro;
+      final api = _CuentasDeMentira(cuentas: const [_casaMiembro]);
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SelectorDeCuenta(api: api))));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Abandonar cuenta compartida'), findsOneWidget);
+      await tester.tap(find.text('Abandonar cuenta compartida'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Abandonar cuenta compartida'), findsNWidgets(2));
+      expect(find.textContaining('Si sos la última persona'), findsOneWidget);
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      expect(api.abandonadas, isEmpty);
+      expect(cuentaActiva.value, _casaMiembro);
+
+      await tester.tap(find.text('Abandonar cuenta compartida'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sí, abandonar'));
+      await tester.pumpAndSettle();
+
+      expect(api.abandonadas, [5]);
+      expect(cuentaActiva.value, isNull);
+      await tester.pump(const Duration(milliseconds: 700));
+    });
+
+    testWidgets('si falla el backend muestra el error y permanece en la cuenta', (tester) async {
+      cuentaActiva.value = _casaMiembro;
+      final api = _CuentasDeMentira(
+        cuentas: const [_casaMiembro],
+        rechazo: ApiException(403, 'No se pudo abandonar la cuenta'),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: SelectorDeCuenta(api: api)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Abandonar cuenta compartida'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sí, abandonar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No se pudo abandonar la cuenta'), findsOneWidget);
+      expect(cuentaActiva.value, _casaMiembro);
+    });
+
+    testWidgets('no muestra la opción para la cuenta personal', (tester) async {
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SelectorDeCuenta(api: _CuentasDeMentira()))));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Abandonar cuenta compartida'), findsNothing);
+    });
   });
 
   group('crear una cuenta compartida (t-11.1.4)', () {
@@ -289,7 +416,9 @@ void main() {
       cuentaActiva.value = _casaAdmin;
       await _abrirPresupuestos(
         tester,
-        _PresupuestosDeMentira(rechazo: ApiException(403, 'Solo el administrador de la cuenta compartida puede hacer esto')),
+        _PresupuestosDeMentira(
+          rechazo: ApiException(403, 'Solo el administrador de la cuenta compartida puede hacer esto'),
+        ),
       );
 
       await _abrirEditar(tester);
