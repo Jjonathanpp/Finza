@@ -67,10 +67,6 @@ public class Movimiento {
 
     private LocalDateTime fechaCreacion;
 
-    @Column(name = "external_id", unique = true)
-    private String externalId; //Para la integracion con MP
-
-
-
-    
+    @Column(name = "external_id")
+    private String externalId; // Para la integracion con MP
 }
