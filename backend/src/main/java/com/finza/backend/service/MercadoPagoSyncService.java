@@ -9,7 +9,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import com.finza.backend.dto.mercadopago.BusquedaMPResponseDTO;
 import com.finza.backend.dto.mercadopago.TransaccionMPResponseDTO;
@@ -42,7 +41,8 @@ public class MercadoPagoSyncService {
 
     public BusquedaMPResponseDTO obtenerMovimientosDesdeMP(Long usuarioId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(cuentaMP.getAccessToken());
@@ -54,8 +54,7 @@ public class MercadoPagoSyncService {
                     MP_URL_PAGOS,
                     HttpMethod.GET,
                     peticion,
-                    BusquedaMPResponseDTO.class
-            );
+                    BusquedaMPResponseDTO.class);
 
             return respuesta.getBody();
         } catch (Exception e) {
@@ -66,7 +65,8 @@ public class MercadoPagoSyncService {
 
     public List<Movimiento> obtenerMovimientosMapeados(Long usuarioId, Long perfilId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
 
         Perfil perfil = perfilRepository.findById(perfilId)
                 .orElseThrow(() -> new BadRequestException("El perfil indicado no existe"));
@@ -93,7 +93,8 @@ public class MercadoPagoSyncService {
 
     public SincronizacionResumenDTO sincronizarMovimientos(Long usuarioId, Long perfilId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
 
         Perfil perfil = perfilRepository.findById(perfilId)
                 .orElseThrow(() -> new BadRequestException("El perfil indicado no existe"));
@@ -133,7 +134,8 @@ public class MercadoPagoSyncService {
             nuevosMovimientos.add(nuevo);
         }
 
-        List<Movimiento> guardados = nuevosMovimientos.isEmpty() ? List.of() : movimientoRepository.saveAll(nuevosMovimientos);
+        List<Movimiento> guardados = nuevosMovimientos.isEmpty() ? List.of()
+                : movimientoRepository.saveAll(nuevosMovimientos);
 
         return SincronizacionResumenDTO.builder()
                 .procesadas(busqueda.getResultados().size())
@@ -142,35 +144,5 @@ public class MercadoPagoSyncService {
                 .errores(0)
                 .movimientos(guardados)
                 .build();
-    }
-
-    //@Scheduled(cron = "0 0 */4 * * *")
-    public void sincronizarAutomaticamenteTodasLasCuentas() {
-        log.info("Iniciando tarea programada: sincronización periódica de Mercado Pago...");
-        List<CuentaMP> cuentasConectadas = cuentaMPRepository.findAll();
-
-        for (CuentaMP cuentaMP : cuentasConectadas) {
-            if (cuentaMP.getUsuario() == null) {
-                continue;
-            }
-
-            Long usuarioId = cuentaMP.getUsuario().getId();
-
-            try {
-                Perfil perfilPrincipal = perfilRepository.findPrincipalByUsuarioId(usuarioId)
-                        .orElse(null);
-
-                if (perfilPrincipal == null) {
-                    log.warn("Usuario {} tiene Mercado Pago conectado pero no tiene un perfil principal asignado.", usuarioId);
-                    continue;
-                }
-
-                sincronizarMovimientos(usuarioId, perfilPrincipal.getId());
-            } catch (Exception e) {
-                log.error("Falló la sincronización automática para el usuario {}: {}", usuarioId, e.getMessage());
-            }
-        }
-
-        log.info("Tarea programada de Mercado Pago finalizada.");
     }
 }

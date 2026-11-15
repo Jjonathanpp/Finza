@@ -11,12 +11,15 @@ import 'package:frontend/features/configuracion/presentation/screens/configuraci
 import 'package:frontend/features/informes/presentation/screens/informes_screen.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/lista-invitaciones/presentation/screens/lista_invitaciones_screen.dart';
+import 'package:frontend/features/mercadopago/sincronizacion_al_entrar.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
   Future<void> _cerrarSesion(BuildContext context) async {
+    reiniciarSincronizacionAlEntrar();
     await TokenStorage().limpiar();
+
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
