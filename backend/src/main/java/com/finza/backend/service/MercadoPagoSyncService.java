@@ -121,7 +121,7 @@ public class MercadoPagoSyncService {
 
             String externalId = String.valueOf(dto.getId());
 
-            if (movimientoRepository.existsByExternalId(externalId)) {
+            if (movimientoRepository.existsByExternalIdAndPerfilId(externalId, perfil.getId())) {
                 duplicadosOmitidos++;
                 continue;
             }

@@ -62,7 +62,11 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
       boolean existsByExternalId(String externalId);
 
+      boolean existsByExternalIdAndPerfilId(String externalId, Long perfilId);
+
       Optional<Movimiento> findByExternalId(String externalId);
+
+      Optional<Movimiento> findByExternalIdAndPerfilId(String externalId, Long perfilId);
 
       @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
                   "FROM Movimiento m JOIN m.categoria c " +
