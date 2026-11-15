@@ -31,8 +31,10 @@ public class MercadoPagoWebhookController {
 
     private final WebhookMPRepository webhookRepository;
     private final MercadoPagoProperties mpProperties;
+    private final com.finza.backend.service.MercadoPagoWebhookService webhookService;
 
     @PostMapping
+
     public ResponseEntity<Void> recibirWebhook(@RequestBody Map<String, Object> body,
             jakarta.servlet.http.HttpServletRequest request) {
 
@@ -77,6 +79,20 @@ public class MercadoPagoWebhookController {
         webhookRepository.save(webhook);
 
         log.info("Webhook MP guardado: tipo={}, idRecurso={}", tipo, idRecurso);
+
+        Object rawUserId = body.get("user_id");
+        if (rawUserId == null && data != null) {
+            rawUserId = data.get("user_id");
+        }
+        if (rawUserId == null) {
+            rawUserId = request.getParameter("user_id");
+        }
+        String mpUserId = rawUserId != null ? String.valueOf(rawUserId) : null;
+
+        webhookService.procesarAvisoMP(mpUserId, tipo, idRecurso);
+
+        webhook.setProcesado(true);
+        webhookRepository.save(webhook);
 
         return ResponseEntity.ok().build();
     }

@@ -13,9 +13,12 @@ import 'package:frontend/features/presupuestos/presentation/viewmodels/presupues
 import 'package:provider/provider.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/configuracion/data/datasources/preferencias_api.dart';
+import 'package:frontend/features/mercadopago/sincronizacion_al_entrar.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
-const _sombra = [BoxShadow(color: Color(0x14000000), blurRadius: 16, offset: Offset(0, 4))];
+const _sombra = [
+  BoxShadow(color: Color(0x14000000), blurRadius: 16, offset: Offset(0, 4)),
+];
 
 // La app con sesión: arriba la pestaña elegida y abajo la barra (Inicio, Historial, Categorías)
 // con el botón + aparte, que despliega hacia arriba las formas de cargar un movimiento.
@@ -40,6 +43,9 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     super.initState();
     monedaVista.addListener(_rearmar);
     _cargarMoneda();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      sincronizarMercadoPagoAlEntrar();
+    });
   }
 
   @override
@@ -73,7 +79,11 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
   Widget build(BuildContext context) {
     // De arriba para abajo: la más usada queda pegada al +.
     final opciones = [
-      ('Mercado Pago', Icons.account_balance_wallet_outlined, const MercadoPagoScreen()),
+      (
+        'Mercado Pago',
+        Icons.account_balance_wallet_outlined,
+        const MercadoPagoScreen(),
+      ),
       ('Registrar por voz', Icons.mic_none, const VoiceScreen()),
       ('Movimiento manual', Icons.edit_outlined, const AltaMovimientoScreen()),
     ];
@@ -94,7 +104,8 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                 const MovimientosScreen(),
                 const CategoriasScreen(),
                 ChangeNotifierProvider(
-                  create: (_) => PresupuestosViewModel(PresupuestoApi(ApiClient())),
+                  create: (_) =>
+                      PresupuestosViewModel(PresupuestoApi(ApiClient())),
                   child: PresupuestosScreen(),
                 ),
               ][_pestana],
@@ -115,15 +126,24 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    for (final (i, (texto, icono, pantalla)) in opciones.indexed)
+                    for (final (i, (texto, icono, pantalla))
+                        in opciones.indexed)
                       AnimatedSlide(
                         offset: _abierto ? Offset.zero : const Offset(0, 0.5),
-                        duration: Duration(milliseconds: 150 + (opciones.length - i) * 40),
+                        duration: Duration(
+                          milliseconds: 150 + (opciones.length - i) * 40,
+                        ),
                         curve: Curves.easeOutCubic,
                         child: AnimatedOpacity(
                           opacity: _abierto ? 1 : 0,
-                          duration: Duration(milliseconds: 120 + (opciones.length - i) * 40),
-                          child: _Opcion(texto: texto, icono: icono, alTocar: () => _abrir(pantalla)),
+                          duration: Duration(
+                            milliseconds: 120 + (opciones.length - i) * 40,
+                          ),
+                          child: _Opcion(
+                            texto: texto,
+                            icono: icono,
+                            alTocar: () => _abrir(pantalla),
+                          ),
                         ),
                       ),
                   ],
@@ -148,10 +168,30 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                     ),
                     child: Row(
                       children: [
-                        _Pestana(Icons.home_rounded, 'Inicio', _pestana == 0, () => _irA(0)),
-                        _Pestana(Icons.history, 'Historial', _pestana == 1, () => _irA(1)),
-                        _Pestana(Icons.category_outlined, 'Categorías', _pestana == 2, () => _irA(2)),
-                        _Pestana(Icons.pie_chart_outline, 'Presupuestos', _pestana == 3, () => _irA(3)),
+                        _Pestana(
+                          Icons.home_rounded,
+                          'Inicio',
+                          _pestana == 0,
+                          () => _irA(0),
+                        ),
+                        _Pestana(
+                          Icons.history,
+                          'Historial',
+                          _pestana == 1,
+                          () => _irA(1),
+                        ),
+                        _Pestana(
+                          Icons.category_outlined,
+                          'Categorías',
+                          _pestana == 2,
+                          () => _irA(2),
+                        ),
+                        _Pestana(
+                          Icons.pie_chart_outline,
+                          'Presupuestos',
+                          _pestana == 3,
+                          () => _irA(3),
+                        ),
                       ],
                     ),
                   ),
@@ -168,9 +208,15 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                       child: SizedBox.square(
                         dimension: 64,
                         child: AnimatedRotation(
-                          turns: _abierto ? 0.125 : 0, // el + gira y queda como ×
+                          turns: _abierto
+                              ? 0.125
+                              : 0, // el + gira y queda como ×
                           duration: const Duration(milliseconds: 200),
-                          child: const Icon(Icons.add, color: AppColors.accent, size: 32),
+                          child: const Icon(
+                            Icons.add,
+                            color: AppColors.accent,
+                            size: 32,
+                          ),
                         ),
                       ),
                     ),
@@ -205,7 +251,13 @@ class _Pestana extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(26),
             onTap: alTocar,
-            child: Center(child: Icon(icono, color: elegida ? AppColors.text : AppColors.faint, size: 26)),
+            child: Center(
+              child: Icon(
+                icono,
+                color: elegida ? AppColors.text : AppColors.faint,
+                size: 26,
+              ),
+            ),
           ),
         ),
       ),
@@ -215,7 +267,11 @@ class _Pestana extends StatelessWidget {
 
 // Una de las opciones del +: el nombre en una pastilla y el ícono en un círculo como el del +.
 class _Opcion extends StatelessWidget {
-  const _Opcion({required this.texto, required this.icono, required this.alTocar});
+  const _Opcion({
+    required this.texto,
+    required this.icono,
+    required this.alTocar,
+  });
 
   final String texto;
   final IconData icono;
@@ -238,13 +294,22 @@ class _Opcion extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: _sombra,
               ),
-              child: Text(texto, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+              child: Text(
+                texto,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             const SizedBox(width: 10),
             Container(
               width: 48,
               height: 48,
-              decoration: const BoxDecoration(color: AppColors.text, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: AppColors.text,
+                shape: BoxShape.circle,
+              ),
               child: Icon(icono, color: AppColors.accent, size: 22),
             ),
           ],
