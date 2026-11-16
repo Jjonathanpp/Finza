@@ -1,6 +1,74 @@
+<div align="center">
+
+<img src="documentos/capturas/icono.png" width="96" alt="Logo de Finza">
+
 # Finza
 
-Finza es una app para Android de finanzas personales y compartidas. Sirve para anotar ingresos y gastos (a mano, por voz o importados de Mercado Pago), ordenarlos en categorías, armar presupuestos por mes y ver informes. Una cuenta puede tener varios perfiles, y varias personas pueden compartir una cuenta, por ejemplo los gastos de una casa.
+**Tus finanzas personales y las de tu casa, en una sola app.**
+
+Anotá ingresos y gastos a mano, por voz o importados de Mercado Pago. Ordenalos en categorías, armá presupuestos por mes y mirá en qué se va la plata. Compartí una cuenta con las personas con las que vivís y cada una carga lo suyo.
+
+[![CI](https://github.com/Jjonathanpp/Finza/actions/workflows/ci.yml/badge.svg)](https://github.com/Jjonathanpp/Finza/actions/workflows/ci.yml)
+[![Versión](https://img.shields.io/github/v/release/Jjonathanpp/Finza?label=versi%C3%B3n&color=10B981)](https://github.com/Jjonathanpp/Finza/releases/latest)
+[![Estrellas](https://img.shields.io/github/stars/Jjonathanpp/Finza?style=flat&logo=github&color=yellow&label=estrellas)](https://github.com/Jjonathanpp/Finza/stargazers)
+[![Flutter](https://img.shields.io/badge/Flutter-3.44-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+
+<a href="https://github.com/Jjonathanpp/Finza/releases/latest"><img src="https://img.shields.io/badge/Descargar-APK%20para%20Android-10B981?style=for-the-badge&logo=android&logoColor=white" height="44" alt="Descargar la APK para Android"></a>
+
+<br><br>
+
+<table>
+  <tr>
+    <td align="center"><img src="documentos/capturas/historial.png" width="240" alt="Historial de movimientos"></td>
+    <td align="center"><img src="documentos/capturas/home.png" width="240" alt="Pantalla de inicio con el saldo y los movimientos del mes"></td>
+    <td align="center"><img src="documentos/capturas/categorias.png" width="240" alt="Categorías predefinidas y propias"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Historial</b></td>
+    <td align="center"><b>Inicio</b></td>
+    <td align="center"><b>Categorías</b></td>
+  </tr>
+</table>
+
+</div>
+
+---
+
+## Contenido
+
+- [Qué hace la app](#qué-hace-la-app)
+- [Cómo está hecha](#cómo-está-hecha)
+- [Qué hay en el repo](#qué-hay-en-el-repo)
+- [Levantar el proyecto en tu compu](#levantar-el-proyecto-en-tu-compu)
+- [La base de datos y las migraciones](#la-base-de-datos-y-las-migraciones)
+- [Del cambio a producción (CI/CD)](#del-cambio-a-producción-cicd)
+- [Problemas comunes](#problemas-comunes)
+- [Equipo](#equipo)
+
+**Guías rápidas:** [Instalar la app](#instalar-la-app) · [Correr todo con Docker](#levantar-el-proyecto-en-tu-compu) · [Crear una migración](#la-base-de-datos-y-las-migraciones) · [Si el CI queda en rojo](#si-un-control-queda-en-rojo) · [Publicar una versión](#publicar-una-versión-de-la-app-apk)
+
+## Qué hace la app
+
+| Función | Qué hace |
+|---|---|
+| **Movimientos** | Ingresos y gastos cargados a mano o dictados por voz: Gemini saca del audio el monto, la categoría, la descripción y la fecha. Se pueden editar, borrar y filtrar en el historial. |
+| **Mercado Pago** | Vinculás tu cuenta y los movimientos se importan solos, también en las cuentas compartidas. |
+| **Categorías** | Trae 13 categorías listas (Comida, Alquiler, Sueldo...) y podés crear las tuyas. Las predefinidas que no usás se pueden ocultar. |
+| **Presupuestos** | Un tope por categoría y por mes. La app avisa a medida que te acercás al tope y cuando lo pasás. |
+| **Inicio e informes** | El saldo, lo que entró y salió en el período y los últimos movimientos. Los montos se pueden ocultar con un toque. |
+| **Cuentas compartidas** | Invitás por mail a quienes viven con vos. Cada uno carga sus gastos y todos ven los de la casa. |
+| **Perfiles** | Una misma cuenta puede tener varios perfiles. |
+| **Actualizaciones** | Cuando sale una versión nueva, la app avisa al abrirla y lleva directo a la descarga. |
+
+### Instalar la app
+
+1. Bajá el archivo `finza-x.y.z.apk` de la [última versión](https://github.com/Jjonathanpp/Finza/releases/latest).
+2. Abrilo en el celular. Si Android lo pide, permití instalar apps de esa fuente.
+3. Las versiones nuevas se instalan encima y no se pierde nada.
+
+## Cómo está hecha
 
 | Parte | Tecnología | Dónde corre en producción |
 |---|---|---|
@@ -21,6 +89,7 @@ Finza/
 │           └── datos-prueba/ datos de prueba, solo para el Docker local
 ├── frontend/                 la app en Flutter
 ├── testing/                  pruebas de Cucumber (no corren en el CI)
+├── documentos/capturas/      el logo y las capturas de este README
 ├── .github/workflows/
 │   ├── ci.yml                controles de cada PR y de cada push a main
 │   └── publicar-apk.yml      arma, firma y publica la APK
@@ -163,3 +232,11 @@ Las releases se hacen solo con este workflow. Una creada a mano desde la web des
 | `Found more than one migration with version` | Dos migraciones con el mismo número. Renombrá la tuya al siguiente libre |
 | `Could not resolve placeholder 'JWT_SECRET'` | Falta `JWT_SECRET` en `.env` |
 | El puerto 8080 o 5432 está ocupado | Cambiá `APP_PORT` o `DB_PORT` en `.env` |
+
+## Equipo
+
+Finza la hacemos cuatro estudiantes como proyecto de la facultad. Las tareas se organizan por sprints en OpenProject.
+
+<a href="https://github.com/Jjonathanpp/Finza/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Jjonathanpp/Finza" alt="Integrantes del equipo">
+</a>
