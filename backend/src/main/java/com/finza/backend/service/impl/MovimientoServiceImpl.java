@@ -272,6 +272,15 @@ public class MovimientoServiceImpl implements MovimientoService {
     public MovimientoResponseDTO cambiarEstado(Long id, String nuevoEstado, Long cuentaIdAutenticada) {
         Movimiento movimiento = obtenerMovimientoValidado(id, cuentaIdAutenticada);
 
+        if (movimiento.getOrigen() == Movimiento.OrigenMovimiento.MERCADOPAGO
+                && movimiento.getEstado() == Movimiento.EstadoMovimiento.PENDIENTE) {
+            Long usuarioActualId = movimiento.getPerfil().getCuenta().getUsuario().getId();
+            if (movimiento.getImportadoPor() != null && !movimiento.getImportadoPor().equals(usuarioActualId)) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Solo el usuario que importó este movimiento puede verificarlo");
+            }
+        }
+
         movimiento.setEstado(Movimiento.EstadoMovimiento.valueOf(nuevoEstado.toUpperCase()));
         return new MovimientoResponseDTO(movimientoRepository.save(movimiento));
     }
@@ -388,11 +397,18 @@ public class MovimientoServiceImpl implements MovimientoService {
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<MovimientoResponseDTO> obtenerPendientesMercadoPago(Long perfilId, Long cuentaIdAutenticada) {
-        obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
+        Perfil perfil = obtenerPerfilValidado(perfilId, cuentaIdAutenticada);
+
+        Long usuarioIdFiltro = perfil.getCuentaCompartida() != null
+                ? perfil.getCuenta().getUsuario().getId()
+                : null;
+
         List<Movimiento> pendientes = movimientoRepository.findPendientesMercadoPago(
                 perfilId,
                 Movimiento.OrigenMovimiento.MERCADOPAGO,
-                Movimiento.EstadoMovimiento.PENDIENTE);
+                Movimiento.EstadoMovimiento.PENDIENTE,
+                usuarioIdFiltro);
+
         return pendientes.stream()
                 .map(MovimientoResponseDTO::new)
                 .toList();

@@ -145,4 +145,72 @@ public class MercadoPagoSyncService {
                 .movimientos(guardados)
                 .build();
     }
+
+    public BusquedaMPResponseDTO obtenerDisponiblesParaImportar(Long usuarioId) {
+        return obtenerMovimientosDesdeMP(usuarioId);
+    }
+
+    public SincronizacionResumenDTO importarSeleccionados(Long usuarioId, List<String> externalIds,
+            Long perfilIdDestino) {
+        CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
+
+        Perfil perfil = perfilRepository.findById(perfilIdDestino)
+                .orElseThrow(() -> new BadRequestException("El perfil indicado no existe"));
+
+        BusquedaMPResponseDTO busqueda = obtenerMovimientosDesdeMP(usuarioId);
+        if (busqueda == null || busqueda.getResultados() == null || busqueda.getResultados().isEmpty()) {
+            return SincronizacionResumenDTO.builder()
+                    .procesadas(0)
+                    .creadas(0)
+                    .omitidas(0)
+                    .errores(0)
+                    .movimientos(List.of())
+                    .build();
+        }
+
+        Long miMpUserId = cuentaMP.getMpIdUser() != null ? Long.valueOf(cuentaMP.getMpIdUser()) : null;
+        List<Movimiento> nuevosMovimientos = new ArrayList<>();
+        int duplicadosOmitidos = 0;
+        int procesadas = 0;
+
+        for (TransaccionMPResponseDTO dto : busqueda.getResultados()) {
+            if (dto.getId() == null) {
+                continue;
+            }
+
+            String externalId = String.valueOf(dto.getId());
+
+            if (!externalIds.contains(externalId)) {
+                continue;
+            }
+
+            procesadas++;
+
+            if (movimientoRepository.existsByExternalIdAndPerfilId(externalId, perfil.getId())) {
+                duplicadosOmitidos++;
+                continue;
+            }
+
+            boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
+            Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
+            Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
+
+            Movimiento nuevo = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
+            nuevo.setImportadoPor(usuarioId); // SETEAR importadoPor
+            nuevosMovimientos.add(nuevo);
+        }
+
+        List<Movimiento> guardados = nuevosMovimientos.isEmpty() ? List.of()
+                : movimientoRepository.saveAll(nuevosMovimientos);
+
+        return SincronizacionResumenDTO.builder()
+                .procesadas(procesadas)
+                .creadas(guardados.size())
+                .omitidas(duplicadosOmitidos)
+                .errores(0)
+                .movimientos(guardados)
+                .build();
+    }
 }

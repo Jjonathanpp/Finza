@@ -16,6 +16,9 @@ class MercadoPagoViewModel extends ChangeNotifier {
   bool _cerrado = false;
   List<Movimiento> _pendientes = [];
 
+  List<dynamic> _disponibles = [];
+  final Set<String> _seleccionados = {};
+
   @override
   void notifyListeners() {
     if (!_cerrado) super.notifyListeners();
@@ -32,6 +35,8 @@ class MercadoPagoViewModel extends ChangeNotifier {
   MercadoPagoEstado? get estado => _estado;
   bool get estaConectado => _estado?.conectado ?? false;
   List<Movimiento> get pendientes => _pendientes;
+  List<dynamic> get disponibles => _disponibles;
+  Set<String> get seleccionados => _seleccionados;
 
   Future<void> cargar() async {
     _cargando = true;
@@ -86,5 +91,48 @@ class MercadoPagoViewModel extends ChangeNotifier {
 
   Future<String> obtenerUrlAutorizacion() async {
     return await _api.obtenerUrlAutorizacion();
+  }
+
+  Future<void> cargarDisponibles() async {
+    _cargando = true;
+    _error = null;
+    _seleccionados.clear();
+    notifyListeners();
+    try {
+      _disponibles = await _api.obtenerDisponibles();
+    } on ApiException catch (e) {
+      _error = e.message;
+    } finally {
+      _cargando = false;
+      notifyListeners();
+    }
+  }
+
+  void toggleSeleccion(String id) {
+    if (_seleccionados.contains(id)) {
+      _seleccionados.remove(id);
+    } else {
+      _seleccionados.add(id);
+    }
+    notifyListeners();
+  }
+
+  Future<SincronizacionResumen?> importarSeleccionados() async {
+    if (_seleccionados.isEmpty) return null;
+
+    _cargando = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final resumen = await _api.importarSeleccionados(_seleccionados.toList());
+      _seleccionados.clear();
+      return resumen;
+    } on ApiException catch (e) {
+      _error = e.message;
+      return null;
+    } finally {
+      _cargando = false;
+      notifyListeners();
+    }
   }
 }

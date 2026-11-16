@@ -44,4 +44,21 @@ class MercadoPagoApi {
     }
     return [];
   }
+
+  Future<List<dynamic>> obtenerDisponibles() async {
+    final res = await _api.get('/api/mercadopago/movimientos/disponibles');
+    if (res is Map<String, dynamic> && res['results'] is List) {
+      return res['results'] as List<dynamic>;
+    }
+    return [];
+  }
+
+  Future<SincronizacionResumen> importarSeleccionados(
+    List<String> externalIds,
+  ) async {
+    final data = await _api.post('/api/mercadopago/importar-seleccionados', {
+      'externalIds': externalIds,
+    });
+    return SincronizacionResumen.fromJson(data as Map<String, dynamic>);
+  }
 }

@@ -5,9 +5,9 @@ import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
-import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
+import 'package:frontend/features/mercadopago/presentation/screens/importar_mp_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class MercadoPagoScreen extends StatefulWidget {
@@ -17,7 +17,8 @@ class MercadoPagoScreen extends StatefulWidget {
   State<MercadoPagoScreen> createState() => _MercadoPagoScreenState();
 }
 
-class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindingObserver {
+class _MercadoPagoScreenState extends State<MercadoPagoScreen>
+    with WidgetsBindingObserver {
   final _vm = MercadoPagoViewModel(MercadoPagoApi(ApiClient()));
 
   @override
@@ -98,9 +99,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
 
       await Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => _WebViewMercadoPago(url: url),
-        ),
+        MaterialPageRoute(builder: (context) => _WebViewMercadoPago(url: url)),
       );
 
       if (!mounted) return;
@@ -130,7 +129,10 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 12),
-                  Text('Esperando vinculación de Mercado Pago...', style: TextStyle(color: AppColors.muted)),
+                  Text(
+                    'Esperando vinculación de Mercado Pago...',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
                 ],
               ),
             );
@@ -144,7 +146,11 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(error, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.muted)),
+                    Text(
+                      error,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.muted),
+                    ),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: _vm.cargar,
@@ -170,39 +176,29 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
               if (conectado) ...[
                 _tarjetaEstadoConectado(),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: ElevatedButton.icon(
-                    onPressed: _vm.cargando ? null : _sincronizar,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: AppColors.accentInk,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    icon: _vm.cargando
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.sync, size: 20),
-                    label: Text(
-                      _vm.cargando ? 'Importando...' : 'Importar ahora',
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
-                    ),
-                  ),
-                ),
+
+                _botonImportarSegunContexto(context),
+
                 const SizedBox(height: 12),
                 _seccionDesvincular(),
                 const SizedBox(height: 16),
+
                 if (_vm.pendientes.isNotEmpty) ...[
                   const Text(
                     'Pendientes de confirmar',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.muted),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  ..._vm.pendientes.map((m) => _filaPendiente(m, onVerificar: () => _revisarMovimiento(m))),
+                  ..._vm.pendientes.map(
+                    (m) => _filaPendiente(
+                      m,
+                      onVerificar: () => _revisarMovimiento(m),
+                    ),
+                  ),
                   const SizedBox(height: 24),
                 ],
               ] else ...[
@@ -301,9 +297,14 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
             onPressed: _vm.cargando ? null : _desvincular,
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: AppColors.line),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: const Text('Desvincular', style: TextStyle(color: Colors.black87)),
+            child: const Text(
+              'Desvincular',
+              style: TextStyle(color: Colors.black87),
+            ),
           ),
         ],
       ),
@@ -349,12 +350,58 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF009EE3),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('Vincular cuenta', style: TextStyle(fontWeight: FontWeight.w700)),
+              child: const Text(
+                'Vincular cuenta',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _botonImportarSegunContexto(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 46,
+      child: ElevatedButton.icon(
+        onPressed: _vm.cargando
+            ? null
+            : () async {
+                final resultado = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(builder: (_) => ImportarMPScreen(vm: _vm)),
+                );
+                if (resultado == true) {
+                  _vm.cargarPendientes();
+                }
+              },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.accentInk,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        icon: _vm.cargando
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.add_circle_outline, size: 20),
+        label: Text(
+          _vm.cargando ? 'Cargando...' : 'Importar de Mercado Pago',
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+        ),
       ),
     );
   }
@@ -377,7 +424,10 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
               children: [
                 Text(
                   m.descripcion ?? 'Movimiento Mercado Pago',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -405,24 +455,6 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
         ],
       ),
     );
-  }
-
-  Future<void> _sincronizar() async {
-    final resumen = await _vm.sincronizar();
-    if (!mounted) return;
-
-    if (resumen != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SincronizacionResumenScreen(resumen: resumen),
-        ),
-      );
-    } else if (_vm.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_vm.error!)),
-      );
-    }
   }
 
   Future<void> _revisarMovimiento(Movimiento movimiento) async {

@@ -69,4 +69,7 @@ public class Movimiento {
 
     @Column(name = "external_id")
     private String externalId; // Para la integracion con MP
+
+    @Column(name = "importado_por")
+    private Long importadoPor;
 }
