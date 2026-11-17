@@ -1,0 +1,25 @@
+name: Mantener despierto
+
+# Que el backend de producción no se duerma (T-1.8.7). En el plan gratis, Render lo duerme después de
+# 15 minutos sin pedidos y el primero que abre la app espera 40 a 60 segundos. Este workflow llama a
+# /api/health cada 10 minutos, de 8 a 24 (hora de Argentina). Fuera de ese horario se duerme igual.
+# /api/health no toca la base: Neon se sigue durmiendo sola (ver application-prod.properties).
+# GitHub solo corre los programados desde main, y a veces se atrasan unos minutos; con 10 hay margen.
+
+on:
+  schedule:
+    # GitHub usa UTC (Argentina = UTC-3): 11-23 y 0-2 UTC = 8:00 a 23:50 ART
+    - cron: "*/10 11-23,0-2 * * *"
+  # Botón "Run workflow" en Actions, para probarlo a mano
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Si estaba dormido, despertar tarda 1 a 2 minutos: se le da hasta 90 s por intento y se reintenta.
+      # Si igual falla, la corrida queda en rojo.
+      - run: curl -fsS --max-time 90 --retry 3 --retry-delay 10 --retry-all-errors https://finza-backend-9c6t.onrender.com/api/health
