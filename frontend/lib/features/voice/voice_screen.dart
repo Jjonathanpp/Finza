@@ -8,6 +8,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class VoiceScreen extends StatefulWidget {
   const VoiceScreen({super.key});
@@ -20,7 +21,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
   late final AudioRecorder _audioRecorder;
   bool _isRecording = false;
   bool _isProcessing = false;
-  String _text = 'Tocá el micrófono y hablá...';
+  String _text = tr('Tocá el micrófono y hablá...');
   
   Timer? _timer;
   int _recordDuration = 0;
@@ -47,7 +48,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
       setState(() {
         _isRecording = false;
         _isProcessing = true;
-        _text = 'Procesando con la IA...';
+        _text = tr('Procesando con la IA...');
       });
 
       if (path != null) {
@@ -78,7 +79,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
       setState(() {
         _isRecording = true;
         _recordDuration = 0;
-        _text = 'Grabando... 00:00';
+        _text = tr('Grabando... {tiempo}', {'tiempo': '00:00'});
       });
 
       // Cronómetro para feedback visual
@@ -87,11 +88,11 @@ class _VoiceScreenState extends State<VoiceScreen> {
           _recordDuration++;
           final minutes = _recordDuration ~/ 60;
           final seconds = _recordDuration % 60;
-          _text = 'Grabando... ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+          _text = tr('Grabando... {tiempo}', {'tiempo': '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}'});
         });
       });
     } else {
-      setState(() => _text = 'Se necesita permiso de micrófono.');
+      setState(() => _text = tr('Se necesita permiso de micrófono.'));
     }
   }
 
@@ -125,12 +126,12 @@ class _VoiceScreenState extends State<VoiceScreen> {
       await ApiClient().postMultipart('/api/movimientos/procesar-audio', formData);
 
       if (mounted) {
-        mostrarExito(context, 'Movimiento registrado correctamente');
-        setState(() => _text = 'Tocá el micrófono y hablá...');
+        mostrarExito(context, tr('Movimiento registrado correctamente'));
+        setState(() => _text = tr('Tocá el micrófono y hablá...'));
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _text = 'Error al procesar: $e');
+        setState(() => _text = tr('Error al procesar: {error}', {'error': '$e'}));
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -140,7 +141,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, 'Registro por voz'),
+      appBar: barraConVolver(context, context.tr('Registro por voz')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -169,7 +170,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              _isRecording ? 'Tocá para detener y procesar' : 'Tocá para grabar',
+              _isRecording ? context.tr('Tocá para detener y procesar') : context.tr('Tocá para grabar'),
               style: const TextStyle(color: AppColors.faint),
             ),
             const SizedBox(height: 24),

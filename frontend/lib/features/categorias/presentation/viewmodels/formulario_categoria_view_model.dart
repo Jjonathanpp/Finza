@@ -3,6 +3,7 @@ import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/categorias/data/datasources/categoria_api.dart';
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/paleta_categorias.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class FormularioCategoriaViewModel extends ChangeNotifier {
   // Para crear: desde Categorías arranca en egreso, que es para lo que más se crean categorías
@@ -53,7 +54,7 @@ class FormularioCategoriaViewModel extends ChangeNotifier {
   Future<Categoria?> guardar(String nombre) async {
     // Al editar, el backend no valida el nombre ni le saca los espacios: lo hacemos acá.
     nombre = nombre.trim();
-    _errorNombre = nombre.isEmpty ? 'Ingresá un nombre' : null;
+    _errorNombre = nombre.isEmpty ? tr('Ingresá un nombre') : null;
     _error = null;
     if (_errorNombre != null) {
       notifyListeners();

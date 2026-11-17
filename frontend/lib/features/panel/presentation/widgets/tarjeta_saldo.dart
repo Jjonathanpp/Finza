@@ -5,6 +5,7 @@ import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
 // La tarjeta de arriba del Inicio: tu plata (en la moneda elegida), tipo billetera, y cómo vas este mes.
@@ -50,7 +51,9 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
                 ),
               ),
               IconButton(
-                tooltip: _oculto ? 'Mostrar montos' : 'Ocultar montos',
+                tooltip: _oculto
+                    ? context.tr('Mostrar montos')
+                    : context.tr('Ocultar montos'),
                 icon: Icon(
                   _oculto
                       ? Icons.visibility_off_outlined
@@ -64,14 +67,14 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
           ),
           FutureBuilder<ResumenMes>(
             future: _resumen,
-            builder: (context, respuesta) => _contenido(respuesta),
+            builder: (context, respuesta) => _contenido(context, respuesta),
           ),
         ],
       ),
     );
   }
 
-  Widget _contenido(AsyncSnapshot<ResumenMes> respuesta) {
+  Widget _contenido(BuildContext context, AsyncSnapshot<ResumenMes> respuesta) {
     if (respuesta.connectionState != ConnectionState.done) {
       return const SizedBox(
         height: 70,
@@ -86,7 +89,9 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
     final error = respuesta.error;
     if (error != null) {
       return Text(
-        error is ApiException ? error.message : 'No se pudo cargar tu saldo',
+        error is ApiException
+            ? error.message
+            : context.tr('No se pudo cargar tu saldo'),
         style: const TextStyle(color: AppColors.muted, fontSize: 12.5),
       );
     }
@@ -131,7 +136,7 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
         const SizedBox(height: 8),
         Text.rich(
           TextSpan(
-            text: 'Período de informe: ',
+            text: '${context.tr('Período de informe')}: ',
             children: [
               TextSpan(
                 text: _oculto ? '••••' : '${mes > 0 ? '+' : ''}${importe(mes)}',

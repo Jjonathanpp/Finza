@@ -8,6 +8,7 @@ import 'package:frontend/features/informes/data/datasources/informe_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_gastos.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class GraficoTortaCategorias extends StatefulWidget {
   const GraficoTortaCategorias({
@@ -44,8 +45,8 @@ class _GraficoTortaCategoriasState extends State<GraficoTortaCategorias> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Gastos por categoría',
+          Text(
+            context.tr('Gastos por categoría'),
             style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
@@ -63,14 +64,14 @@ class _GraficoTortaCategoriasState extends State<GraficoTortaCategorias> {
               if (snapshot.hasError) {
                 final e = snapshot.error;
                 return Text(
-                  e is ApiException ? e.message : 'No se pudieron cargar los gastos',
+                  e is ApiException ? e.message : context.tr('No se pudieron cargar los gastos'),
                   style: const TextStyle(color: AppColors.muted, fontSize: 12.5),
                 );
               }
               final data = snapshot.data!;
               if (data.categorias.isEmpty) {
-                return const Text(
-                  'Todavía no hay gastos en el período.',
+                return Text(
+                  context.tr('Todavía no hay gastos en el período.'),
                   style: TextStyle(color: AppColors.muted, fontSize: 12.5),
                 );
               }
@@ -171,7 +172,7 @@ class _Leyenda extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    cat.nombre,
+                    context.tr(cat.nombre),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: AppColors.muted, fontSize: 12),

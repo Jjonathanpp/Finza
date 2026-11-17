@@ -4,6 +4,7 @@ import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/campo.dart';
 import '../../auth/service/auth_service.dart';
 import '../models/registro_request.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class RegisterForm extends StatefulWidget {
   const RegisterForm({super.key});
@@ -58,11 +59,11 @@ class _RegisterFormState extends State<RegisterForm> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _errorGeneral = null);
     if (_fechaNacimiento == null) {
-      setState(() => _errorGeneral = 'Seleccioná tu fecha de nacimiento');
+      setState(() => _errorGeneral = context.tr('Seleccioná tu fecha de nacimiento'));
       return;
     }
     if (_genero == null) {
-      setState(() => _errorGeneral = 'Seleccioná tu género');
+      setState(() => _errorGeneral = context.tr('Seleccioná tu género'));
       return;
     }
 
@@ -89,7 +90,7 @@ class _RegisterFormState extends State<RegisterForm> {
       );
 
       if (mounted) {
-        mostrarExito(context, 'Cuenta creada correctamente');
+        mostrarExito(context, context.tr('Cuenta creada correctamente'));
         Navigator.pop(context);
       }
     } catch (e) {
@@ -109,96 +110,96 @@ class _RegisterFormState extends State<RegisterForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Campo(
-            etiqueta: 'Nombre',
+            etiqueta: context.tr('Nombre'),
             child: TextFormField(
               controller: _nombreCtrl,
               textCapitalization: TextCapitalization.words,
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Ingresá tu nombre' : null,
+                  (v == null || v.trim().isEmpty) ? context.tr('Ingresá tu nombre') : null,
             ),
           ),
           Campo(
-            etiqueta: 'Apellido',
+            etiqueta: context.tr('Apellido'),
             child: TextFormField(
               controller: _apellidoCtrl,
               textCapitalization: TextCapitalization.words,
               validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Ingresá tu apellido'
+                  ? context.tr('Ingresá tu apellido')
                   : null,
             ),
           ),
           Campo(
-            etiqueta: 'Email',
+            etiqueta: context.tr('Email'),
             child: TextFormField(
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Ingresá tu email';
+                if (v == null || v.trim().isEmpty) return context.tr('Ingresá tu email');
                 final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
-                if (!regex.hasMatch(v.trim())) return 'Email inválido';
+                if (!regex.hasMatch(v.trim())) return context.tr('Email inválido');
                 return null;
               },
             ),
           ),
           Campo(
-            etiqueta: 'Contraseña',
+            etiqueta: context.tr('Contraseña'),
             child: TextFormField(
               controller: _passwordCtrl,
               decoration: InputDecoration(
                 suffixIcon: TextButton(
                   onPressed: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
-                  child: Text(_obscurePassword ? 'Ver' : 'Ocultar'),
+                  child: Text(_obscurePassword ? context.tr('Ver') : context.tr('Ocultar')),
                 ),
               ),
               obscureText: _obscurePassword,
               validator: (v) {
-                if (v == null || v.isEmpty) return 'Ingresá una contraseña';
-                if (v.length < 8) return 'Mínimo 8 caracteres';
+                if (v == null || v.isEmpty) return context.tr('Ingresá una contraseña');
+                if (v.length < 8) return context.tr('Mínimo 8 caracteres');
                 return null;
               },
             ),
           ),
           Campo(
-            etiqueta: 'Teléfono',
+            etiqueta: context.tr('Teléfono'),
             child: TextFormField(
               controller: _telefonoCtrl,
               keyboardType: TextInputType.phone,
               validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Ingresá tu teléfono'
+                  ? context.tr('Ingresá tu teléfono')
                   : null,
             ),
           ),
           Campo(
-            etiqueta: 'DNI',
+            etiqueta: context.tr('DNI'),
             child: TextFormField(
               controller: _dniCtrl,
               keyboardType: TextInputType.number,
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Ingresá tu DNI' : null,
+                  (v == null || v.trim().isEmpty) ? context.tr('Ingresá tu DNI') : null,
             ),
           ),
           Campo(
-            etiqueta: 'Fecha de nacimiento',
+            etiqueta: context.tr('Fecha de nacimiento'),
             child: InkWell(
               onTap: _seleccionarFecha,
               child: InputDecorator(
                 decoration: const InputDecoration(),
                 child: Text(
                   _fechaNacimiento == null
-                      ? 'Seleccionar fecha'
+                      ? context.tr('Seleccionar fecha')
                       : '${_fechaNacimiento!.day}/${_fechaNacimiento!.month}/${_fechaNacimiento!.year}',
                 ),
               ),
             ),
           ),
           Campo(
-            etiqueta: 'Género',
+            etiqueta: context.tr('Género'),
             child: DropdownButtonFormField<String>(
               initialValue: _genero,
               decoration: const InputDecoration(),
               items: _generos
-                  .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                  .map((g) => DropdownMenuItem(value: g, child: Text(context.tr(g))))
                   .toList(),
               onChanged: (v) => setState(() => _genero = v),
             ),
@@ -223,7 +224,7 @@ class _RegisterFormState extends State<RegisterForm> {
                       color: AppColors.accentInk,
                     ),
                   )
-                : const Text('Registrarme'),
+                : Text(context.tr('Registrarme')),
           ),
         ],
       ),

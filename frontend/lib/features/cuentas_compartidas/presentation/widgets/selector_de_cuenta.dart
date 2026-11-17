@@ -7,6 +7,7 @@ import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/storage/token_storage.dart';
 import 'package:frontend/features/cuentas_compartidas/data/datasources/cuenta_compartida_api.dart';
 import 'package:frontend/features/cuentas_compartidas/presentation/screens/miembros_screen.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Configuración → "Cuenta" (t-13.1.2): en cuál está la app y para pasarse a otra, como los perfiles
 // de Netflix. Al elegir, la guarda y arma la pantalla principal de cero con los datos de esa cuenta.
@@ -52,21 +53,23 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (contexto) => AlertDialog(
-        title: const Text('Eliminar cuenta compartida'),
+        title: Text(contexto.tr('Eliminar cuenta compartida')),
         content: Text(
-          'Se eliminarán definitivamente ${cuenta['nombre']} y sus movimientos, '
-          'presupuestos y categorías para todos sus integrantes. Esta acción no se puede deshacer.',
+          contexto.tr(
+            'Se eliminarán definitivamente {nombre} y sus movimientos, presupuestos y categorías para todos sus integrantes. Esta acción no se puede deshacer.',
+            {'nombre': '${cuenta['nombre']}'},
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(contexto).pop(false),
             style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-            child: const Text('Cancelar'),
+            child: Text(contexto.tr('Cancelar')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(contexto).pop(true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger, foregroundColor: Colors.white),
-            child: const Text('Eliminar'),
+            child: Text(contexto.tr('Eliminar')),
           ),
         ],
       ),
@@ -87,7 +90,7 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
         _eliminando.remove(id);
         _cuentas = _api.listarMias();
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cuenta compartida eliminada')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('Cuenta compartida eliminada'))));
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _eliminando.remove(id));
@@ -96,8 +99,8 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
       if (!mounted) return;
       setState(() => _eliminando.remove(id));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo eliminar la cuenta compartida. Intentá de nuevo.'),
+        SnackBar(
+          content: Text(context.tr('No se pudo eliminar la cuenta compartida. Intentá de nuevo.')),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -109,22 +112,23 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (contexto) => AlertDialog(
-        title: const Text('Abandonar cuenta compartida'),
+        title: Text(contexto.tr('Abandonar cuenta compartida')),
         content: Text(
-          'Vas a dejar de formar parte de ${cuenta['nombre']}. '
-          'Ya no tendrás acceso a sus movimientos, presupuestos ni categorías. '
-          'Si sos la última persona de la cuenta, esta se eliminará con sus datos.',
+          contexto.tr(
+            'Vas a dejar de formar parte de {nombre}. Ya no tendrás acceso a sus movimientos, presupuestos ni categorías. Si sos la última persona de la cuenta, esta se eliminará con sus datos.',
+            {'nombre': '${cuenta['nombre']}'},
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(contexto).pop(false),
             style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-            child: const Text('Cancelar'),
+            child: Text(contexto.tr('Cancelar')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(contexto).pop(true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger, foregroundColor: Colors.white),
-            child: const Text('Sí, abandonar'),
+            child: Text(contexto.tr('Sí, abandonar')),
           ),
         ],
       ),
@@ -144,8 +148,8 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
       if (!mounted) return;
       setState(() => _abandonando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo abandonar la cuenta compartida. Intentá de nuevo.'),
+        SnackBar(
+          content: Text(context.tr('No se pudo abandonar la cuenta compartida. Intentá de nuevo.')),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -163,15 +167,16 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(18, 12, 18, 4),
-              child: Text('Cuenta', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 4),
+              child: Text(context.tr('Cuenta'), style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Text(
-                'Estás en ${actual == null ? 'tu cuenta personal' : actual['nombre']}. '
-                'En una cuenta compartida se ve y se carga lo de esa cuenta.',
+                actual == null
+                    ? context.tr('Estás en tu cuenta personal. En una cuenta compartida se ve y se carga lo de esa cuenta.')
+                    : context.tr('Estás en {cuenta}. En una cuenta compartida se ve y se carga lo de esa cuenta.', {'cuenta': '${actual['nombre']}'}),
                 style: const TextStyle(color: AppColors.muted, fontSize: 12.5),
               ),
             ),
@@ -187,7 +192,7 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
                     ),
                   ),
                   icon: const Icon(Icons.group_outlined),
-                  label: Text(actual['rol'] == 'ADMIN' ? 'Miembros y roles' : 'Ver miembros'),
+                  label: Text(actual['rol'] == 'ADMIN' ? context.tr('Miembros y roles') : context.tr('Ver miembros')),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(48),
                     foregroundColor: AppColors.text,
@@ -201,11 +206,11 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
             for (final cuenta in opciones)
               _opcion(cuenta, elegida: cuenta?['perfilId'] == actual?['perfilId']),
             if (respuesta.hasError)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 18),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
-                  'No se pudieron cargar las cuentas compartidas.',
-                  style: TextStyle(color: AppColors.danger, fontSize: 12.5),
+                  context.tr('No se pudieron cargar las cuentas compartidas.'),
+                  style: const TextStyle(color: AppColors.danger, fontSize: 12.5),
                 ),
               ),
             Padding(
@@ -213,7 +218,7 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
               child: OutlinedButton.icon(
                 onPressed: _crear,
                 icon: const Icon(Icons.add),
-                label: const Text('Crear cuenta compartida'),
+                label: Text(context.tr('Crear cuenta compartida')),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                   foregroundColor: AppColors.text,
@@ -237,7 +242,7 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
                         : const Icon(Icons.exit_to_app),
-                    label: Text(_abandonando ? 'Abandonando…' : 'Abandonar cuenta compartida'),
+                    label: Text(_abandonando ? context.tr('Abandonando…') : context.tr('Abandonar cuenta compartida')),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                       backgroundColor: AppColors.danger,
@@ -255,7 +260,7 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
   }
 
   Widget _opcion(Map<String, dynamic>? cuenta, {required bool elegida}) {
-    final nombre = cuenta == null ? 'Personal' : cuenta['nombre'] as String;
+    final nombre = cuenta == null ? context.tr('Personal') : cuenta['nombre'] as String;
     final id = cuenta?['id'] as int?;
     final eliminando = id != null && _eliminando.contains(id);
     final puedeEliminar = cuenta != null && cuenta['rol'] == 'ADMIN';
@@ -270,10 +275,10 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
       title: Text(nombre),
       subtitle: Text(
         cuenta == null
-            ? 'Solo vos'
+            ? context.tr('Solo vos')
             : cuenta['rol'] == 'ADMIN'
-            ? 'Compartida · Administrador'
-            : 'Compartida · Miembro',
+            ? context.tr('Compartida · Administrador')
+            : context.tr('Compartida · Miembro'),
       ),
       trailing: cuenta == null
           ? (elegida ? const Icon(Icons.check_circle, color: AppColors.accent) : null)
@@ -288,7 +293,7 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
                           child: SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)),
                         )
                       : IconButton(
-                          tooltip: 'Eliminar cuenta compartida',
+                          tooltip: context.tr('Eliminar cuenta compartida'),
                           onPressed: () => _eliminar(cuenta),
                           icon: const Icon(Icons.delete_outline),
                           color: AppColors.danger,
@@ -351,12 +356,12 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
     return PopScope(
       canPop: !_creando,
       child: AlertDialog(
-        title: const Text('Nueva cuenta compartida'),
+        title: Text(context.tr('Nueva cuenta compartida')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Nombre', style: TextStyle(color: AppColors.muted, fontSize: 12.5)),
+            Text(context.tr('Nombre'), style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
             const SizedBox(height: 6),
             TextField(
               controller: _nombre,
@@ -369,9 +374,9 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
                 if (puedeCrear) _crear();
               },
               decoration: InputDecoration(
-                hintText: 'Por ejemplo, Casa',
+                hintText: context.tr('Por ejemplo, Casa'),
                 counterText: '',
-                helperText: 'Vas a ser el administrador.',
+                helperText: context.tr('Vas a ser el administrador.'),
                 helperStyle: const TextStyle(color: AppColors.muted, fontSize: 12.5),
                 errorText: _error,
                 errorStyle: const TextStyle(color: AppColors.danger, fontSize: 12.5),
@@ -385,7 +390,7 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
           TextButton(
             onPressed: _creando ? null : () => Navigator.of(context).pop(),
             style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-            child: const Text('Cancelar'),
+            child: Text(context.tr('Cancelar')),
           ),
           FilledButton(
             onPressed: puedeCrear ? _crear : null,
@@ -397,19 +402,19 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
                   )
                 : null,
             child: _creando
-                ? const Row(
+                ? Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentInk),
                       ),
-                      SizedBox(width: 8),
-                      Text('Creando…'),
+                      const SizedBox(width: 8),
+                      Text(context.tr('Creando…')),
                     ],
                   )
-                : const Text('Crear'),
+                : Text(context.tr('Crear')),
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
 class GraficoBalanceMes extends StatefulWidget {
@@ -34,8 +35,8 @@ class _GraficoBalanceMesState extends State<GraficoBalanceMes> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Ingresos y egresos del mes',
+          Text(
+            context.tr('Ingresos y egresos del mes'),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -68,14 +69,14 @@ class _GraficoBalanceMesState extends State<GraficoBalanceMes> {
               return Column(
                 children: [
                   _FilaBarra(
-                    etiqueta: 'Ingresos',
+                    etiqueta: context.tr('Ingresos'),
                     monto: data?.totalIngresos ?? 0.0,
                     factor: factorIngresos,
                     colorBarra: AppColors.accent,
                   ),
                   const SizedBox(height: 12),
                   _FilaBarra(
-                    etiqueta: 'Egresos',
+                    etiqueta: context.tr('Egresos'),
                     monto: data?.totalEgresos ?? 0.0,
                     factor: factorEgresos,
                     colorBarra: const Color(0xFF7C9CFF),

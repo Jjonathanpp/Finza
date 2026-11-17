@@ -1,6 +1,7 @@
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/cuentas_compartidas/data/models/miembro.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class CuentaCompartidaApi {
   CuentaCompartidaApi(this._api);
@@ -36,7 +37,7 @@ class CuentaCompartidaApi {
     } on ApiException {
       rethrow;
     } catch (_) {
-      throw ApiException(null, 'No se pudo eliminar la cuenta compartida');
+      throw ApiException(null, tr('No se pudo eliminar la cuenta compartida'));
     }
   }
 
@@ -46,7 +47,7 @@ class CuentaCompartidaApi {
     } on ApiException {
       rethrow;
     } catch (_) {
-      throw ApiException(null, 'No se pudo abandonar la cuenta compartida');
+      throw ApiException(null, tr('No se pudo abandonar la cuenta compartida'));
     }
   }
 }

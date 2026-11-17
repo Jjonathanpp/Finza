@@ -3,6 +3,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/features/movimientos/presentation/screens/movimientos_screen.dart';
 import 'package:frontend/features/movimientos/presentation/screens/alta_movimiento_screen.dart';
 import 'package:frontend/features/voice/voice_screen.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class AccionesRapidas extends StatelessWidget {
   const AccionesRapidas({super.key});
@@ -17,7 +18,7 @@ class AccionesRapidas extends StatelessWidget {
           flex: 3,
           child: _BotonAccion(
             icono: Icons.arrow_upward,
-            texto: 'Ingreso',
+            texto: context.tr('Ingreso'),
             color: AppColors.accent,
             onPressed: () {
               Navigator.push(
@@ -32,7 +33,7 @@ class AccionesRapidas extends StatelessWidget {
           flex: 4,
           child: _BotonAccion(
             icono: Icons.list,
-            texto: 'Movimientos',
+            texto: context.tr('Movimientos'),
             color: _colorMovimientos,
             onPressed: () {
               Navigator.push(
@@ -47,7 +48,7 @@ class AccionesRapidas extends StatelessWidget {
           flex: 3,
           child: _BotonAccion(
             icono: Icons.arrow_downward,
-            texto: 'Voz',
+            texto: context.tr('Voz'),
             color: const Color.fromARGB(255, 146, 151, 12),
             onPressed: () {
               Navigator.push(

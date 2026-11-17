@@ -14,6 +14,7 @@ import 'package:frontend/features/movimientos/presentation/monto_formatter.dart'
 import 'package:frontend/features/movimientos/presentation/viewmodels/alta_movimiento_view_model.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class AltaMovimientoScreen extends StatefulWidget {
   const AltaMovimientoScreen({super.key});
@@ -46,7 +47,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
     if (creado == null || !mounted) return;
     mostrarExito(
       context,
-      creado.esIngreso ? 'Ingreso registrado exitosamente' : 'Egreso registrado exitosamente',
+      creado.esIngreso ? context.tr('Ingreso registrado exitosamente') : context.tr('Egreso registrado exitosamente'),
     );
     _monto.clear();
     _descripcion.clear();
@@ -67,7 +68,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Nueva categoría de ${_vm.esIngreso ? 'ingreso' : 'egreso'}',
+              _vm.esIngreso ? context.tr('Nueva categoría de ingreso') : context.tr('Nueva categoría de egreso'),
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
@@ -95,7 +96,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, 'Nuevo movimiento'),
+      appBar: barraConVolver(context, context.tr('Nuevo movimiento')),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -107,7 +108,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
               _campoMonto(),
               _categorias(),
               Campo(
-                etiqueta: 'Fecha',
+                etiqueta: context.tr('Fecha'),
                 child: InkWell(
                   onTap: _elegirFecha,
                   borderRadius: BorderRadius.circular(12),
@@ -118,11 +119,11 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
                 ),
               ),
               Campo(
-                etiqueta: 'Descripción (opcional)',
+                etiqueta: context.tr('Descripción (opcional)'),
                 child: TextField(
                   controller: _descripcion,
                   inputFormatters: [LengthLimitingTextInputFormatter(255)],
-                  decoration: const InputDecoration(hintText: 'Por ejemplo, el comercio'),
+                  decoration: InputDecoration(hintText: context.tr('Por ejemplo, el comercio')),
                 ),
               ),
               if (error != null)
@@ -135,7 +136,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
                 icon: _vm.guardando
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.check),
-                label: const Text('Registrar movimiento'),
+                label: Text(context.tr('Registrar movimiento')),
               ),
             ],
           );
@@ -171,7 +172,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
           const SizedBox(height: 6),
           Text(
             // Con otra moneda elegida se aclara: lo que se carga son pesos (US-8.2).
-            error ?? '${_vm.esIngreso ? 'Cuánto entró' : 'Cuánto gastaste'}${convierte ? ', en pesos' : ''}',
+            error ?? '${_vm.esIngreso ? context.tr('Cuánto entró') : context.tr('Cuánto gastaste')}${convierte ? context.tr(', en pesos') : ''}',
             style: TextStyle(fontSize: 12, color: error != null ? AppColors.danger : AppColors.faint),
           ),
         ],
@@ -181,9 +182,9 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
 
   Widget _categorias() {
     return Campo(
-      etiqueta: 'Categoría',
+      etiqueta: context.tr('Categoría'),
       error: _vm.errorCategoria,
-      ayuda: 'Se muestran solo las categorías de ${_vm.esIngreso ? 'ingreso' : 'egreso'}.',
+      ayuda: _vm.esIngreso ? context.tr('Se muestran solo las categorías de ingreso.') : context.tr('Se muestran solo las categorías de egreso.'),
       child: Wrap(
         spacing: 7,
         runSpacing: 7,
@@ -191,7 +192,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
           for (final c in _vm.categoriasDelTipo) _chip(c),
           ActionChip(
             avatar: const Icon(Icons.add, size: 16),
-            label: const Text('Nueva'),
+            label: Text(context.tr('Nueva')),
             onPressed: _nuevaCategoria,
             backgroundColor: AppColors.surface2,
             side: const BorderSide(color: AppColors.line),
@@ -213,7 +214,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
               height: 10,
               decoration: BoxDecoration(color: colorDesdeHex(categoria.color), shape: BoxShape.circle),
             ),
-      label: Text(categoria.nombre),
+      label: Text(context.tr(categoria.nombre)),
       selected: seleccionado,
       onSelected: (_) => _vm.elegirCategoria(categoria.nombre),
       showCheckmark: false,
@@ -230,7 +231,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
 
   String _textoFecha(DateTime fecha) {
     final hoy = DateTime.now();
-    if (fecha.year == hoy.year && fecha.month == hoy.month && fecha.day == hoy.day) return 'Hoy';
+    if (fecha.year == hoy.year && fecha.month == hoy.month && fecha.day == hoy.day) return context.tr('Hoy');
     String dos(int n) => n.toString().padLeft(2, '0');
     return '${dos(fecha.day)}/${dos(fecha.month)}/${fecha.year}';
   }

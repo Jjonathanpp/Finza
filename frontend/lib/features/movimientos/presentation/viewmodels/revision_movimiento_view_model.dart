@@ -4,6 +4,7 @@ import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/movimientos/data/datasources/movimiento_api.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/validaciones_movimiento.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class RevisionMovimientoViewModel extends ChangeNotifier {
   RevisionMovimientoViewModel(this.movimiento, this._categoriaApi, this._movimientoApi) {
@@ -34,7 +35,7 @@ class RevisionMovimientoViewModel extends ChangeNotifier {
       categorias = await _categoriaApi.listar();
       notifyListeners();
     } catch (e) {
-      error = 'No se pudieron cargar las categorías';
+      error = tr('No se pudieron cargar las categorías');
       notifyListeners();
     }
   }
@@ -64,7 +65,7 @@ class RevisionMovimientoViewModel extends ChangeNotifier {
       await _movimientoApi.eliminar(movimiento.id);
       return true;
     } catch (e) {
-      error = 'Error al descartar el movimiento';
+      error = tr('Error al descartar el movimiento');
       cargando = false;
       notifyListeners();
       return false;
@@ -100,7 +101,7 @@ class RevisionMovimientoViewModel extends ChangeNotifier {
       await _movimientoApi.cambiarEstado(movimiento.id, 'APROBADO');
       return true;
     } catch (e) {
-      error = 'No se pudo confirmar el movimiento. Revisá tu conexión.';
+      error = tr('No se pudo confirmar el movimiento. Revisá tu conexión.');
       cargando = false;
       notifyListeners();
       return false;

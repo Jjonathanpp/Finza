@@ -5,6 +5,7 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 
 class AltaPresupuestoScreen extends StatefulWidget {
@@ -50,7 +51,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMensaje = 'No se pudieron cargar las categorías.';
+        _errorMensaje = tr('No se pudieron cargar las categorías.');
         _cargandoCategorias = false;
       });
     }
@@ -60,7 +61,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_categoriaId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, seleccioná una categoría')),
+        SnackBar(content: Text(context.tr('Por favor, seleccioná una categoría'))),
       );
       return;
     }
@@ -85,7 +86,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMensaje = e is ApiException ? e.message : 'Error al guardar el presupuesto';
+        _errorMensaje = e is ApiException ? e.message : tr('Error al guardar el presupuesto');
         _guardando = false;
       });
     }
@@ -97,7 +98,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nuevo Presupuesto', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        title: Text(context.tr('Nuevo Presupuesto'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: AppColors.surface,
         elevation: 0,
       ),
@@ -123,7 +124,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                         child: Text(_errorMensaje!, style: const TextStyle(color: AppColors.danger, fontSize: 13.5)),
                       ),
                       
-                    const Text('Categoría', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    Text(context.tr('Categoría'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<int>(
                       initialValue: _categoriaId,
@@ -136,7 +137,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       ),
-                      hint: const Text('Seleccionar categoría...'),
+                      hint: Text(context.tr('Seleccionar categoría...')),
                       items: _categorias.map((cat) {
                         return DropdownMenuItem<int>(
                           value: cat['id'] as int,
@@ -151,7 +152,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              Text(cat['nombre'] as String),
+                              Text(context.tr(cat['nombre'] as String)),
                             ],
                           ),
                         );
@@ -161,7 +162,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                     
                     const SizedBox(height: 20),
                     
-                    const Text('Monto Límite (\$)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    Text(context.tr('Monto Límite (\$)'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _montoController,
@@ -179,10 +180,10 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       ),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return 'El monto es obligatorio';
+                        if (value == null || value.trim().isEmpty) return context.tr('El monto es obligatorio');
                         final numValue = double.tryParse(value.replaceAll(',', '.'));
-                        if (numValue == null) return 'Ingresá un número válido';
-                        if (numValue <= 0) return 'El monto debe ser mayor a 0';
+                        if (numValue == null) return context.tr('Ingresá un número válido');
+                        if (numValue <= 0) return context.tr('El monto debe ser mayor a 0');
                         return null;
                       },
                     ),
@@ -195,7 +196,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Mes', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                              Text(context.tr('Mes'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<int>(
                                 initialValue: _mes,
@@ -220,7 +221,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Año', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                              Text(context.tr('Año'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<int>(
                                 initialValue: _anio,
@@ -246,7 +247,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                     const SizedBox(height: 24),
 
                     // Cada cuánto avisar que el presupuesto se está llenando (popup).
-                    const Text('Avisarme cada', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    Text(context.tr('Avisarme cada'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
                     SelectorIntervaloAviso(
                       valor: _intervaloAviso,
@@ -272,7 +273,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                                 dimension: 24,
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                               )
-                            : const Text('Crear Presupuesto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            : Text(context.tr('Crear Presupuesto'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],

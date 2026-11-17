@@ -5,6 +5,7 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
@@ -33,9 +34,9 @@ class _UltimosMovimientosState extends State<UltimosMovimientos> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 20, bottom: 9),
-              child: Text('Últimos movimientos', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+            Padding(
+              padding: const EdgeInsets.only(top: 20, bottom: 9),
+              child: Text(context.tr('Últimos movimientos'), style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
             ),
             Container(
               width: double.infinity,
@@ -64,11 +65,11 @@ class _UltimosMovimientosState extends State<UltimosMovimientos> {
     }
     final error = respuesta.error;
     if (error != null) {
-      return _aviso(error is ApiException ? error.message : 'No se pudieron cargar los movimientos');
+      return _aviso(error is ApiException ? error.message : context.tr('No se pudieron cargar los movimientos'));
     }
     
     final movimientos = respuesta.data!.ultimosMovimientos;
-    if (movimientos.isEmpty) return _aviso('Todavía no hay movimientos recientes.');
+    if (movimientos.isEmpty) return _aviso(context.tr('Todavía no hay movimientos recientes.'));
     
     return Column(
       children: movimientos.map((movimiento) => _FilaMovimiento(movimiento)).toList(),
@@ -120,7 +121,7 @@ class _FilaMovimiento extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  movimiento.categoria.nombre,
+                  context.tr(movimiento.categoria.nombre),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.text),

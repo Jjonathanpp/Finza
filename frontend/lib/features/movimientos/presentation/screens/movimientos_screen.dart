@@ -11,6 +11,7 @@ import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/l10n/idioma.dart';
  
 class MovimientosScreen extends StatefulWidget {
   const MovimientosScreen({super.key});
@@ -65,17 +66,17 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar movimiento'),
-        content: const Text('¿Estás seguro de eliminar este movimiento?'),
+        title: Text(context.tr('Eliminar movimiento')),
+        content: Text(context.tr('¿Estás seguro de eliminar este movimiento?')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+            child: Text(context.tr('Cancelar')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
+            child: Text(context.tr('Eliminar')),
           ),
         ],
       ),
@@ -93,7 +94,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     } else {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Movimiento eliminado')));
+      ).showSnackBar(SnackBar(content: Text(context.tr('Movimiento eliminado'))));
     }
   }
  
@@ -116,14 +117,14 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setStateModal) {
           return AlertDialog(
-            title: const Text('Editar Movimiento'),
+            title: Text(context.tr('Editar Movimiento')),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Tipo de movimiento',
+                  Text(
+                    context.tr('Tipo de movimiento'),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -132,9 +133,9 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   ),
                   const SizedBox(height: 6),
                   SegmentedButton<bool>(
-                    segments: const [
-                      ButtonSegment<bool>(value: false, label: Text('Egreso')),
-                      ButtonSegment<bool>(value: true, label: Text('Ingreso')),
+                    segments: [
+                      ButtonSegment<bool>(value: false, label: Text(context.tr('Egreso'))),
+                      ButtonSegment<bool>(value: true, label: Text(context.tr('Ingreso'))),
                     ],
                     selected: {esIngresoEdit},
                     onSelectionChanged: (Set<bool> newSelection) {
@@ -150,13 +151,13 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                       decimal: true,
                     ),
                     decoration: InputDecoration(
-                      labelText: convierte ? 'Monto en pesos' : 'Monto',
+                      labelText: convierte ? context.tr('Monto en pesos') : context.tr('Monto'),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: categoriaController,
-                    decoration: const InputDecoration(labelText: 'Categoría'),
+                    decoration: InputDecoration(labelText: context.tr('Categoría')),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -164,7 +165,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Fecha: ${fechaEdit.day.toString().padLeft(2, '0')}/${fechaEdit.month.toString().padLeft(2, '0')}/${fechaEdit.year}',
+                          context.tr('Fecha: {fecha}', {'fecha': '${fechaEdit.day.toString().padLeft(2, '0')}/${fechaEdit.month.toString().padLeft(2, '0')}/${fechaEdit.year}'}),
                           style: const TextStyle(color: AppColors.text),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -183,14 +184,14 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                             });
                           }
                         },
-                        child: const Text('Cambiar fecha'),
+                        child: Text(context.tr('Cambiar fecha')),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: descripcionController,
-                    decoration: const InputDecoration(labelText: 'Descripción'),
+                    decoration: InputDecoration(labelText: context.tr('Descripción')),
                   ),
                 ],
               ),
@@ -198,7 +199,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
+                child: Text(context.tr('Cancelar')),
               ),
               FilledButton(
                 onPressed: () async {
@@ -223,14 +224,14 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Movimiento actualizado con éxito'),
+                        SnackBar(
+                          content: Text(context.tr('Movimiento actualizado con éxito')),
                         ),
                       );
                     }
                   }
                 },
-                child: const Text('Guardar'),
+                child: Text(context.tr('Guardar')),
               ),
             ],
           );
@@ -243,7 +244,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Movimientos'),
+        title: Text(context.tr('Movimientos')),
         actions: [
           ListenableBuilder(
             listenable: _vm,
@@ -256,7 +257,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   color: _vm.tieneFiltrosActivos ? AppColors.accent : null,
                 ),
                 onPressed: _abrirFiltros,
-                tooltip: 'Filtrar',
+                tooltip: context.tr('Filtrar'),
               );
             },
           ),
@@ -302,9 +303,9 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                     alignment: Alignment.centerLeft,
                     child: InputChip(
                       avatar: const Icon(Icons.person_outline, size: 16),
-                      label: Text('Solo de ${_nombreCorto(nombreFiltrado)}'),
+                      label: Text(context.tr('Solo de {nombre}', {'nombre': _nombreCorto(nombreFiltrado)})),
                       onDeleted: _vm.verTodosLosIntegrantes,
-                      deleteButtonTooltipMessage: 'Ver todos los integrantes',
+                      deleteButtonTooltipMessage: context.tr('Ver todos los integrantes'),
                     ),
                   ),
                 ),
@@ -388,7 +389,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
   }
  
   String _textoFecha(DateTime? f) {
-    if (f == null) return 'Seleccionar';
+    if (f == null) return context.tr('Seleccionar');
     String dos(int n) => n.toString().padLeft(2, '0');
     return '${dos(f.day)}/${dos(f.month)}/${f.year}';
   }
@@ -406,15 +407,15 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Filtrar movimientos',
+          Text(
+            context.tr('Filtrar movimientos'),
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
  
           if (widget.vm.perfilesDisponibles.isNotEmpty) ...[
-            const Text(
-              'Perfil',
+            Text(
+              context.tr('Perfil'),
               style: TextStyle(fontSize: 13, color: AppColors.muted),
             ),
             const SizedBox(height: 4),
@@ -427,9 +428,9 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                 ),
               ),
               items: [
-                const DropdownMenuItem<int?>(
+                DropdownMenuItem<int?>(
                   value: null,
-                  child: Text('Todos los integrantes'),
+                  child: Text(context.tr('Todos los integrantes')),
                 ),
                 ...widget.vm.perfilesDisponibles.map(
                   (p) => DropdownMenuItem<int?>(
@@ -449,8 +450,8 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Desde',
+                    Text(
+                      context.tr('Desde'),
                       style: TextStyle(fontSize: 13, color: AppColors.muted),
                     ),
                     const SizedBox(height: 4),
@@ -470,8 +471,8 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Hasta',
+                    Text(
+                      context.tr('Hasta'),
                       style: TextStyle(fontSize: 13, color: AppColors.muted),
                     ),
                     const SizedBox(height: 4),
@@ -490,14 +491,14 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
           ),
           const SizedBox(height: 20),
  
-          const Text(
-            'Categoría',
+          Text(
+            context.tr('Categoría'),
             style: TextStyle(fontSize: 13, color: AppColors.muted),
           ),
           const SizedBox(height: 4),
           DropdownButtonFormField<Categoria>(
             initialValue: categoriaSeleccionada,
-            hint: const Text('Todas las categorías'),
+            hint: Text(context.tr('Todas las categorías')),
             decoration: const InputDecoration(
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 14,
@@ -505,14 +506,14 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
               ),
             ),
             items: [
-              const DropdownMenuItem<Categoria>(
+              DropdownMenuItem<Categoria>(
                 value: null,
-                child: Text('Todas las categorías'),
+                child: Text(context.tr('Todas las categorías')),
               ),
               ...widget.vm.categorias.map(
                 (c) => DropdownMenuItem(
                   value: c,
-                  child: Text('${c.emoji ?? ''} ${c.nombre}'),
+                  child: Text('${c.emoji ?? ''} ${context.tr(c.nombre)}'),
                 ),
               ),
             ],
@@ -521,21 +522,21 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
           const SizedBox(height: 20),
  
           // --- NUEVO: FILTRO DE ESTADO PENDIENTE ---
-          const Text(
-            'Estado',
+          Text(
+            context.tr('Estado'),
             style: TextStyle(fontSize: 13, color: AppColors.muted),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
               FilterChip(
-                label: const Text('Todos'),
+                label: Text(context.tr('Todos')),
                 selected: estadoSeleccionado == null,
                 onSelected: (val) => setState(() => estadoSeleccionado = null),
               ),
               const SizedBox(width: 12),
               FilterChip(
-                label: const Text('Solo Pendientes'),
+                label: Text(context.tr('Solo Pendientes')),
                 selected: estadoSeleccionado == 'PENDIENTE',
                 selectedColor: Colors.orange.withValues(alpha: 0.2),
                 onSelected: (val) => setState(
@@ -547,22 +548,22 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
           const SizedBox(height: 20),
  
           // ------------------------------------------
-          const Text(
-            'Tipo',
+          Text(
+            context.tr('Tipo'),
             style: TextStyle(fontSize: 13, color: AppColors.muted),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
               FilterChip(
-                label: const Text('Ingresos'),
+                label: Text(context.tr('Ingresos')),
                 selected: esIngreso == true,
                 onSelected: (val) =>
                     setState(() => esIngreso = val ? true : null),
               ),
               const SizedBox(width: 12),
               FilterChip(
-                label: const Text('Egresos'),
+                label: Text(context.tr('Egresos')),
                 selected: esIngreso == false,
                 onSelected: (val) =>
                     setState(() => esIngreso = val ? false : null),
@@ -580,8 +581,8 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                     widget.vm.limpiarFiltros();
                     Navigator.pop(context);
                   },
-                  child: const Text(
-                    'Limpiar',
+                  child: Text(
+                    context.tr('Limpiar'),
                     style: TextStyle(color: AppColors.muted),
                   ),
                 ),
@@ -602,7 +603,7 @@ class _PanelFiltrosState extends State<_PanelFiltros> {
                     );
                     Navigator.pop(context);
                   },
-                  child: const Text('Aplicar filtros'),
+                  child: Text(context.tr('Aplicar filtros')),
                 ),
               ),
             ],
@@ -634,7 +635,7 @@ class _ControlesPaginacion extends StatelessWidget {
                 ? vm.paginaAnterior
                 : null,
             icon: const Icon(Icons.chevron_left),
-            tooltip: 'Anterior',
+            tooltip: context.tr('Anterior'),
           ),
           if (vm.cargando)
             const SizedBox(
@@ -688,7 +689,7 @@ class _ControlesPaginacion extends StatelessWidget {
           IconButton(
             onPressed: vm.hayMas && !vm.cargando ? vm.paginaSiguiente : null,
             icon: const Icon(Icons.chevron_right),
-            tooltip: 'Siguiente',
+            tooltip: context.tr('Siguiente'),
           ),
         ],
       ),
@@ -764,7 +765,7 @@ class _FilaMovimiento extends StatelessWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      movimiento.categoria.nombre,
+                      context.tr(movimiento.categoria.nombre),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -835,7 +836,7 @@ class _FilaMovimiento extends StatelessWidget {
               minimumSize: const Size(0, 36),
             ),
             icon: const Icon(Icons.fact_check_outlined, size: 16),
-            label: const Text('Verificar', style: TextStyle(fontSize: 13)),
+            label: Text(context.tr('Verificar'), style: TextStyle(fontSize: 13)),
           )
         else ...[
           IconButton(
@@ -845,7 +846,7 @@ class _FilaMovimiento extends StatelessWidget {
               color: AppColors.muted,
             ),
             onPressed: onEditar,
-            tooltip: 'Editar',
+            tooltip: context.tr('Editar'),
           ),
           IconButton(
             icon: const Icon(
@@ -854,7 +855,7 @@ class _FilaMovimiento extends StatelessWidget {
               color: AppColors.danger,
             ),
             onPressed: onEliminar,
-            tooltip: 'Eliminar',
+            tooltip: context.tr('Eliminar'),
           ),
         ],
       ],
@@ -885,7 +886,7 @@ class _BadgePerfil extends StatelessWidget {
     final color = esPropio ? AppColors.accent : AppColors.muted;
  
     return Tooltip(
-      message: esPropio ? 'Cargado por vos' : 'Cargado por $nombre',
+      message: esPropio ? context.tr('Cargado por vos') : context.tr('Cargado por {nombre}', {'nombre': nombre}),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 104),
         padding: const EdgeInsets.fromLTRB(3, 2, 8, 2),
@@ -911,7 +912,7 @@ class _BadgePerfil extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                esPropio ? 'Vos' : corto,
+                esPropio ? context.tr('Vos') : corto,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -958,8 +959,8 @@ class _VistaVacia extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             conFiltros
-                ? 'No hay movimientos que coincidan con los filtros'
-                : 'No hay movimientos registrados en la cuenta',
+                ? context.tr('No hay movimientos que coincidan con los filtros')
+                : context.tr('No hay movimientos registrados en la cuenta'),
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.muted),
           ),
@@ -968,7 +969,7 @@ class _VistaVacia extends StatelessWidget {
             Center(
               child: TextButton(
                 onPressed: alLimpiarFiltros,
-                child: const Text('Limpiar filtros'),
+                child: Text(context.tr('Limpiar filtros')),
               ),
             ),
           ],
@@ -995,7 +996,7 @@ class _VistaError extends StatelessWidget {
           const SizedBox(height: 16),
           FilledButton.tonal(
             onPressed: alReintentar,
-            child: const Text('Reintentar'),
+            child: Text(context.tr('Reintentar')),
           ),
         ],
       ),

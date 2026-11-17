@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // "Avisarme cada": el intervalo del popup de presupuesto (ver core/avisos/aviso_de_presupuestos.dart).
 // Opciones rápidas y "Otro" para escribir cualquier valor entre 5 y 100. Debajo dice en qué
@@ -39,7 +40,10 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
     if (!_otro || _texto.text.trim().isEmpty) return null;
     final v = int.tryParse(_texto.text.trim());
     if (v == null || v < intervaloAvisoMinimo || v > intervaloAvisoMaximo) {
-      return 'Entre $intervaloAvisoMinimo y $intervaloAvisoMaximo';
+      return context.tr('Entre {minimo} y {maximo}', {
+        'minimo': '$intervaloAvisoMinimo',
+        'maximo': '$intervaloAvisoMaximo',
+      });
     }
     return null;
   }
@@ -65,7 +69,7 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
                     : null,
               ),
             ChoiceChip(
-              label: const Text('Otro'),
+              label: Text(context.tr('Otro')),
               selected: _otro,
               onSelected: widget.habilitado ? (_) => setState(() => _otro = true) : null,
             ),
@@ -81,7 +85,7 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
               autofocus: true,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Cada cuánto',
+                labelText: context.tr('Cada cuánto'),
                 suffixText: '%',
                 errorText: _errorOtro,
               ),
@@ -119,11 +123,19 @@ String describirAvisos(int intervalo) {
   if (intervalo < 1) return '';
   final marcas = [for (var k = 1; k * intervalo <= 100; k++) '${k * intervalo}%'];
   final tocaElTope = marcas.isNotEmpty && marcas.last == '100%';
-  if (marcas.length == 1 && tocaElTope) return 'Te avisamos cuando llegues al tope.';
-  final lista = marcas.length == 1
-      ? marcas.first
-      : '${marcas.sublist(0, marcas.length - 1).join(', ')}${tocaElTope ? ' y ' : ', '}${marcas.last}';
+  if (marcas.length == 1 && tocaElTope) return tr('Te avisamos cuando llegues al tope.');
+  final String lista;
+  if (marcas.length == 1) {
+    lista = marcas.first;
+  } else if (tocaElTope) {
+    lista = tr('{primeras} y {ultima}', {
+      'primeras': marcas.sublist(0, marcas.length - 1).join(', '),
+      'ultima': marcas.last,
+    });
+  } else {
+    lista = marcas.join(', ');
+  }
   return tocaElTope
-      ? 'Te avisamos al $lista (el tope).'
-      : 'Te avisamos al $lista y si te pasás del tope.';
+      ? tr('Te avisamos al {lista} (el tope).', {'lista': lista})
+      : tr('Te avisamos al {lista} y si te pasás del tope.', {'lista': lista});
 }

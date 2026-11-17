@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/widgets/boton_icono.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // La barra de arriba de las pantallas de alta: el botón cuadrado para volver y el título.
 AppBar barraConVolver(BuildContext context, String titulo) {
@@ -11,7 +12,7 @@ AppBar barraConVolver(BuildContext context, String titulo) {
         BotonIcono(
           icono: Icons.arrow_back,
           tamanio: 34,
-          ayuda: 'Volver',
+          ayuda: context.tr('Volver'),
           alTocar: () => Navigator.maybePop(context),
         ),
         const SizedBox(width: 12),

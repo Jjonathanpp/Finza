@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // El color de un presupuesto según cuánto se usó, en degradé continuo:
 // 0% verde → 50% amarillo → 100% (o más) rojo. Se mezcla en HSV para que los
@@ -49,7 +50,7 @@ class BarraProgresoPresupuesto extends StatelessWidget {
     final animar = !MediaQuery.disableAnimationsOf(context);
 
     return Semantics(
-      label: 'Consumo del presupuesto',
+      label: context.tr('Consumo del presupuesto'),
       value: '${porcentaje.toStringAsFixed(0)}%',
       child: SizedBox(
         width: double.infinity,

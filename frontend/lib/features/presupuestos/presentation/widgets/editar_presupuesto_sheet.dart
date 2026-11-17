@@ -3,6 +3,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // El panel que sube desde abajo (showModalBottomSheet) al tocar un presupuesto de una cuenta compartida,
 // si sos admin (t-13.1.2): cambiar el tope o desactivarlo para todos. Se cierra solo cuando el backend
@@ -59,7 +60,7 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
   void _guardar() {
     final tope = double.tryParse(_tope.text.trim().replaceAll(',', '.'));
     if (tope == null || tope <= 0) {
-      setState(() => _error = 'Ingresá un tope mayor a cero');
+      setState(() => _error = context.tr('Ingresá un tope mayor a cero'));
       return;
     }
     _enviar(() => widget.alGuardar(tope, _intervaloAviso));
@@ -70,14 +71,20 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
     final seguro = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Desactivar presupuesto'),
-        content: Text('¿Desactivar el presupuesto de $nombre de ${widget.periodo} para todos los de ${widget.cuenta}?'),
+        title: Text(context.tr('Desactivar presupuesto')),
+        content: Text(
+          context.tr('¿Desactivar el presupuesto de {categoria} de {periodo} para todos los de {cuenta}?', {
+            'categoria': context.tr(nombre),
+            'periodo': widget.periodo,
+            'cuenta': widget.cuenta,
+          }),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.tr('Cancelar'))),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Desactivar'),
+            child: Text(context.tr('Desactivar')),
           ),
         ],
       ),
@@ -96,7 +103,7 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            '${widget.presupuesto.categoriaNombre} · ${widget.periodo}',
+            '${context.tr(widget.presupuesto.categoriaNombre)} · ${widget.periodo}',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
@@ -104,10 +111,10 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
             controller: _tope,
             enabled: !_guardando,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: r'Tope ($)'),
+            decoration: InputDecoration(labelText: context.tr('Tope (\$)')),
           ),
           const SizedBox(height: 18),
-          const Text('Avisarme cada', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+          Text(context.tr('Avisarme cada'), style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           SelectorIntervaloAviso(
             valor: _intervaloAviso,
@@ -129,14 +136,14 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
               ),
-              child: const Text('Guardar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              child: Text(context.tr('Guardar'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
           ),
           const SizedBox(height: 6),
           TextButton(
             onPressed: _guardando ? null : _desactivar,
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Desactivar presupuesto'),
+            child: Text(context.tr('Desactivar presupuesto')),
           ),
         ],
         ),

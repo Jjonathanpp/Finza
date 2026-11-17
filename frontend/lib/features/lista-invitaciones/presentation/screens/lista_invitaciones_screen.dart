@@ -5,6 +5,7 @@ import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/lista-invitaciones/data/datasources/invitacion_api.dart';
 import 'package:frontend/features/lista-invitaciones/data/models/invitacion_enviada.dart';
 import 'package:frontend/features/lista-invitaciones/presentation/viewmodels/lista_invitaciones_view_model.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class ListaInvitacionesScreen extends StatefulWidget {
   const ListaInvitacionesScreen({
@@ -60,8 +61,8 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
 
     if (enviado == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Invitación enviada'),
+        SnackBar(
+          content: Text(context.tr('Invitación enviada')),
           backgroundColor: AppColors.accent,
         ),
       );
@@ -76,7 +77,9 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(conCuentaActiva('Invitaciones enviadas'))),
+      appBar: AppBar(
+        title: Text(conCuentaActiva(context.tr('Invitaciones enviadas'))),
+      ),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -92,7 +95,7 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
                   Text(error, style: const TextStyle(color: AppColors.muted)),
                   TextButton(
                     onPressed: _vm.cargar,
-                    child: const Text('Reintentar'),
+                    child: Text(context.tr('Reintentar')),
                   ),
                 ],
               ),
@@ -108,12 +111,12 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
                     padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
                     children: [
                       if (_vm.invitaciones.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 40),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 40),
                           child: Center(
                             child: Text(
-                              'Todavía no enviaste invitaciones',
-                              style: TextStyle(
+                              context.tr('Todavía no enviaste invitaciones'),
+                              style: const TextStyle(
                                 fontSize: 13,
                                 color: AppColors.muted,
                               ),
@@ -163,7 +166,7 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
                     height: 48,
                     child: ElevatedButton(
                       onPressed: _abrirModalInvitar,
-                      child: const Text('Invitar a cuenta compartida'),
+                      child: Text(context.tr('Invitar a cuenta compartida')),
                     ),
                   ),
                 ),
@@ -195,7 +198,9 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Vencimiento: ${_fecha(invitacion.fechaExpiracion)}',
+                  context.tr('Vencimiento: {fecha}', {
+                    'fecha': _fecha(invitacion.fechaExpiracion),
+                  }),
                   style: const TextStyle(fontSize: 12, color: AppColors.muted),
                 ),
               ],
@@ -217,11 +222,11 @@ class _EtiquetaEstado extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (texto, color) = switch (estado) {
-      EstadoInvitacion.pendiente => ('PENDIENTE', AppColors.blue),
-      EstadoInvitacion.aceptada => ('ACEPTADA', AppColors.accent),
-      EstadoInvitacion.rechazada => ('RECHAZADA', AppColors.danger),
-      EstadoInvitacion.expirada => ('EXPIRADA', AppColors.faint),
-      EstadoInvitacion.cancelada => ('CANCELADA', AppColors.faint),
+      EstadoInvitacion.pendiente => (context.tr('PENDIENTE'), AppColors.blue),
+      EstadoInvitacion.aceptada => (context.tr('ACEPTADA'), AppColors.accent),
+      EstadoInvitacion.rechazada => (context.tr('RECHAZADA'), AppColors.danger),
+      EstadoInvitacion.expirada => (context.tr('EXPIRADA'), AppColors.faint),
+      EstadoInvitacion.cancelada => (context.tr('CANCELADA'), AppColors.faint),
     };
 
     return Container(
@@ -276,9 +281,9 @@ class _InvitarDialogState extends State<_InvitarDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text(
-        'Invitar a cuenta compartida',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      title: Text(
+        context.tr('Invitar a cuenta compartida'),
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
       content: Form(
         key: _formKey,
@@ -286,18 +291,18 @@ class _InvitarDialogState extends State<_InvitarDialog> {
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Correo electrónico',
+          decoration: InputDecoration(
+            labelText: context.tr('Correo electrónico'),
             hintText: 'ejemplo@correo.com',
           ),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'Ingresá un correo';
+              return context.tr('Ingresá un correo');
             }
             if (!RegExp(
               r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
             ).hasMatch(value.trim())) {
-              return 'Ingresá un correo válido';
+              return context.tr('Ingresá un correo válido');
             }
             return null;
           },
@@ -306,7 +311,7 @@ class _InvitarDialogState extends State<_InvitarDialog> {
       actions: [
         TextButton(
           onPressed: _cargando ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancelar'),
+          child: Text(context.tr('Cancelar')),
         ),
         ElevatedButton(
           onPressed: _cargando ? null : _submit,
@@ -316,7 +321,7 @@ class _InvitarDialogState extends State<_InvitarDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Enviar'),
+              : Text(context.tr('Enviar')),
         ),
       ],
     );
