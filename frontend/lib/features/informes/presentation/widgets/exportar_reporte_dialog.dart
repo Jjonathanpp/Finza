@@ -13,14 +13,20 @@ class ExportarReporteDialog extends StatefulWidget {
   final DateTime? fechaInicial;
   final DateTime? fechaFinal;
   final bool cuentaCompartidaActiva;
-  final Future<void> Function(String alcance, DateTime desde, DateTime hasta) onExportar;
+  final Future<void> Function(String alcance, DateTime desde, DateTime hasta)
+  onExportar;
 
   static Future<void> mostrar(
     BuildContext context, {
     required DateTime? fechaInicial,
     required DateTime? fechaFinal,
     required bool cuentaCompartidaActiva,
-    required Future<void> Function(String alcance, DateTime desde, DateTime hasta) onExportar,
+    required Future<void> Function(
+      String alcance,
+      DateTime desde,
+      DateTime hasta,
+    )
+    onExportar,
   }) {
     return showDialog<void>(
       context: context,
@@ -46,6 +52,7 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
   String? _error;
 
   bool get _fechasValidas => !_desde.isAfter(_hasta);
+  bool get _mostrarAlcance => widget.cuentaCompartidaActiva;
 
   Future<void> _exportar() async {
     if (_cargando || !_fechasValidas) return;
@@ -61,7 +68,7 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
       if (!mounted) return;
       setState(() {
         _cargando = false;
-        _error = 'No se pudo generar el reporte. Intentá de nuevo.';
+        _error = e.toString().replaceFirst('Exception: ', '');
       });
     }
   }
@@ -72,7 +79,7 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
       context: context,
       initialDate: inicial,
       firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      lastDate: DateTime.now(),
     );
     if (elegida == null) return;
     setState(() {
@@ -88,72 +95,97 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text('Exportar reporte', style: TextStyle(color: AppColors.text)),
+      title: const Text(
+        'Exportar reporte',
+        style: TextStyle(color: AppColors.text),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Formato', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
+            const Text(
+              'Formato',
+              style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 4),
             const Text('PDF', style: TextStyle(color: AppColors.muted)),
             const SizedBox(height: 16),
-            const Text('Alcance', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
-            RadioGroup<String>(
-              groupValue: _alcance,
-              onChanged: (v) => setState(() => _alcance = v!),
-              child: Column(
-                children: [
-                  RadioListTile<String>(
-                    value: 'solo_propios',
-                    enabled: !_cargando,
-                    title: const Text('Mis registros', style: TextStyle(color: AppColors.text)),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  RadioListTile<String>(
-                    value: 'cuenta_completa',
-                    enabled: widget.cuentaCompartidaActiva && !_cargando,
-                    title: Text(
-                      'Consolidado grupal',
-                      style: TextStyle(
-                        color: widget.cuentaCompartidaActiva ? AppColors.text : AppColors.muted,
-                      ),
-                    ),
-                    subtitle: widget.cuentaCompartidaActiva
-                        ? null
-                        : const Text('Solo disponible en cuenta compartida',
-                            style: TextStyle(color: AppColors.muted, fontSize: 12)),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ],
+
+            if (_mostrarAlcance) ...[
+              const Text(
+                'Alcance',
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              const SizedBox(height: 4),
+              RadioGroup<String>(
+                groupValue: _alcance,
+                onChanged: (v) => setState(() => _alcance = v!),
+                child: Column(
+                  children: [
+                    RadioListTile<String>(
+                      value: 'solo_propios',
+                      enabled: !_cargando,
+                      title: const Text(
+                        'Mis registros',
+                        style: TextStyle(color: AppColors.text),
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    RadioListTile<String>(
+                      value: 'cuenta_completa',
+                      enabled: !_cargando,
+                      title: const Text(
+                        'Consolidado grupal',
+                        style: TextStyle(color: AppColors.text),
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OutlinedButton(
+                  onPressed: _cargando ? null : () => _elegirFecha(true),
+                  child: Text(
+                    'Desde: ${_desde.day.toString().padLeft(2, '0')}/${_desde.month.toString().padLeft(2, '0')}/${_desde.year}',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: _cargando ? null : () => _elegirFecha(false),
+                  child: Text(
+                    'Hasta: ${_hasta.day.toString().padLeft(2, '0')}/${_hasta.month.toString().padLeft(2, '0')}/${_hasta.year}',
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-    Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        OutlinedButton(
-          onPressed: _cargando ? null : () => _elegirFecha(true),
-          child: Text('Desde: ${_desde.day.toString().padLeft(2, '0')}/${_desde.month.toString().padLeft(2, '0')}/${_desde.year}'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: _cargando ? null : () => _elegirFecha(false),
-          child: Text('Hasta: ${_hasta.day.toString().padLeft(2, '0')}/${_hasta.month.toString().padLeft(2, '0')}/${_hasta.year}'),
-        ),
-      ],
-    ),
             if (!_fechasValidas)
               const Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Text('La fecha "desde" no puede ser posterior a "hasta".',
-                    style: TextStyle(color: AppColors.danger, fontSize: 12)),
+                child: Text(
+                  'La fecha "desde" no puede ser posterior a "hasta".',
+                  style: TextStyle(color: AppColors.danger, fontSize: 12),
+                ),
               ),
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: AppColors.danger, fontSize: 12),
+                ),
               ),
           ],
         ),
@@ -169,7 +201,10 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Exportar'),
         ),

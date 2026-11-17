@@ -9,7 +9,8 @@ class SelectorRangoFechas extends StatefulWidget {
   State<SelectorRangoFechas> createState() => _SelectorRangoFechasState();
 }
 
-class _SelectorRangoFechasState extends State<SelectorRangoFechas> with AutomaticKeepAliveClientMixin<SelectorRangoFechas> {
+class _SelectorRangoFechasState extends State<SelectorRangoFechas>
+    with AutomaticKeepAliveClientMixin<SelectorRangoFechas> {
   String _opcionElegida = 'Mensual';
   DateTime? _inicioPersonalizado;
   DateTime? _finPersonalizado;
@@ -19,7 +20,7 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
     'Bimestral',
     'Trimestral',
     'Anual',
-    'Personalizado'
+    'Personalizado',
   ];
 
   void _aplicarFiltro(String opcion) {
@@ -35,13 +36,11 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
       start = DateTime(hoy.year, hoy.month, 1);
       end = DateTime(hoy.year, hoy.month + 1, 0);
     } else if (opcion == 'Bimestral') {
-      int mesInicio = hoy.month % 2 == 0 ? hoy.month - 1 : hoy.month;
-      start = DateTime(hoy.year, mesInicio, 1);
-      end = DateTime(hoy.year, mesInicio + 2, 0);
+      start = DateTime(hoy.year, hoy.month - 1, 1);
+      end = DateTime(hoy.year, hoy.month + 1, 0);
     } else if (opcion == 'Trimestral') {
-      int mesInicio = ((hoy.month - 1) ~/ 3) * 3 + 1;
-      start = DateTime(hoy.year, mesInicio, 1);
-      end = DateTime(hoy.year, mesInicio + 3, 0);
+      start = DateTime(hoy.year, hoy.month - 2, 1);
+      end = DateTime(hoy.year, hoy.month + 1, 0);
     } else if (opcion == 'Anual') {
       start = DateTime(hoy.year, 1, 1);
       end = DateTime(hoy.year, 12, 31);
@@ -57,13 +56,15 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
 
   Future<void> _elegirFechaPersonalizada(bool esInicio) async {
     final hoy = DateTime.now();
-    final inicial = esInicio ? (_inicioPersonalizado ?? hoy) : (_finPersonalizado ?? hoy);
-    
+    final inicial = esInicio
+        ? (_inicioPersonalizado ?? hoy)
+        : (_finPersonalizado ?? hoy);
+
     final seleccionada = await showDatePicker(
       context: context,
       initialDate: inicial,
       firstDate: DateTime(2020),
-      lastDate: DateTime(hoy.year + 1),
+      lastDate: hoy,
     );
 
     if (seleccionada != null) {
@@ -74,7 +75,7 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
           _finPersonalizado = seleccionada;
         }
       });
-      
+
       if (_inicioPersonalizado != null && _finPersonalizado != null) {
         widget.onCambio(_inicioPersonalizado, _finPersonalizado);
       }
@@ -91,8 +92,8 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
 
   @override
   Widget build(BuildContext context) {
-      super.build(context);
-      return Container(
+    super.build(context);
+    return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -101,12 +102,22 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Período de informes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+          const Text(
+            'Período de informes',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+          ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _opcionElegida,
-            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
-            items: _opciones.map((op) => DropdownMenuItem(value: op, child: Text(op))).toList(),
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 10,
+              ),
+            ),
+            items: _opciones
+                .map((op) => DropdownMenuItem(value: op, child: Text(op)))
+                .toList(),
             onChanged: (val) {
               if (val != null) _aplicarFiltro(val);
             },
@@ -119,12 +130,18 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Desde', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                      const Text(
+                        'Desde',
+                        style: TextStyle(fontSize: 12, color: AppColors.muted),
+                      ),
                       const SizedBox(height: 4),
                       OutlinedButton.icon(
                         onPressed: () => _elegirFechaPersonalizada(true),
                         icon: const Icon(Icons.calendar_today, size: 14),
-                        label: Text(_formatoFecha(_inicioPersonalizado), style: const TextStyle(fontSize: 12)),
+                        label: Text(
+                          _formatoFecha(_inicioPersonalizado),
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       ),
                     ],
                   ),
@@ -134,12 +151,18 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Hasta', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                      const Text(
+                        'Hasta',
+                        style: TextStyle(fontSize: 12, color: AppColors.muted),
+                      ),
                       const SizedBox(height: 4),
                       OutlinedButton.icon(
                         onPressed: () => _elegirFechaPersonalizada(false),
                         icon: const Icon(Icons.calendar_today, size: 14),
-                        label: Text(_formatoFecha(_finPersonalizado), style: const TextStyle(fontSize: 12)),
+                        label: Text(
+                          _formatoFecha(_finPersonalizado),
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       ),
                     ],
                   ),

@@ -108,10 +108,15 @@ public class PanelServiceImpl implements PanelService {
         LocalDate[] rangoFechas = calcularRangoDeFechas(prefs, startDate, endDate);
 
         CuentaCompartida compartida = activo.getCuentaCompartida();
-        List<GastoPorCategoriaDTO> categorias = (compartida != null)
-                ? movimientoRepository.sumarGastosPorCategoriaDeCuentaCompartida(compartida.getId(), rangoFechas[0],
-                        rangoFechas[1])
-                : movimientoRepository.sumarGastosPorCategoria(activo.getId(), rangoFechas[0], rangoFechas[1]);
+        List<GastoPorCategoriaDTO> categorias;
+
+        if (compartida != null) {
+            categorias = movimientoRepository.sumarGastosPorCategoriaDeCuentaCompartida(
+                    compartida.getId(), rangoFechas[0], rangoFechas[1]);
+        } else {
+            categorias = movimientoRepository.sumarGastosPorCategoria(
+                    activo.getId(), rangoFechas[0], rangoFechas[1]);
+        }
 
         BigDecimal total = categorias.stream()
                 .map(GastoPorCategoriaDTO::getTotal)
@@ -136,12 +141,17 @@ public class PanelServiceImpl implements PanelService {
             throw new BadRequestException("Si mandás fechas, mandá las dos: startDate y endDate");
         }
 
-        PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(perfilId).orElse(new PreferenciasSistema());
+        Perfil activo = perfilService.perfilActivo(cuentaIdAutenticada);
+        PreferenciasSistema prefs = preferenciasRepository.findByPerfilId(activo.getId())
+                .orElse(new PreferenciasSistema());
         LocalDate[] rango = calcularRangoDeFechas(prefs, startDate, endDate);
 
         if (rango[0] == null || rango[1] == null) {
             throw new BadRequestException("No hay un período definido para comparar. Mandá startDate y endDate.");
         }
+
+        CuentaCompartida compartida = activo.getCuentaCompartida();
+        Long ccId = compartida != null ? compartida.getId() : null;
 
         List<Periodo> periodos = granularidadElegida.equals("SEMANA")
                 ? dividirEnSemanas(rango[0], rango[1])
@@ -152,14 +162,27 @@ public class PanelServiceImpl implements PanelService {
         BigDecimal egresosAnterior = null;
 
         for (Periodo periodo : periodos) {
-            BigDecimal ingresos = movimientoRepository.sumarMontoPorTipoYFechas(
-                    perfilId, cuentaIdAutenticada, true, periodo.inicio(), periodo.fin());
-            BigDecimal egresos = movimientoRepository.sumarMontoPorTipoYFechas(
-                    perfilId, cuentaIdAutenticada, false, periodo.inicio(), periodo.fin());
-            BigDecimal saldo = ingresos.subtract(egresos);
+            BigDecimal ingresos;
+            BigDecimal egresos;
+            List<GastoPorCategoriaDTO> categorias;
 
-            List<GastoPorCategoriaDTO> categorias = gastosPorCategoria(
-                    perfilId, cuentaIdAutenticada, periodo.inicio(), periodo.fin()).getCategorias();
+            if (ccId != null) {
+                ingresos = movimientoRepository.sumarMontoPorTipoYFechasDeCuentaCompartida(
+                        ccId, true, periodo.inicio(), periodo.fin());
+                egresos = movimientoRepository.sumarMontoPorTipoYFechasDeCuentaCompartida(
+                        ccId, false, periodo.inicio(), periodo.fin());
+                categorias = movimientoRepository.sumarGastosPorCategoriaDeCuentaCompartida(
+                        ccId, periodo.inicio(), periodo.fin());
+            } else {
+                ingresos = movimientoRepository.sumarMontoPorTipoYFechas(
+                        activo.getId(), cuentaIdAutenticada, true, periodo.inicio(), periodo.fin());
+                egresos = movimientoRepository.sumarMontoPorTipoYFechas(
+                        activo.getId(), cuentaIdAutenticada, false, periodo.inicio(), periodo.fin());
+                categorias = gastosPorCategoria(
+                        activo.getId(), cuentaIdAutenticada, periodo.inicio(), periodo.fin()).getCategorias();
+            }
+
+            BigDecimal saldo = ingresos.subtract(egresos);
 
             comparados.add(new PeriodoComparacionDTO(
                     periodo.etiqueta(),
@@ -196,27 +219,14 @@ public class PanelServiceImpl implements PanelService {
 
         switch (prefs.getVistaBalance()) {
             case BIMESTRAL:
-                int mesActualBi = hoy.getMonthValue();
-                int inicioMesBi = (mesActualBi % 2 == 0) ? mesActualBi - 1 : mesActualBi;
-                inicio = LocalDate.of(hoy.getYear(), inicioMesBi, 1);
-                fin = YearMonth.of(hoy.getYear(), inicioMesBi + 1).atEndOfMonth();
+                inicio = hoy.minusMonths(1).withDayOfMonth(1);
+                fin = hoy.with(TemporalAdjusters.lastDayOfMonth());
                 break;
             case TRIMESTRAL:
-                int mesPrimerTrimestre = ((hoy.get(IsoFields.QUARTER_OF_YEAR) - 1) * 3) + 1;
-                inicio = LocalDate.of(hoy.getYear(), mesPrimerTrimestre, 1);
-                fin = YearMonth.of(hoy.getYear(), mesPrimerTrimestre + 2).atEndOfMonth();
+                inicio = hoy.minusMonths(2).withDayOfMonth(1);
+                fin = hoy.with(TemporalAdjusters.lastDayOfMonth());
                 break;
-            case CUATRIMESTRAL:
-                int mesActualCuatri = hoy.getMonthValue();
-                int inicioMesCuatri = 1;
-                if (mesActualCuatri >= 5 && mesActualCuatri <= 8)
-                    inicioMesCuatri = 5;
-                else if (mesActualCuatri >= 9)
-                    inicioMesCuatri = 9;
 
-                inicio = LocalDate.of(hoy.getYear(), inicioMesCuatri, 1);
-                fin = YearMonth.of(hoy.getYear(), inicioMesCuatri + 3).atEndOfMonth();
-                break;
             case ANUAL:
                 inicio = LocalDate.of(hoy.getYear(), 1, 1);
                 fin = LocalDate.of(hoy.getYear(), 12, 31);
