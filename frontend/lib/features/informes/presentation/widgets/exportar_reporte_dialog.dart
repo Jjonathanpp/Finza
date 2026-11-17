@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class ExportarReporteDialog extends StatefulWidget {
   const ExportarReporteDialog({
@@ -95,8 +96,8 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text(
-        'Exportar reporte',
+      title: Text(
+        context.tr('Exportar reporte'),
         style: TextStyle(color: AppColors.text),
       ),
       content: SingleChildScrollView(
@@ -104,8 +105,8 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Formato',
+            Text(
+              context.tr('Formato'),
               style: TextStyle(
                 color: AppColors.text,
                 fontWeight: FontWeight.w600,
@@ -116,8 +117,8 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
             const SizedBox(height: 16),
 
             if (_mostrarAlcance) ...[
-              const Text(
-                'Alcance',
+              Text(
+                context.tr('Alcance'),
                 style: TextStyle(
                   color: AppColors.text,
                   fontWeight: FontWeight.w600,
@@ -132,8 +133,8 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
                     RadioListTile<String>(
                       value: 'solo_propios',
                       enabled: !_cargando,
-                      title: const Text(
-                        'Mis registros',
+                      title: Text(
+                        context.tr('Mis registros'),
                         style: TextStyle(color: AppColors.text),
                       ),
                       contentPadding: EdgeInsets.zero,
@@ -141,8 +142,8 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
                     RadioListTile<String>(
                       value: 'cuenta_completa',
                       enabled: !_cargando,
-                      title: const Text(
-                        'Consolidado grupal',
+                      title: Text(
+                        context.tr('Consolidado grupal'),
                         style: TextStyle(color: AppColors.text),
                       ),
                       contentPadding: EdgeInsets.zero,
@@ -159,14 +160,20 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
                 OutlinedButton(
                   onPressed: _cargando ? null : () => _elegirFecha(true),
                   child: Text(
-                    'Desde: ${_desde.day.toString().padLeft(2, '0')}/${_desde.month.toString().padLeft(2, '0')}/${_desde.year}',
+                    context.tr('Desde: {fecha}', {
+                      'fecha':
+                          '${_desde.day.toString().padLeft(2, '0')}/${_desde.month.toString().padLeft(2, '0')}/${_desde.year}',
+                    }),
                   ),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton(
                   onPressed: _cargando ? null : () => _elegirFecha(false),
                   child: Text(
-                    'Hasta: ${_hasta.day.toString().padLeft(2, '0')}/${_hasta.month.toString().padLeft(2, '0')}/${_hasta.year}',
+                    context.tr('Hasta: {fecha}', {
+                      'fecha':
+                          '${_hasta.day.toString().padLeft(2, '0')}/${_hasta.month.toString().padLeft(2, '0')}/${_hasta.year}',
+                    }),
                   ),
                 ),
               ],
@@ -193,7 +200,7 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
       actions: [
         TextButton(
           onPressed: _cargando ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text(context.tr('Cancelar')),
         ),
         FilledButton(
           onPressed: (_cargando || !_fechasValidas) ? null : _exportar,
@@ -206,7 +213,7 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Exportar'),
+              : Text(context.tr('Exportar')),
         ),
       ],
     );

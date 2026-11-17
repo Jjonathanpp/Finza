@@ -1,3 +1,5 @@
+import 'package:frontend/l10n/idioma.dart';
+
 // Un integrante de la cuenta compartida (GET /api/cuentas-compartidas/miembros, t-11.3.2).
 // rol: 'ADMIN' o 'MIEMBRO'. esCreador: a quien creó la cuenta no se le puede cambiar el rol.
 class Miembro {
@@ -30,7 +32,7 @@ class Miembro {
     return Miembro(
       perfilId: json['perfilId'] as int,
       usuarioId: json['usuarioId'] as int?,
-      nombre: nombre.isEmpty ? 'Sin nombre' : nombre,
+      nombre: nombre.isEmpty ? tr('Sin nombre') : nombre,
       rol: json['rol']?.toString() ?? 'MIEMBRO',
       esCreador: json['esCreador'] as bool? ?? false,
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/mercadopago/data/models/sincronizacion_resumen.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class SincronizacionResumenScreen extends StatelessWidget {
   final SincronizacionResumen resumen;
@@ -14,7 +15,7 @@ class SincronizacionResumenScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, 'Resumen de importación'),
+      appBar: barraConVolver(context, context.tr('Resumen de importación')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
         children: [
@@ -37,13 +38,13 @@ class SincronizacionResumenScreen extends StatelessWidget {
                   child: const Icon(Icons.check_circle_outline, color: AppColors.accent, size: 30),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Sincronización completada',
+                Text(
+                  context.tr('Sincronización completada'),
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Los nuevos movimientos quedaron registrados como pendientes para tu revisión.',
+                Text(
+                  context.tr('Los nuevos movimientos quedaron registrados como pendientes para tu revisión.'),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: AppColors.muted),
                 ),
@@ -52,30 +53,30 @@ class SincronizacionResumenScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _itemMetrica(
-            titulo: 'Procesadas',
-            subtitulo: 'Total consultado en Mercado Pago',
+            titulo: context.tr('Procesadas'),
+            subtitulo: context.tr('Total consultado en Mercado Pago'),
             valor: resumen.procesadas.toString(),
             color: AppColors.blue,
           ),
           const SizedBox(height: 10),
           _itemMetrica(
-            titulo: 'Nuevas creadas',
-            subtitulo: 'Movimientos listos para revisar',
+            titulo: context.tr('Nuevas creadas'),
+            subtitulo: context.tr('Movimientos listos para revisar'),
             valor: resumen.creadas.toString(),
             color: AppColors.accent,
           ),
           const SizedBox(height: 10),
           _itemMetrica(
-            titulo: 'Omitidas',
-            subtitulo: 'Transacciones ya existentes',
+            titulo: context.tr('Omitidas'),
+            subtitulo: context.tr('Transacciones ya existentes'),
             valor: resumen.omitidas.toString(),
             color: AppColors.muted,
           ),
           if (resumen.errores > 0) ...[
             const SizedBox(height: 10),
             _itemMetrica(
-              titulo: 'Errores',
-              subtitulo: 'No se pudieron procesar',
+              titulo: context.tr('Errores'),
+              subtitulo: context.tr('No se pudieron procesar'),
               valor: resumen.errores.toString(),
               color: AppColors.danger,
             ),
@@ -95,8 +96,8 @@ class SincronizacionResumenScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Entendido',
+              child: Text(
+                context.tr('Entendido'),
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 14.5,

@@ -8,6 +8,7 @@ import '../../registro/screens/register_screen.dart';
 import '../models/login_request.dart';
 import '../../home/presentation/screens/pantalla_principal.dart';
 import 'package:frontend/core/session/deep_link_service.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -49,7 +50,7 @@ class _LoginFormState extends State<LoginForm> {
       );
 
       if (mounted) {
-        mostrarExito(context, 'Sesión iniciada');
+        mostrarExito(context, context.tr('Sesión iniciada'));
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const PantallaPrincipal()),
@@ -76,21 +77,21 @@ class _LoginFormState extends State<LoginForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Campo(
-            etiqueta: 'Email',
+            etiqueta: context.tr('Email'),
             child: TextFormField(
               controller: _emailCtrl,
               decoration: const InputDecoration(hintText: 'maria@correo.com'),
               keyboardType: TextInputType.emailAddress,
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Ingresá tu email';
+                if (v == null || v.trim().isEmpty) return context.tr('Ingresá tu email');
                 final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
-                if (!regex.hasMatch(v.trim())) return 'Email inválido';
+                if (!regex.hasMatch(v.trim())) return context.tr('Email inválido');
                 return null;
               },
             ),
           ),
           Campo(
-            etiqueta: 'Contraseña',
+            etiqueta: context.tr('Contraseña'),
             child: TextFormField(
               controller: _passwordCtrl,
               decoration: InputDecoration(
@@ -98,12 +99,12 @@ class _LoginFormState extends State<LoginForm> {
                 suffixIcon: TextButton(
                   onPressed: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
-                  child: Text(_obscurePassword ? 'Ver' : 'Ocultar'),
+                  child: Text(_obscurePassword ? context.tr('Ver') : context.tr('Ocultar')),
                 ),
               ),
               obscureText: _obscurePassword,
               validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Ingresá tu contraseña' : null,
+                  (v == null || v.isEmpty) ? context.tr('Ingresá tu contraseña') : null,
             ),
           ),
           if (_errorGeneral != null)
@@ -126,7 +127,7 @@ class _LoginFormState extends State<LoginForm> {
                       color: AppColors.accentInk,
                     ),
                   )
-                : const Text('Ingresar'),
+                : Text(context.tr('Ingresar')),
           ),
           const SizedBox(height: 16),
           Center(
@@ -139,7 +140,7 @@ class _LoginFormState extends State<LoginForm> {
                   ),
                 );
               },
-              child: const Text('Olvidé mi contraseña'),
+              child: Text(context.tr('Olvidé mi contraseña')),
             ),
           ),
           const SizedBox(height: 8),
@@ -148,8 +149,8 @@ class _LoginFormState extends State<LoginForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                '¿Primera vez? ',
+              Text(
+                '${context.tr('¿Primera vez?')} ',
                 style: TextStyle(color: AppColors.muted),
               ),
               GestureDetector(
@@ -159,8 +160,8 @@ class _LoginFormState extends State<LoginForm> {
                     MaterialPageRoute(builder: (_) => const RegisterScreen()),
                   );
                 },
-                child: const Text(
-                  'Creá tu cuenta',
+                child: Text(
+                  context.tr('Creá tu cuenta'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.accent,

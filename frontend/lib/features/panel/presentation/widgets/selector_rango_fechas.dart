@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class SelectorRangoFechas extends StatefulWidget {
   const SelectorRangoFechas({super.key, required this.onCambio});
@@ -83,7 +84,7 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
   }
 
   String _formatoFecha(DateTime? f) {
-    if (f == null) return 'Seleccionar';
+    if (f == null) return context.tr('Seleccionar');
     return '${f.day.toString().padLeft(2, '0')}/${f.month.toString().padLeft(2, '0')}/${f.year}';
   }
 
@@ -102,8 +103,8 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Período de informes',
+          Text(
+            context.tr('Período de informes'),
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
           ),
           const SizedBox(height: 12),
@@ -116,7 +117,10 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
               ),
             ),
             items: _opciones
-                .map((op) => DropdownMenuItem(value: op, child: Text(op)))
+                .map(
+                  (op) =>
+                      DropdownMenuItem(value: op, child: Text(context.tr(op))),
+                )
                 .toList(),
             onChanged: (val) {
               if (val != null) _aplicarFiltro(val);
@@ -130,8 +134,8 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Desde',
+                      Text(
+                        context.tr('Desde'),
                         style: TextStyle(fontSize: 12, color: AppColors.muted),
                       ),
                       const SizedBox(height: 4),
@@ -151,8 +155,8 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Hasta',
+                      Text(
+                        context.tr('Hasta'),
                         style: TextStyle(fontSize: 12, color: AppColors.muted),
                       ),
                       const SizedBox(height: 4),

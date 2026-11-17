@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class ImportarMPScreen extends StatefulWidget {
   final MercadoPagoViewModel vm;
@@ -25,7 +26,10 @@ class _ImportarMPScreenState extends State<ImportarMPScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, 'Seleccionar de Mercado Pago'),
+      appBar: barraConVolver(
+        context,
+        context.tr('Seleccionar de Mercado Pago'),
+      ),
       body: ListenableBuilder(
         listenable: widget.vm,
         builder: (context, child) {
@@ -47,15 +51,17 @@ class _ImportarMPScreenState extends State<ImportarMPScreen> {
                       color: AppColors.muted,
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'No se encontraron movimientos recientes en tu Mercado Pago.',
+                    Text(
+                      context.tr(
+                        'No se encontraron movimientos recientes en tu Mercado Pago.',
+                      ),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.muted),
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: widget.vm.cargarDisponibles,
-                      child: const Text('Reintentar'),
+                      child: Text(context.tr('Reintentar')),
                     ),
                   ],
                 ),
@@ -75,7 +81,7 @@ class _ImportarMPScreenState extends State<ImportarMPScreen> {
                     final item = disponibles[index];
                     final id = item['id'].toString();
                     final descripcion =
-                        item['description'] ?? 'Sin descripción';
+                        item['description'] ?? context.tr('Sin descripción');
                     final monto = (item['transaction_amount'] ?? 0).toDouble();
                     final fechaStr = item['date_created'] ?? '';
 
@@ -170,8 +176,10 @@ class _ImportarMPScreenState extends State<ImportarMPScreen> {
                 )
               : Text(
                   cant == 0
-                      ? 'Seleccioná movimientos'
-                      : 'Importar $cant seleccionados',
+                      ? context.tr('Seleccioná movimientos')
+                      : context.tr('Importar {n} seleccionados', {
+                          'n': '$cant',
+                        }),
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
@@ -192,7 +200,9 @@ class _ImportarMPScreenState extends State<ImportarMPScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${resumen.creadas} movimientos importados correctamente',
+            context.tr('{n} movimientos importados correctamente', {
+              'n': '${resumen.creadas}',
+            }),
           ),
         ),
       );

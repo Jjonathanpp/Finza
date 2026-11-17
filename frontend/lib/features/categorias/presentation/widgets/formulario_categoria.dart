@@ -8,6 +8,7 @@ import 'package:frontend/features/categorias/data/datasources/categoria_api.dart
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/paleta_categorias.dart';
 import 'package:frontend/features/categorias/presentation/viewmodels/formulario_categoria_view_model.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 
 // Nombre, tipo y color de una categoría. Lo usan las pantallas "Nueva categoría" y
@@ -61,7 +62,7 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
               const SizedBox(height: 18),
             ],
             Campo(
-              etiqueta: 'Nombre',
+              etiqueta: context.tr('Nombre'),
               error: _vm.errorNombre,
               child: TextField(
                 controller: _nombre,
@@ -69,12 +70,12 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
                 textCapitalization: TextCapitalization.sentences,
                 // La columna del nombre es de 100 caracteres.
                 inputFormatters: [LengthLimitingTextInputFormatter(100)],
-                decoration: const InputDecoration(hintText: 'Por ejemplo, Mascotas'),
+                decoration: InputDecoration(hintText: context.tr('Por ejemplo, Mascotas')),
                 onSubmitted: (_) => _guardar(),
               ),
             ),
             Campo(
-              etiqueta: 'Color',
+              etiqueta: context.tr('Color'),
               child: Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -92,7 +93,7 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
               icon: _vm.guardando
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.check),
-              label: Text(widget.editando == null ? 'Crear categoría' : 'Guardar cambios'),
+              label: Text(widget.editando == null ? context.tr('Crear categoría') : context.tr('Guardar cambios')),
             ),
           ],
         );

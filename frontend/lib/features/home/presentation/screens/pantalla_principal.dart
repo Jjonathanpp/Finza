@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/configuracion/data/datasources/preferencias_api.dart';
 import 'package:frontend/features/mercadopago/sincronizacion_al_entrar.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
 const _sombra = [
@@ -84,8 +85,8 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
         Icons.account_balance_wallet_outlined,
         const MercadoPagoScreen(),
       ),
-      ('Registrar por voz', Icons.mic_none, const VoiceScreen()),
-      ('Movimiento manual', Icons.edit_outlined, const AltaMovimientoScreen()),
+      (context.tr('Registrar por voz'), Icons.mic_none, const VoiceScreen()),
+      (context.tr('Movimiento manual'), Icons.edit_outlined, const AltaMovimientoScreen()),
     ];
 
     return PopScope(
@@ -170,25 +171,25 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                       children: [
                         _Pestana(
                           Icons.home_rounded,
-                          'Inicio',
+                          context.tr('Inicio'),
                           _pestana == 0,
                           () => _irA(0),
                         ),
                         _Pestana(
                           Icons.history,
-                          'Historial',
+                          context.tr('Historial'),
                           _pestana == 1,
                           () => _irA(1),
                         ),
                         _Pestana(
                           Icons.category_outlined,
-                          'Categorías',
+                          context.tr('Categorías'),
                           _pestana == 2,
                           () => _irA(2),
                         ),
                         _Pestana(
                           Icons.pie_chart_outline,
-                          'Presupuestos',
+                          context.tr('Presupuestos'),
                           _pestana == 3,
                           () => _irA(3),
                         ),
@@ -198,7 +199,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                 ),
                 const SizedBox(width: 12),
                 Tooltip(
-                  message: _abierto ? 'Cerrar' : 'Agregar',
+                  message: _abierto ? context.tr('Cerrar') : context.tr('Agregar'),
                   child: Material(
                     color: AppColors.text,
                     shape: const CircleBorder(),

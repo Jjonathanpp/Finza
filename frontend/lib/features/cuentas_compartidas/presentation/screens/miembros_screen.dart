@@ -5,6 +5,7 @@ import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/cuentas_compartidas/data/datasources/cuenta_compartida_api.dart';
 import 'package:frontend/features/cuentas_compartidas/data/models/miembro.dart';
 import 'package:frontend/features/cuentas_compartidas/presentation/viewmodels/miembros_view_model.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Configuración → Cuenta → "Miembros y roles" (t-11.3.2): quiénes están en la cuenta
 // compartida activa y con qué rol. Un admin toca el rol de otro para ascenderlo a
@@ -43,21 +44,31 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(ascender ? 'Hacer administrador' : 'Pasar a miembro'),
+        title: Text(
+          ascender ? ctx.tr('Hacer administrador') : ctx.tr('Pasar a miembro'),
+        ),
         content: Text(
           ascender
-              ? '${miembro.nombre} va a poder invitar personas, cambiar roles y manejar los presupuestos de ${widget.nombreCuenta}.'
-              : '${miembro.nombre} va a dejar de poder invitar, cambiar roles y manejar presupuestos. Va a seguir viendo y cargando movimientos.',
+              ? ctx.tr(
+                  '{nombre} va a poder invitar personas, cambiar roles y manejar los presupuestos de {cuenta}.',
+                  {'nombre': miembro.nombre, 'cuenta': widget.nombreCuenta},
+                )
+              : ctx.tr(
+                  '{nombre} va a dejar de poder invitar, cambiar roles y manejar presupuestos. Va a seguir viendo y cargando movimientos.',
+                  {'nombre': miembro.nombre},
+                ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-            child: const Text('Cancelar'),
+            child: Text(ctx.tr('Cancelar')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(ascender ? 'Hacer administrador' : 'Pasar a miembro'),
+            child: Text(
+              ascender ? ctx.tr('Hacer administrador') : ctx.tr('Pasar a miembro'),
+            ),
           ),
         ],
       ),
@@ -69,7 +80,10 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          error ?? (ascender ? '${miembro.nombre} ahora es administrador' : '${miembro.nombre} ahora es miembro'),
+          error ??
+              (ascender
+                  ? context.tr('{nombre} ahora es administrador', {'nombre': miembro.nombre})
+                  : context.tr('{nombre} ahora es miembro', {'nombre': miembro.nombre})),
         ),
         backgroundColor: error != null ? AppColors.danger : null,
       ),
@@ -83,7 +97,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Miembros y roles'),
+            Text(context.tr('Miembros y roles')),
             Text(widget.nombreCuenta, style: const TextStyle(fontSize: 12.5, color: AppColors.muted)),
           ],
         ),
@@ -109,7 +123,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
             const SizedBox(height: 16),
             Text(_vm.error!, style: const TextStyle(color: AppColors.muted)),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _vm.cargar, child: const Text('Reintentar')),
+            FilledButton.tonal(onPressed: _vm.cargar, child: Text(context.tr('Reintentar'))),
           ],
         ),
       );
@@ -175,8 +189,8 @@ class _Encabezado extends StatelessWidget {
       children: [
         Text(
           soyAdmin
-              ? 'Sos administrador: tocá el rol de alguien para cambiarlo.'
-              : 'Solo los administradores pueden cambiar los roles.',
+              ? context.tr('Sos administrador: tocá el rol de alguien para cambiarlo.')
+              : context.tr('Solo los administradores pueden cambiar los roles.'),
           style: const TextStyle(fontSize: 13.5, color: AppColors.muted, height: 1.4),
         ),
         const SizedBox(height: 10),
@@ -184,8 +198,18 @@ class _Encabezado extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _Contador(texto: '$admins ${admins == 1 ? 'administrador' : 'administradores'}', esAdmin: true),
-            _Contador(texto: '$miembros ${miembros == 1 ? 'miembro' : 'miembros'}', esAdmin: false),
+            _Contador(
+              texto: admins == 1
+                  ? context.tr('1 administrador')
+                  : context.tr('{n} administradores', {'n': '$admins'}),
+              esAdmin: true,
+            ),
+            _Contador(
+              texto: miembros == 1
+                  ? context.tr('1 miembro')
+                  : context.tr('{n} miembros', {'n': '$miembros'}),
+              esAdmin: false,
+            ),
           ],
         ),
       ],
@@ -285,13 +309,15 @@ class _FilaMiembro extends StatelessWidget {
                     ),
                     if (esVos) ...[
                       const SizedBox(width: 6),
-                      const _Marca('vos'),
+                      _Marca(context.tr('vos')),
                     ],
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  m.esCreador ? 'Creó la cuenta compartida' : (m.esAdmin ? 'Administrador' : 'Miembro'),
+                  m.esCreador
+                      ? context.tr('Creó la cuenta compartida')
+                      : (m.esAdmin ? context.tr('Administrador') : context.tr('Miembro')),
                   style: const TextStyle(fontSize: 12.5, color: AppColors.muted),
                 ),
               ],
@@ -334,7 +360,7 @@ class _EtiquetaRol extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            esAdmin ? 'Admin' : 'Miembro',
+            esAdmin ? context.tr('Admin') : context.tr('Miembro'),
             style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: colorTexto),
           ),
           if (desplegable) Icon(Icons.arrow_drop_down, size: 18, color: colorTexto),
@@ -354,7 +380,7 @@ class _SelectorRol extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      tooltip: 'Cambiar rol',
+      tooltip: context.tr('Cambiar rol'),
       initialValue: rolActual,
       position: PopupMenuPosition.under,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -362,8 +388,18 @@ class _SelectorRol extends StatelessWidget {
         if (rol != rolActual) alElegir(rol);
       },
       itemBuilder: (_) => [
-        _opcion('ADMIN', 'Administrador', 'Invita, cambia roles y maneja presupuestos', Icons.admin_panel_settings_outlined),
-        _opcion('MIEMBRO', 'Miembro', 'Ve y carga movimientos', Icons.person_outline),
+        _opcion(
+          'ADMIN',
+          context.tr('Administrador'),
+          context.tr('Invita, cambia roles y maneja presupuestos'),
+          Icons.admin_panel_settings_outlined,
+        ),
+        _opcion(
+          'MIEMBRO',
+          context.tr('Miembro'),
+          context.tr('Ve y carga movimientos'),
+          Icons.person_outline,
+        ),
       ],
       child: Padding(
         padding: const EdgeInsets.all(4),
@@ -415,14 +451,14 @@ class _QueHaceCadaRol extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'QUÉ PUEDE HACER CADA ROL',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.muted, letterSpacing: 0.8),
+        Text(
+          context.tr('QUÉ PUEDE HACER CADA ROL'),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.muted, letterSpacing: 0.8),
         ),
         const SizedBox(height: 12),
-        for (final (rol, detalle) in const [
-          ('ADMIN', 'Invita personas, cambia roles, crea categorías y maneja los presupuestos de la cuenta.'),
-          ('MIEMBRO', 'Ve y carga movimientos de la cuenta compartida.'),
+        for (final (rol, detalle) in [
+          ('ADMIN', context.tr('Invita personas, cambia roles, crea categorías y maneja los presupuestos de la cuenta.')),
+          ('MIEMBRO', context.tr('Ve y carga movimientos de la cuenta compartida.')),
         ]) ...[
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,9 +472,9 @@ class _QueHaceCadaRol extends StatelessWidget {
           ),
           const SizedBox(height: 10),
         ],
-        const Text(
-          'A quien creó la cuenta compartida no se le puede cambiar el rol, y nadie puede cambiar el suyo.',
-          style: TextStyle(fontSize: 12.5, color: AppColors.faint, height: 1.4),
+        Text(
+          context.tr('A quien creó la cuenta compartida no se le puede cambiar el rol, y nadie puede cambiar el suyo.'),
+          style: const TextStyle(fontSize: 12.5, color: AppColors.faint, height: 1.4),
         ),
       ],
     );
