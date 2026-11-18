@@ -39,7 +39,7 @@ public class MetaDeAhorroController {
                 request.getMontoObjetivo(),
                 request.getFechaLimite());
 
-        MetaDeAhorroResponseDTO dto = MetaDeAhorroResponseDTO.fromEntity(meta);
+        MetaDeAhorroResponseDTO dto = convertirRespuesta(cuentaId, meta);
         return Response.created(dto, "Meta de ahorro creada exitosamente");
     }
 
@@ -53,7 +53,7 @@ public class MetaDeAhorroController {
 
         List<MetaDeAhorro> metas = metaService.listarMetas(cuentaId, cuentaCompartidaId);
         List<MetaDeAhorroResponseDTO> response = metas.stream()
-                .map(MetaDeAhorroResponseDTO::fromEntity)
+                .map(meta -> convertirRespuesta(cuentaId, meta))
                 .collect(Collectors.toList());
 
         return Response.ok(response);
@@ -75,7 +75,7 @@ public class MetaDeAhorroController {
                 request.getMontoObjetivo(),
                 request.getFechaLimite());
 
-        MetaDeAhorroResponseDTO dto = MetaDeAhorroResponseDTO.fromEntity(meta);
+        MetaDeAhorroResponseDTO dto = convertirRespuesta(cuentaId, meta);
         return Response.ok(dto, "Meta de ahorro actualizada exitosamente");
     }
 
@@ -90,7 +90,7 @@ public class MetaDeAhorroController {
 
         MetaDeAhorro meta = metaService.abonarDinero(cuentaId, id, request.getMonto());
 
-        MetaDeAhorroResponseDTO dto = MetaDeAhorroResponseDTO.fromEntity(meta);
+        MetaDeAhorroResponseDTO dto = convertirRespuesta(cuentaId, meta);
         return Response.ok(dto, "Abono realizado exitosamente");
     }
 
@@ -104,5 +104,20 @@ public class MetaDeAhorroController {
 
         metaService.eliminarMeta(cuentaId, id);
         return Response.ok(null, "Meta de ahorro eliminada exitosamente");
+    }
+
+    private MetaDeAhorroResponseDTO convertirRespuesta(Long cuentaId, MetaDeAhorro meta) {
+        MetaDeAhorroService.CuotasAhorro cuotas = metaService.calcularCuotas(meta);
+        MetaDeAhorroService.ResumenAportes aportes = metaService.resumenAportes(cuentaId, meta);
+        return MetaDeAhorroResponseDTO.fromEntity(
+                meta,
+                cuotas.montoRestante(),
+                cuotas.cuotaDiaria(),
+                cuotas.cuotaDiariaFinal(),
+                cuotas.cuotaSemanal(),
+                cuotas.cuotaSemanalFinal(),
+                cuotas.cuotaMensual(),
+                cuotas.cuotaMensualFinal(),
+                aportes.integrantes());
     }
 }
