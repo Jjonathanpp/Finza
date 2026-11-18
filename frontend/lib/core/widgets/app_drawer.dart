@@ -13,6 +13,7 @@ import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/lista-invitaciones/presentation/screens/lista_invitaciones_screen.dart';
 import 'package:frontend/features/mercadopago/sincronizacion_al_entrar.dart';
 import 'package:frontend/l10n/idioma.dart';
+import 'package:frontend/features/metas_ahorro/presentation/screens/metas_ahorro_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -120,6 +121,25 @@ class AppDrawer extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => const PantallaPrincipal(pestana: 2),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.savings_outlined,
+                      color: AppColors.muted,
+                    ),
+                    title: Text(
+                      context.tr('Metas de ahorro'),
+                      style: TextStyle(color: AppColors.text),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MetasAhorroScreen(),
                         ),
                       );
                     },
