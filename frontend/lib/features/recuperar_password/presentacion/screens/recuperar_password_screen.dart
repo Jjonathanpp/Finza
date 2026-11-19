@@ -5,6 +5,7 @@ import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/campo.dart';
 import 'package:frontend/features/recuperar_password/data/dataresources/recuperacion_api.dart';
 import 'package:frontend/features/recuperar_password/presentacion/screens/restablecer_password_screen.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class RecuperarPasswordScreen extends StatefulWidget {
   const RecuperarPasswordScreen({super.key});
@@ -40,7 +41,7 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
       await _api.solicitarCodigo(email);
 
       if (!mounted) return;
-      mostrarExito(context, 'Te enviamos un código a tu email');
+      mostrarExito(context, context.tr('Te enviamos un código a tu email'));
       // pushReplacement: al volver atrás se regresa al login, no a esta pantalla
       Navigator.pushReplacement(
         context,
@@ -58,7 +59,7 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Recuperar contraseña')),
+      appBar: AppBar(title: Text(context.tr('Recuperar contraseña'))),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -67,14 +68,15 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Ingresá el email asociado a tu cuenta y te enviaremos '
-                  'un código de 6 dígitos para restablecer tu contraseña.',
-                  style: TextStyle(color: AppColors.muted),
+                Text(
+                  context.tr(
+                    'Ingresá el email asociado a tu cuenta y te enviaremos un código de 6 dígitos para restablecer tu contraseña.',
+                  ),
+                  style: const TextStyle(color: AppColors.muted),
                 ),
                 const SizedBox(height: 24),
                 Campo(
-                  etiqueta: 'Email',
+                  etiqueta: context.tr('Email'),
                   child: TextFormField(
                     controller: _emailCtrl,
                     decoration: const InputDecoration(
@@ -83,10 +85,10 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
                     keyboardType: TextInputType.emailAddress,
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) {
-                        return 'Ingresá tu email';
+                        return context.tr('Ingresá tu email');
                       }
                       final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
-                      if (!regex.hasMatch(v.trim())) return 'Email inválido';
+                      if (!regex.hasMatch(v.trim())) return context.tr('Email inválido');
                       return null;
                     },
                   ),
@@ -114,7 +116,7 @@ class _RecuperarPasswordScreenState extends State<RecuperarPasswordScreen> {
                             color: AppColors.accentInk,
                           ),
                         )
-                      : const Text('Enviar código'),
+                      : Text(context.tr('Enviar código')),
                 ),
               ],
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Ingreso y Egreso juntos, como en la maqueta. Lo usan el alta de movimientos y la de categorías.
 class SelectorTipo extends StatelessWidget {
@@ -11,9 +12,9 @@ class SelectorTipo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SegmentedButton<bool>(
-      segments: const [
-        ButtonSegment(value: true, label: Text('Ingreso')),
-        ButtonSegment(value: false, label: Text('Egreso')),
+      segments: [
+        ButtonSegment(value: true, label: Text(context.tr('Ingreso'))),
+        ButtonSegment(value: false, label: Text(context.tr('Egreso'))),
       ],
       selected: {esIngreso},
       onSelectionChanged: (seleccion) => alCambiar(seleccion.first),

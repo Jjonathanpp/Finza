@@ -8,10 +8,11 @@ import 'package:frontend/features/configuracion/data/datasources/preferencias_ap
 import 'package:frontend/features/configuracion/presentation/screens/cambiar_password_screen.dart';
 import 'package:frontend/features/configuracion/presentation/viewmodels/configuracion_view_model.dart';
 import 'package:frontend/features/cuentas_compartidas/presentation/widgets/selector_de_cuenta.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
 // Se abre tocando el usuario, abajo del menú lateral. Tiene la cuenta (personal o compartida, t-13.1.2),
-// la moneda (US-8.2) y el cambio de contraseña.
+// la moneda (US-8.2), el idioma (US-8.3) y el cambio de contraseña.
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({super.key, this.api});
 
@@ -32,10 +33,18 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     super.dispose();
   }
 
+  Widget _titulo(String texto) => Padding(
+    padding: const EdgeInsets.fromLTRB(18, 12, 18, 4),
+    child: Text(
+      texto,
+      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, 'Configuración'),
+      appBar: barraConVolver(context, context.tr('Configuración')),
       body: ListenableBuilder(
         listenable: Listenable.merge([_vm, monedaVista]),
         builder: (context, _) {
@@ -50,18 +59,17 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
               const Divider(color: AppColors.line),
               const SelectorDeCuenta(),
               const Divider(color: AppColors.line),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(18, 12, 18, 4),
+              _titulo(context.tr('Moneda')),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Text(
-                  'Moneda',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 18),
-                child: Text(
-                  'Los montos se cargan siempre en pesos. Con otra moneda, se muestran convertidos con la cotización del día.',
-                  style: TextStyle(color: AppColors.muted, fontSize: 12.5),
+                  context.tr(
+                    'Los montos se cargan siempre en pesos. Con otra moneda, se muestran convertidos con la cotización del día.',
+                  ),
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12.5,
+                  ),
                 ),
               ),
               RadioGroup<String>(
@@ -71,10 +79,10 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                 },
                 child: Column(
                   children: [
-                    for (final (valor, nombre) in const [
-                      ('PESO', 'Pesos'),
-                      ('DOLAR', 'Dólares'),
-                      ('EURO', 'Euros'),
+                    for (final (valor, nombre) in [
+                      ('PESO', context.tr('Pesos')),
+                      ('DOLAR', context.tr('Dólares')),
+                      ('EURO', context.tr('Euros')),
                     ])
                       RadioListTile<String>(
                         value: valor,
@@ -89,7 +97,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                 child: Text(
                   error ??
                       (sinCotizacion
-                          ? 'No se pudo conseguir la cotización: por ahora se ve en pesos.'
+                          ? context.tr(
+                              'No se pudo conseguir la cotización: por ahora se ve en pesos.',
+                            )
                           : aclaracionCotizacion ?? ''),
                   style: TextStyle(
                     color: error != null ? AppColors.danger : AppColors.muted,
@@ -98,9 +108,23 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                 ),
               ),
               const Divider(color: AppColors.line),
+              _titulo(context.tr('Idioma')),
+              // Los idiomas salen de los archivos de assets/idiomas/, cada uno con su nombre en su idioma
+              RadioGroup<String>(
+                groupValue: idioma.value.languageCode,
+                onChanged: (codigo) => cambiarIdioma(codigo!),
+                child: Column(
+                  children: [
+                    for (final MapEntry(key: codigo, value: nombre)
+                        in idiomas.entries)
+                      RadioListTile<String>(value: codigo, title: Text(nombre)),
+                  ],
+                ),
+              ),
+              const Divider(color: AppColors.line),
               ListTile(
                 leading: const Icon(Icons.lock_outline),
-                title: const Text('Cambiar contraseña'),
+                title: Text(context.tr('Cambiar contraseña')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(

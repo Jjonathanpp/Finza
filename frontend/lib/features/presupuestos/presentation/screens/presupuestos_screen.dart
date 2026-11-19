@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
-import 'package:frontend/features/presupuestos/presentation/screens/alta_presupuestos_screen.dart'; // Nombre con "s" como lo guardaste
+import 'package:frontend/features/presupuestos/presentation/screens/alta_presupuestos_screen.dart';
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/barra_progreso_presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/desglose_integrantes.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/editar_presupuesto_sheet.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/tarjetas_cargando.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
 import 'package:provider/provider.dart';
@@ -54,7 +55,7 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(conCuentaActiva('Presupuestos')),
+        title: Text(conCuentaActiva(context.tr('Presupuestos'))),
         elevation: 0,
       ),
       body: Consumer<PresupuestosViewModel>(
@@ -70,16 +71,16 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                     IconButton(
                       icon: const Icon(Icons.chevron_left, size: 28),
                       onPressed: () => _cambiarMes(vm, -1),
-                      tooltip: 'Mes anterior',
+                      tooltip: context.tr('Mes anterior'),
                     ),
                     Text(
-                      '${_meses[vm.mesActual]} ${vm.anioActual}',
+                      '${context.tr(_meses[vm.mesActual])} ${vm.anioActual}',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
                       icon: const Icon(Icons.chevron_right, size: 28),
                       onPressed: () => _cambiarMes(vm, 1),
-                      tooltip: 'Mes siguiente',
+                      tooltip: context.tr('Mes siguiente'),
                     ),
                   ],
                 ),
@@ -90,7 +91,10 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                   child: Text(
-                    'Solo los administradores de ${cuentaActiva.value!['nombre']} pueden agregar o cambiar presupuestos.',
+                    context.tr(
+                      'Solo los administradores de {cuenta} pueden agregar o cambiar presupuestos.',
+                      {'cuenta': '${cuentaActiva.value!['nombre']}'},
+                    ),
                     style: const TextStyle(color: AppColors.muted, fontSize: 13),
                   ),
                 )
@@ -102,7 +106,10 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                     height: 54,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.add_circle_outline, size: 22),
-                      label: const Text('Agregar presupuesto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      label: Text(
+                        context.tr('Agregar presupuesto'),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
                         foregroundColor: Colors.white,
@@ -149,7 +156,7 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => vm.cargarPresupuestos(),
-              child: const Text('Reintentar'),
+              child: Text(context.tr('Reintentar')),
             ),
           ],
         ),
@@ -165,8 +172,11 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
             const SizedBox(height: 16),
             Text(
               cuentaActiva.value == null
-                  ? 'No hay presupuestos en ${_meses[vm.mesActual]}'
-                  : '${cuentaActiva.value!['nombre']} no tiene presupuestos en ${_meses[vm.mesActual]}',
+                  ? context.tr('No hay presupuestos en {mes}', {'mes': context.tr(_meses[vm.mesActual])})
+                  : context.tr('{cuenta} no tiene presupuestos en {mes}', {
+                      'cuenta': '${cuentaActiva.value!['nombre']}',
+                      'mes': context.tr(_meses[vm.mesActual]),
+                    }),
               style: const TextStyle(color: AppColors.muted, fontSize: 16),
             ),
             if (cuentaActiva.value != null) ...[
@@ -175,8 +185,8 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
                   esAdminDeCuentaActiva
-                      ? 'Cuando agregues uno, acá vas a ver cuánto gastó cada integrante.'
-                      : 'Cuando un administrador agregue uno, acá vas a ver cuánto gastó cada integrante.',
+                      ? context.tr('Cuando agregues uno, acá vas a ver cuánto gastó cada integrante.')
+                      : context.tr('Cuando un administrador agregue uno, acá vas a ver cuánto gastó cada integrante.'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.45),
                 ),
@@ -197,18 +207,18 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
         itemCount: lista.length + 1,
-        separatorBuilder: (_, i) => i == 0
-            ? const Padding(
-                padding: EdgeInsets.fromLTRB(4, 24, 4, 10),
+        separatorBuilder: (context, i) => i == 0
+            ? Padding(
+                padding: const EdgeInsets.fromLTRB(4, 24, 4, 10),
                 child: Text(
-                  'POR CATEGORÍA',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.muted, letterSpacing: 0.8),
+                  context.tr('POR CATEGORÍA'),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.muted, letterSpacing: 0.8),
                 ),
               )
             : const SizedBox(height: 14),
         itemBuilder: (context, index) {
           if (index == 0) {
-            return _ResumenMes(vm: vm, nombreMes: _meses[vm.mesActual]);
+            return _ResumenMes(vm: vm, nombreMes: context.tr(_meses[vm.mesActual]));
           }
 
           final p = lista[index - 1];
@@ -219,9 +229,8 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
             enCompartida: enCompartida,
             abierta: abierta,
             diasRestantes: vm.diasRestantes,
-            // ACÁ ESTÁ EL CAMBIO: Si es personal, abre el modal directo. Si es compartida, despliega desglose.
-            alTocar: enCompartida 
-                ? () => setState(() => _abierto = abierta ? null : p.presupuestoId) 
+            alTocar: enCompartida
+                ? () => setState(() => _abierto = abierta ? null : p.presupuestoId)
                 : () => _editar(vm, p),
             desglose: abierta
                 ? DesgloseIntegrantes(
@@ -240,12 +249,12 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
     final enCompartida = cuentaActiva.value != null;
     showModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true, // sube con el teclado
+      isScrollControlled: true,
       builder: (_) => EditarPresupuestoSheet(
         presupuesto: p,
-        periodo: '${_meses[vm.mesActual]} ${vm.anioActual}',
-        cuenta: enCompartida ? cuentaActiva.value!['nombre'] as String : 'tu cuenta',
-        enCompartida: enCompartida, // Le pasamos el flag para saber el tipo de cuenta
+        periodo: '${context.tr(_meses[vm.mesActual])} ${vm.anioActual}',
+        cuenta: enCompartida ? cuentaActiva.value!['nombre'] as String : context.tr('tu cuenta'),
+        enCompartida: enCompartida,
         alGuardar: (tope, intervalo) => vm.editarTope(p, tope, intervaloAviso: intervalo),
         alDesactivar: () => vm.desactivar(p),
       ),
@@ -270,11 +279,11 @@ class _ResumenMes extends StatelessWidget {
 
     final String textoSaldo;
     if (disponible < 0) {
-      textoSaldo = 'Te pasaste ${importe(-disponible)} del total presupuestado';
+      textoSaldo = context.tr('Te pasaste {monto} del total presupuestado', {'monto': importe(-disponible)});
     } else if (vm.esMesPasado) {
-      textoSaldo = 'Te sobraron ${importe(disponible)} ese mes';
+      textoSaldo = context.tr('Te sobraron {monto} ese mes', {'monto': importe(disponible)});
     } else {
-      textoSaldo = 'Te quedan ${importe(disponible)} para el resto del mes';
+      textoSaldo = context.tr('Te quedan {monto} para el resto del mes', {'monto': importe(disponible)});
     }
 
     return AnimatedContainer(
@@ -296,7 +305,7 @@ class _ResumenMes extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Resumen de $nombreMes',
+                context.tr('Resumen de {mes}', {'mes': nombreMes}),
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.muted),
               ),
               const Spacer(),
@@ -312,7 +321,7 @@ class _ResumenMes extends StatelessWidget {
                   style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.text),
                 ),
                 TextSpan(
-                  text: '  de ${importe(vm.totalTope)}',
+                  text: context.tr('  de {monto}', {'monto': importe(vm.totalTope)}),
                   style: const TextStyle(fontSize: 15, color: AppColors.muted),
                 ),
               ],
@@ -332,7 +341,12 @@ class _ResumenMes extends StatelessWidget {
           if (disponible > 0 && dias != null) ...[
             const SizedBox(height: 4),
             Text(
-              'Unos ${importe(disponible / dias)} por día durante ${dias == 1 ? 'el último día' : '$dias días'}',
+              dias == 1
+                  ? context.tr('Unos {monto} por día durante el último día', {'monto': importe(disponible / dias)})
+                  : context.tr('Unos {monto} por día durante {dias} días', {
+                      'monto': importe(disponible / dias),
+                      'dias': '$dias',
+                    }),
               style: const TextStyle(fontSize: 12.5, color: AppColors.muted),
             ),
           ],
@@ -342,13 +356,13 @@ class _ResumenMes extends StatelessWidget {
             runSpacing: 8,
             children: [
               if (vm.cantidadEnOrden > 0)
-                _ChipEstado(cantidad: vm.cantidadEnOrden, texto: 'en orden', color: colorPorConsumo(0)),
+                _ChipEstado(cantidad: vm.cantidadEnOrden, texto: context.tr('en orden'), color: colorPorConsumo(0)),
               if (vm.cantidadCercaDelTope > 0)
-                _ChipEstado(cantidad: vm.cantidadCercaDelTope, texto: 'cerca del tope', color: colorPorConsumo(80)),
+                _ChipEstado(cantidad: vm.cantidadCercaDelTope, texto: context.tr('cerca del tope'), color: colorPorConsumo(80)),
               if (vm.cantidadExcedidos > 0)
                 _ChipEstado(
                   cantidad: vm.cantidadExcedidos,
-                  texto: vm.cantidadExcedidos == 1 ? 'excedido' : 'excedidos',
+                  texto: vm.cantidadExcedidos == 1 ? context.tr('excedido') : context.tr('excedidos'),
                   color: colorPorConsumo(100),
                 ),
             ],
@@ -386,7 +400,7 @@ class _TarjetaPresupuesto extends StatelessWidget {
     final colorTexto = colorTextoPorConsumo(porcentaje);
     final colorCat = colorDesdeHex(p.categoriaColor);
     final disponible = p.montoTope - p.montoGastado;
-    final (iconoEstado, textoEstado) = _estado(porcentaje);
+    final (iconoEstado, textoEstado) = _estado(context, porcentaje);
     final inicial = p.categoriaNombre.isEmpty ? '?' : p.categoriaNombre.characters.first.toUpperCase();
     final sinAnimaciones = MediaQuery.disableAnimationsOf(context);
 
@@ -437,7 +451,7 @@ class _TarjetaPresupuesto extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  p.categoriaNombre,
+                                  context.tr(p.categoriaNombre),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
@@ -473,10 +487,10 @@ class _TarjetaPresupuesto extends StatelessWidget {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          Expanded(child: _Dato(etiqueta: 'Gastado', valor: importe(p.montoGastado))),
+                          Expanded(child: _Dato(etiqueta: context.tr('Gastado'), valor: importe(p.montoGastado))),
                           Expanded(
                             child: _Dato(
-                              etiqueta: disponible >= 0 ? 'Disponible' : 'Excedido',
+                              etiqueta: disponible >= 0 ? context.tr('Disponible') : context.tr('Excedido'),
                               valor: importe(disponible.abs()),
                               color: disponible < 0 ? AppColors.danger : null,
                               alineacion: CrossAxisAlignment.center,
@@ -484,7 +498,7 @@ class _TarjetaPresupuesto extends StatelessWidget {
                           ),
                           Expanded(
                             child: _Dato(
-                              etiqueta: 'Tope',
+                              etiqueta: context.tr('Tope'),
                               valor: importe(p.montoTope),
                               alineacion: CrossAxisAlignment.end,
                             ),
@@ -499,7 +513,7 @@ class _TarjetaPresupuesto extends StatelessWidget {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                'Podés gastar ${importe(disponible / diasRestantes!)} por día',
+                                context.tr('Podés gastar {monto} por día', {'monto': importe(disponible / diasRestantes!)}),
                                 style: const TextStyle(fontSize: 12.5, color: AppColors.muted),
                               ),
                             ),
@@ -524,12 +538,12 @@ class _TarjetaPresupuesto extends StatelessWidget {
   }
 }
 
-(IconData, String) _estado(double porcentaje) {
-  if (porcentaje >= 100) return (Icons.error_outline, 'Tope superado');
-  if (porcentaje >= 80) return (Icons.warning_amber_rounded, 'Cerca del tope');
-  if (porcentaje >= 50) return (Icons.info_outline, 'Usaste más de la mitad');
-  if (porcentaje > 0) return (Icons.check_circle_outline, 'Vas bien');
-  return (Icons.check_circle_outline, 'Sin gastos todavía');
+(IconData, String) _estado(BuildContext context, double porcentaje) {
+  if (porcentaje >= 100) return (Icons.error_outline, context.tr('Tope superado'));
+  if (porcentaje >= 80) return (Icons.warning_amber_rounded, context.tr('Cerca del tope'));
+  if (porcentaje >= 50) return (Icons.info_outline, context.tr('Usaste más de la mitad'));
+  if (porcentaje > 0) return (Icons.check_circle_outline, context.tr('Vas bien'));
+  return (Icons.check_circle_outline, context.tr('Sin gastos todavía'));
 }
 
 // ======================= PIEZAS CHICAS =======================

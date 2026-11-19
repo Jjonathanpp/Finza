@@ -10,6 +10,7 @@ import 'package:frontend/core/storage/token_storage.dart';
 import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/barra_progreso_presupuesto.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
 // Aviso de presupuesto: "Che, estás llegando al límite". Cada presupuesto avisa cada X % de
@@ -136,7 +137,7 @@ class _CuadroAviso extends StatelessWidget {
         size: 40,
         color: colorTextoPorConsumo(peor),
       ),
-      title: Text(excedido ? 'Che, te pasaste del presupuesto' : 'Che, estás llegando al límite'),
+      title: Text(excedido ? context.tr('Che, te pasaste del presupuesto') : context.tr('Che, estás llegando al límite')),
       // Ancho fijo: AlertDialog mide su contenido antes de dibujarlo, y así no depende de lo
       // que haya adentro (además, en la compu no se estira a toda la pantalla).
       content: SizedBox(
@@ -157,7 +158,7 @@ class _CuadroAviso extends StatelessWidget {
       actions: [
         FilledButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Entendido'),
+          child: Text(context.tr('Entendido')),
         ),
       ],
     );
@@ -202,8 +203,8 @@ class _FilaAviso extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           diferencia < 0
-              ? 'Gastaste ${importe(p.montoGastado)} de ${importe(p.montoTope)}: te pasaste ${importe(-diferencia)}.'
-              : 'Gastaste ${importe(p.montoGastado)} de ${importe(p.montoTope)}. Te quedan ${importe(diferencia)}.',
+              ? context.tr('Gastaste {gastado} de {tope}: te pasaste {exceso}.', {'gastado': importe(p.montoGastado), 'tope': importe(p.montoTope), 'exceso': importe(-diferencia)})
+              : context.tr('Gastaste {gastado} de {tope}. Te quedan {restante}.', {'gastado': importe(p.montoGastado), 'tope': importe(p.montoTope), 'restante': importe(diferencia)}),
           style: const TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4),
         ),
       ],

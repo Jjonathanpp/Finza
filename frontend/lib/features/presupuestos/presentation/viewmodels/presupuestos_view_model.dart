@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class PresupuestosViewModel extends ChangeNotifier {
   PresupuestosViewModel(this._api);
@@ -93,7 +94,7 @@ class PresupuestosViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _error = e.message;
     } catch (e) {
-      _error = 'Error inesperado al cargar presupuestos: $e';
+      _error = tr('Error inesperado al cargar presupuestos: {error}', {'error': '$e'});
     } finally {
       _cargando = false;
       notifyListeners();

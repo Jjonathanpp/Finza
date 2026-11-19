@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Aviso de versión nueva (t-1.8.5): al abrir la app, si en GitHub Releases hay una más nueva que la
 // instalada, un cuadro para bajarla. La versión instalada la pasa el workflow "Publicar APK" al armar
@@ -58,11 +59,11 @@ Future<void> avisarSiHayVersionNueva({
   final actualizar = await showDialog<bool>(
     context: contexto,
     builder: (contexto) => AlertDialog(
-      title: const Text('Hay una versión nueva de Finza'),
-      content: Text('Tenés la $instalada y ya salió la $version. Se instala encima, sin perder nada.'),
+      title: Text(contexto.tr('Hay una versión nueva de Finza')),
+      content: Text(contexto.tr('Tenés la {instalada} y ya salió la {nueva}. Se instala encima, sin perder nada.', {'instalada': instalada, 'nueva': version})),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Más tarde')),
-        FilledButton(onPressed: () => Navigator.pop(contexto, true), child: const Text('Actualizar')),
+        TextButton(onPressed: () => Navigator.pop(contexto, false), child: Text(contexto.tr('Más tarde'))),
+        FilledButton(onPressed: () => Navigator.pop(contexto, true), child: Text(contexto.tr('Actualizar'))),
       ],
     ),
   );

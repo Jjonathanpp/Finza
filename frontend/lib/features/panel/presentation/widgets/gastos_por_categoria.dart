@@ -4,6 +4,7 @@ import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_gastos.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
@@ -39,11 +40,11 @@ class _GastosPorCategoriaState extends State<GastosPorCategoria> {
               padding: const EdgeInsets.only(top: 20, bottom: 9),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: Text('En qué gastás', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                  Expanded(
+                    child: Text(context.tr('En qué gastás'), style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
                   ),
                   if (resumen != null && resumen.categorias.isNotEmpty)
-                    Text('Total ${importe(resumen.total)}', style: _numeros.copyWith(color: AppColors.muted, fontSize: 12)),
+                    Text(context.tr('Total {monto}', {'monto': importe(resumen.total)}), style: _numeros.copyWith(color: AppColors.muted, fontSize: 12)),
                 ],
               ),
             ),
@@ -69,10 +70,10 @@ class _GastosPorCategoriaState extends State<GastosPorCategoria> {
     }
     final error = respuesta.error;
     if (error != null) {
-      return _aviso(error is ApiException ? error.message : 'No se pudieron cargar los gastos');
+      return _aviso(error is ApiException ? error.message : context.tr('No se pudieron cargar los gastos'));
     }
     final categorias = respuesta.data!.categorias;
-    if (categorias.isEmpty) return _aviso('Todavía no hay gastos este mes.');
+    if (categorias.isEmpty) return _aviso(context.tr('Todavía no hay gastos este mes.'));
     return Column(spacing: 9, children: [for (final gasto in categorias) _Fila(gasto)]);
   }
 
@@ -97,7 +98,7 @@ class _Fila extends StatelessWidget {
         const SizedBox(width: 9),
         Expanded(
           child: Text(
-            gasto.nombre,
+            context.tr(gasto.nombre),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: AppColors.muted, fontSize: 12.5),

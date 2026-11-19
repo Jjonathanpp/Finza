@@ -8,6 +8,7 @@ import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopag
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/importar_mp_screen.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class MercadoPagoScreen extends StatefulWidget {
@@ -52,17 +53,19 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('¿Desvincular Mercado Pago?'),
-        content: const Text('No se borrarán los movimientos ya importados.'),
+        title: Text(context.tr('¿Desvincular Mercado Pago?')),
+        content: Text(
+          context.tr('No se borrarán los movimientos ya importados.'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(context.tr('Cancelar')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Desvincular'),
+            child: Text(context.tr('Desvincular')),
           ),
         ],
       ),
@@ -74,17 +77,17 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
     if (!mounted) return;
 
     if (error == null) {
-      mostrarExito(context, 'Cuenta desvinculada exitosamente');
+      mostrarExito(context, context.tr('Cuenta desvinculada exitosamente'));
     } else {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Error al desvincular'),
+          title: Text(context.tr('Error al desvincular')),
           content: Text(error),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Entendido'),
+              child: Text(context.tr('Entendido')),
             ),
           ],
         ),
@@ -110,7 +113,13 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al iniciar vinculación: $e')),
+        SnackBar(
+          content: Text(
+            context.tr('Error al iniciar vinculación: {error}', {
+              'error': '$e',
+            }),
+          ),
+        ),
       );
     }
   }
@@ -123,14 +132,14 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
         listenable: _vm,
         builder: (context, _) {
           if (_vm.cargando && _vm.estado == null) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 12),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 12),
                   Text(
-                    'Esperando vinculación de Mercado Pago...',
+                    context.tr('Esperando vinculación de Mercado Pago...'),
                     style: TextStyle(color: AppColors.muted),
                   ),
                 ],
@@ -154,7 +163,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: _vm.cargar,
-                      child: const Text('Reintentar'),
+                      child: Text(context.tr('Reintentar')),
                     ),
                   ],
                 ),
@@ -184,8 +193,8 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
                 const SizedBox(height: 16),
 
                 if (_vm.pendientes.isNotEmpty) ...[
-                  const Text(
-                    'Pendientes de confirmar',
+                  Text(
+                    context.tr('Pendientes de confirmar'),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -231,18 +240,24 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
             child: const Icon(Icons.credit_card, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Cuenta vinculada',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  context.tr('Cuenta vinculada'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Sincronización activa con Finza',
-                  style: TextStyle(fontSize: 12.5, color: AppColors.muted),
+                  context.tr('Sincronización activa con Finza'),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.muted,
+                  ),
                 ),
               ],
             ),
@@ -253,8 +268,8 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
               color: const Color(0xFF00A650).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Text(
-              'ACTIVA',
+            child: Text(
+              context.tr('ACTIVA'),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -277,18 +292,21 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
       ),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Desvincular la cuenta',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  context.tr('Desvincular la cuenta'),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
-                  'No borra los movimientos ya importados',
-                  style: TextStyle(fontSize: 12, color: AppColors.muted),
+                  context.tr('No borra los movimientos ya importados'),
+                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
                 ),
               ],
             ),
@@ -301,8 +319,8 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text(
-              'Desvincular',
+            child: Text(
+              context.tr('Desvincular'),
               style: TextStyle(color: Colors.black87),
             ),
           ),
@@ -331,13 +349,15 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
             child: const Icon(Icons.link, color: Color(0xFF009EE3), size: 30),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Conectá tu Mercado Pago',
+          Text(
+            context.tr('Conectá tu Mercado Pago'),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Sincronizá tus ingresos y gastos automáticamente sin tener que cargarlos a mano.',
+          Text(
+            context.tr(
+              'Sincronizá tus ingresos y gastos automáticamente sin tener que cargarlos a mano.',
+            ),
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppColors.muted),
           ),
@@ -354,8 +374,8 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Vincular cuenta',
+              child: Text(
+                context.tr('Vincular cuenta'),
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
@@ -399,7 +419,9 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
               )
             : const Icon(Icons.add_circle_outline, size: 20),
         label: Text(
-          _vm.cargando ? 'Cargando...' : 'Importar de Mercado Pago',
+          _vm.cargando
+              ? context.tr('Cargando...')
+              : context.tr('Importar de Mercado Pago'),
           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
         ),
       ),
@@ -423,7 +445,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  m.descripcion ?? 'Movimiento Mercado Pago',
+                  m.descripcion ?? context.tr('Movimiento Mercado Pago'),
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -450,7 +472,10 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
               minimumSize: const Size(0, 36),
             ),
             icon: const Icon(Icons.fact_check_outlined, size: 16),
-            label: const Text('Verificar', style: TextStyle(fontSize: 13)),
+            label: Text(
+              context.tr('Verificar'),
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
         ],
       ),

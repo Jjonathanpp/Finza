@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Mientras llegan los presupuestos del mes (t-13.2.2): tarjetas grises con la forma de las de verdad,
 // que laten, en vez de una ruedita en el medio. Con "reducir animaciones" del teléfono, quietas.
@@ -38,7 +39,7 @@ class _TarjetasCargandoState extends State<TarjetasCargando> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Cargando presupuestos',
+      label: context.tr('Cargando presupuestos'),
       child: ExcludeSemantics(
         child: FadeTransition(
           opacity: _latido,

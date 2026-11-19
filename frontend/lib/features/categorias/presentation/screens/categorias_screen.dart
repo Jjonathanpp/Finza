@@ -9,6 +9,7 @@ import 'package:frontend/features/categorias/data/datasources/categoria_api.dart
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/viewmodels/categorias_view_model.dart';
 import 'package:frontend/features/categorias/presentation/widgets/formulario_categoria.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 
 class CategoriasScreen extends StatefulWidget {
@@ -43,7 +44,9 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
         builder: (context) => Scaffold(
           appBar: barraConVolver(
             context,
-            editando == null ? 'Nueva categoría' : 'Editar categoría',
+            editando == null
+                ? context.tr('Nueva categoría')
+                : context.tr('Editar categoría'),
           ),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
@@ -55,7 +58,9 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     if (guardada == null || !mounted) return;
     mostrarExito(
       context,
-      editando == null ? 'Categoría creada' : 'Categoría actualizada',
+      editando == null
+          ? context.tr('Categoría creada')
+          : context.tr('Categoría actualizada'),
     );
     _vm.cargar();
   }
@@ -64,17 +69,21 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('¿Eliminar "${categoria.nombre}"?'),
-        content: const Text('No se puede deshacer.'),
+        title: Text(
+          context.tr('¿Eliminar "{nombre}"?', {
+            'nombre': context.tr(categoria.nombre),
+          }),
+        ),
+        content: Text(context.tr('No se puede deshacer.')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(context.tr('Cancelar')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Eliminar'),
+            child: Text(context.tr('Eliminar')),
           ),
         ],
       ),
@@ -83,19 +92,19 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     final error = await _vm.eliminar(categoria);
     if (!mounted) return;
     if (error == null) {
-      mostrarExito(context, 'Categoría eliminada');
+      mostrarExito(context, context.tr('Categoría eliminada'));
       return;
     }
     // Por ejemplo, si tiene movimientos: el backend no la deja borrar y explica por qué.
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('No se pudo eliminar'),
+        title: Text(context.tr('No se pudo eliminar')),
         content: Text(error),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido'),
+            child: Text(context.tr('Entendido')),
           ),
         ],
       ),
@@ -106,13 +115,13 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(conCuentaActiva('Categorías')),
+        title: Text(conCuentaActiva(context.tr('Categorías'))),
         // También en una cuenta compartida, la crea cualquier integrante (t-12.1.6)
         actions: [
           BotonIcono(
             icono: Icons.add,
             tamanio: 34,
-            ayuda: 'Nueva categoría',
+            ayuda: context.tr('Nueva categoría'),
             alTocar: _abrirFormulario,
           ),
         ],
@@ -150,13 +159,21 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                   ),
                   label: Text(
                     _vm.verPredefinidas
-                        ? 'Ocultar predefinidas'
-                        : 'Mostrar predefinidas',
+                        ? context.tr('Ocultar predefinidas')
+                        : context.tr('Mostrar predefinidas'),
                   ),
                 ),
               ),
-              _grupo('Egresos', _vm.deEgreso),
-              _grupo('Ingresos', _vm.deIngreso),
+              _grupo(
+                context.tr('Egresos'),
+                context.tr('No tenés categorías propias de egresos'),
+                _vm.deEgreso,
+              ),
+              _grupo(
+                context.tr('Ingresos'),
+                context.tr('No tenés categorías propias de ingresos'),
+                _vm.deIngreso,
+              ),
             ],
           );
         },
@@ -164,7 +181,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     );
   }
 
-  Widget _grupo(String titulo, List<Categoria> categorias) {
+  Widget _grupo(String titulo, String textoVacio, List<Categoria> categorias) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -204,7 +221,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 11),
                   child: Text(
-                    'No tenés categorías propias de ${titulo.toLowerCase()}',
+                    textoVacio,
                     style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.muted,
@@ -235,7 +252,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  categoria.nombre,
+                  context.tr(categoria.nombre),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -253,14 +270,14 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
             BotonIcono(
               icono: Icons.edit_outlined,
               tamanio: 28,
-              ayuda: 'Editar',
+              ayuda: context.tr('Editar'),
               alTocar: () => _abrirFormulario(editando: categoria),
             ),
             const SizedBox(width: 4),
             BotonIcono(
               icono: Icons.delete_outline,
               tamanio: 28,
-              ayuda: 'Eliminar',
+              ayuda: context.tr('Eliminar'),
               alTocar: () => _eliminar(categoria),
             ),
           ],
@@ -320,7 +337,7 @@ class _Etiqueta extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
-        predefinida ? 'PREDEFINIDA' : 'PROPIA',
+        predefinida ? context.tr('PREDEFINIDA') : context.tr('PROPIA'),
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,

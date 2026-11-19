@@ -12,6 +12,8 @@ import 'package:frontend/features/informes/presentation/screens/informes_screen.
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/lista-invitaciones/presentation/screens/lista_invitaciones_screen.dart';
 import 'package:frontend/features/mercadopago/sincronizacion_al_entrar.dart';
+import 'package:frontend/l10n/idioma.dart';
+import 'package:frontend/features/metas_ahorro/presentation/screens/metas_ahorro_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -59,8 +61,8 @@ class AppDrawer extends StatelessWidget {
                       Icons.home_outlined,
                       color: AppColors.muted,
                     ),
-                    title: const Text(
-                      'Inicio',
+                    title: Text(
+                      context.tr('Inicio'),
                       style: TextStyle(color: AppColors.text),
                     ),
                     onTap: () {
@@ -74,8 +76,8 @@ class AppDrawer extends StatelessWidget {
                   ),
                   ListTile(
                     leading: const Icon(Icons.list_alt, color: AppColors.muted),
-                    title: const Text(
-                      'Historial',
+                    title: Text(
+                      context.tr('Historial'),
                       style: TextStyle(color: AppColors.text),
                     ),
                     onTap: () {
@@ -92,8 +94,8 @@ class AppDrawer extends StatelessWidget {
                       Icons.add_circle_outline,
                       color: AppColors.muted,
                     ),
-                    title: const Text(
-                      'Nuevo movimiento',
+                    title: Text(
+                      context.tr('Nuevo movimiento'),
                       style: TextStyle(color: AppColors.text),
                     ),
                     onTap: () {
@@ -110,8 +112,8 @@ class AppDrawer extends StatelessWidget {
                       Icons.category_outlined,
                       color: AppColors.muted,
                     ),
-                    title: const Text(
-                      'Categorías',
+                    title: Text(
+                      context.tr('Categorías'),
                       style: TextStyle(color: AppColors.text),
                     ),
                     onTap: () {
@@ -125,11 +127,30 @@ class AppDrawer extends StatelessWidget {
                   ),
                   ListTile(
                     leading: const Icon(
+                      Icons.savings_outlined,
+                      color: AppColors.muted,
+                    ),
+                    title: Text(
+                      context.tr('Metas de ahorro'),
+                      style: TextStyle(color: AppColors.text),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MetasAhorroScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(
                       Icons.bar_chart,
                       color: AppColors.muted,
                     ),
-                    title: const Text(
-                      'Informes',
+                    title: Text(
+                      context.tr('Informes'),
                       style: TextStyle(color: AppColors.text),
                     ),
                     onTap: () {
@@ -153,8 +174,8 @@ class AppDrawer extends StatelessWidget {
                           Icons.mail_outline,
                           color: AppColors.muted,
                         ),
-                        title: const Text(
-                          'Invitaciones enviadas',
+                        title: Text(
+                          context.tr('Invitaciones enviadas'),
                           style: TextStyle(color: AppColors.text),
                         ),
                         onTap: () {
@@ -173,8 +194,8 @@ class AppDrawer extends StatelessWidget {
                   ),
                   ListTile(
                     leading: const Icon(Icons.mic, color: AppColors.muted),
-                    title: const Text(
-                      'Registro por voz',
+                    title: Text(
+                      context.tr('Registro por voz'),
                       style: TextStyle(color: AppColors.text),
                     ),
                     onTap: () {
@@ -193,16 +214,16 @@ class AppDrawer extends StatelessWidget {
                 Icons.delete_forever_outlined,
                 color: AppColors.danger,
               ),
-              title: const Text(
-                'Eliminar cuenta',
+              title: Text(
+                context.tr('Eliminar cuenta'),
                 style: TextStyle(color: AppColors.danger),
               ),
               onTap: () => _eliminarCuenta(context),
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.danger),
-              title: const Text(
-                'Cerrar sesión',
+              title: Text(
+                context.tr('Cerrar sesión'),
                 style: TextStyle(color: AppColors.danger),
               ),
               onTap: () => _cerrarSesion(context),

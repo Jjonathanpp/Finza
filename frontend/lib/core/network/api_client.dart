@@ -5,6 +5,7 @@ import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/session/sesion.dart';
 import 'package:frontend/core/storage/token_storage.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class ApiClient {
   final Dio _dio = Dio(BaseOptions(baseUrl: apiBaseUrl))
@@ -31,7 +32,7 @@ class ApiClient {
     } on DioException catch (e) {
       final respuestaError = e.response;
       if (respuestaError == null) {
-        throw ApiException(null, 'No se pudo conectar con el servidor');
+        throw ApiException(null, tr('No se pudo conectar con el servidor'));
       }
       final cuerpo = respuestaError.data;
       if (cuerpo is Map && cuerpo['message'] != null) {
@@ -43,7 +44,7 @@ class ApiClient {
       }
       throw ApiException(
         respuestaError.statusCode,
-        'Error inesperado del servidor',
+        tr('Error inesperado del servidor'),
       );
     }
   }
@@ -59,11 +60,11 @@ class ApiClient {
     } on DioException catch (e) {
       final respuestaError = e.response;
       if (respuestaError == null) {
-        throw ApiException(null, 'No se pudo conectar con el servidor');
+        throw ApiException(null, tr('No se pudo conectar con el servidor'));
       }
       throw ApiException(
         respuestaError.statusCode,
-        'Error inesperado del servidor',
+        tr('Error inesperado del servidor'),
       );
     }
   }

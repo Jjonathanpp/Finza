@@ -38,51 +38,50 @@ public class ReporteService {
     private static final float ALTURA_FILA = 20;
     private static final float ALTURA_ENCABEZADO = 80;
 
-public byte[] generarReportePDF(Long cuentaId, String alcance, LocalDate fechaDesde, LocalDate fechaHasta) {
-    if (!"solo_propios".equals(alcance) && !"cuenta_completa".equals(alcance)) {
-        throw new BadRequestException("Alcance inválido. Use 'solo_propios' o 'cuenta_completa'");
-    }
-
-    if (fechaDesde != null && fechaHasta != null && fechaDesde.isAfter(fechaHasta)) {
-        throw new BadRequestException("La fecha desde no puede ser posterior a la fecha hasta");
-    }
-
-    if (fechaDesde == null) {
-        fechaDesde = LocalDate.now().withDayOfMonth(1);
-    }
-    if (fechaHasta == null) {
-        fechaHasta = LocalDate.now();
-    }
-
-    // El perfil en el que está parado el usuario (header X-Perfil-Id), no el principal
-    Perfil perfil = perfilService.perfilActivo(cuentaId);
-
-    List<Movimiento> movimientos;
-    String nombreCuenta;
-
-    if ("solo_propios".equals(alcance)) {
-        nombreCuenta = "Movimientos propios";
-        movimientos = movimientoRepository.buscarConFiltros(
-                perfil.getId(), cuentaId, null, fechaDesde, fechaHasta, null, null, null,
-                PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "fecha"))).getContent();
-    } else {
-        if (perfil.getRol() != Perfil.Rol.ADMIN) {
-            throw new AccessDeniedException("Solo el administrador puede exportar la cuenta completa");
+    public byte[] generarReportePDF(Long cuentaId, String alcance, LocalDate fechaDesde, LocalDate fechaHasta) {
+        if (!"solo_propios".equals(alcance) && !"cuenta_completa".equals(alcance)) {
+            throw new BadRequestException("Alcance inválido. Use 'solo_propios' o 'cuenta_completa'");
         }
-        if (perfil.getCuentaCompartida() == null) {
-            throw new BadRequestException("La cuenta no pertenece a una cuenta compartida");
+
+        if (fechaDesde != null && fechaHasta != null && fechaDesde.isAfter(fechaHasta)) {
+            throw new BadRequestException("La fecha desde no puede ser posterior a la fecha hasta");
         }
-        Long cuentaCompartidaId = perfil.getCuentaCompartida().getId();
-        nombreCuenta = perfil.getCuentaCompartida().getNombre();
 
-        // perfilId = null: todos los perfiles de la cuenta compartida
-        movimientos = movimientoRepository.buscarConFiltros(
-                null, cuentaId, cuentaCompartidaId, fechaDesde, fechaHasta, null, null, null,
-                PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "fecha"))).getContent();
+        if (fechaDesde == null) {
+            fechaDesde = LocalDate.now().withDayOfMonth(1);
+        }
+        if (fechaHasta == null) {
+            fechaHasta = LocalDate.now();
+        }
+
+        // El perfil en el que está parado el usuario (header X-Perfil-Id), no el
+        // principal
+        Perfil perfil = perfilService.perfilActivo(cuentaId);
+
+        List<Movimiento> movimientos;
+        String nombreCuenta;
+
+        if ("solo_propios".equals(alcance)) {
+            nombreCuenta = "Movimientos propios";
+            movimientos = movimientoRepository.buscarConFiltros(
+                    perfil.getId(), cuentaId, null, fechaDesde, fechaHasta, null, null, null,
+                    PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "fecha"))).getContent();
+        } else {
+            if (perfil.getCuentaCompartida() == null) {
+                throw new BadRequestException("La cuenta no pertenece a una cuenta compartida");
+            }
+
+            Long cuentaCompartidaId = perfil.getCuentaCompartida().getId();
+            nombreCuenta = perfil.getCuentaCompartida().getNombre();
+
+            // perfilId = null: todos los perfiles de la cuenta compartida
+            movimientos = movimientoRepository.buscarConFiltros(
+                    null, cuentaId, cuentaCompartidaId, fechaDesde, fechaHasta, null, null, null,
+                    PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "fecha"))).getContent();
+        }
+
+        return generarPDF(nombreCuenta, alcance, fechaDesde, fechaHasta, movimientos);
     }
-
-    return generarPDF(nombreCuenta, alcance, fechaDesde, fechaHasta, movimientos);
-}
 
     private byte[] generarPDF(String nombreCuenta, String alcance, LocalDate fechaDesde,
             LocalDate fechaHasta, List<Movimiento> movimientos) {
@@ -150,11 +149,13 @@ public byte[] generarReportePDF(Long cuentaId, String alcance, LocalDate fechaDe
                     content.setFont(PDType1Font.HELVETICA_BOLD, 10);
                     content.newLineAtOffset(MARGEN, y);
                     content.showText("Fecha");
+                    content.newLineAtOffset(70, 0);
+                    content.showText("Quién");
                     content.newLineAtOffset(80, 0);
                     content.showText("Descripción");
-                    content.newLineAtOffset(200, 0);
+                    content.newLineAtOffset(160, 0);
                     content.showText("Tipo");
-                    content.newLineAtOffset(60, 0);
+                    content.newLineAtOffset(50, 0);
                     content.showText("Monto");
                     content.endText();
 
@@ -176,14 +177,20 @@ public byte[] generarReportePDF(Long cuentaId, String alcance, LocalDate fechaDe
                             break;
                         }
 
+                        String quien = "cuenta_completa".equals(alcance) && m.getPerfil() != null
+                                ? m.getPerfil().getNombrePerfil()
+                                : "-";
+
                         content.beginText();
                         content.newLineAtOffset(MARGEN, y);
                         content.showText(m.getFecha() != null ? m.getFecha().toString() : "-");
+                        content.newLineAtOffset(70, 0);
+                        content.showText(quien);
                         content.newLineAtOffset(80, 0);
                         content.showText(m.getDescripcion() != null ? m.getDescripcion() : "-");
-                        content.newLineAtOffset(200, 0);
+                        content.newLineAtOffset(160, 0);
                         content.showText(m.isEsIngreso() ? "Ingreso" : "Egreso");
-                        content.newLineAtOffset(60, 0);
+                        content.newLineAtOffset(50, 0);
                         content.showText(String.format("%,.2f", m.getMonto()));
                         content.endText();
 

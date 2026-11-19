@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'config/theme/app_theme.dart';
 import 'core/actualizacion/aviso_de_version.dart';
 import 'core/avisos/aviso_de_presupuestos.dart';
 import 'core/session/deep_link_service.dart';
 import 'core/session/portero.dart';
+import 'l10n/idioma.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -42,11 +44,19 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navegador,
-      debugShowCheckedModeBanner: false,
-      theme: temaFinza(),
-      home: const Portero(),
+    // Escucha el idioma elegido en Configuración: al cambiarlo, toda la app se redibuja (US-8.3).
+    // Los delegados traducen los textos que pone Flutter (calendario, "Cancelar", "Aceptar").
+    return ValueListenableBuilder(
+      valueListenable: idioma,
+      builder: (context, locale, _) => MaterialApp(
+        navigatorKey: navegador,
+        debugShowCheckedModeBanner: false,
+        theme: temaFinza(),
+        locale: locale,
+        supportedLocales: idiomas.keys.map(Locale.new),
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: const Portero(),
+      ),
     );
   }
 }

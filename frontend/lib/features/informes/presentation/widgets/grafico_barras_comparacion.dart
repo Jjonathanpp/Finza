@@ -5,6 +5,7 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/informes/data/datasources/informe_api.dart';
 import 'package:frontend/features/informes/data/models/comparacion_periodos.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class GraficoBarrasComparacion extends StatefulWidget {
   const GraficoBarrasComparacion({
@@ -44,7 +45,7 @@ class _GraficoBarrasComparacionState extends State<GraficoBarrasComparacion> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Ingresos y egresos por período',
+          Text(context.tr('Ingresos y egresos por período'),
               style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           _leyenda(),
@@ -63,13 +64,13 @@ class _GraficoBarrasComparacionState extends State<GraficoBarrasComparacion> {
               if (snapshot.hasError) {
                 final e = snapshot.error;
                 return Text(
-                  e is ApiException ? e.message : 'No se pudieron cargar los datos',
+                  e is ApiException ? e.message : context.tr('No se pudieron cargar los datos'),
                   style: const TextStyle(color: AppColors.muted, fontSize: 12.5),
                 );
               }
               final data = snapshot.data!;
               if (data.periodos.isEmpty) {
-                return const Text('Todavía no hay datos en el período.',
+                return Text(context.tr('Todavía no hay datos en el período.'),
                     style: TextStyle(color: AppColors.muted, fontSize: 12.5));
               }
               double maxValor = 0;
@@ -98,9 +99,9 @@ class _GraficoBarrasComparacionState extends State<GraficoBarrasComparacion> {
   Widget _leyenda() {
     return Row(
       children: [
-        _punto(AppColors.accent, 'Ingresos'),
+        _punto(AppColors.accent, context.tr('Ingresos')),
         const SizedBox(width: 16),
-        _punto(const Color(0xFF7C9CFF), 'Egresos'),
+        _punto(const Color(0xFF7C9CFF), context.tr('Egresos')),
       ],
     );
   }
@@ -120,6 +121,15 @@ class _GraficoBarrasComparacionState extends State<GraficoBarrasComparacion> {
     );
   }
 
+  // La etiqueta viene del backend en español; en otro idioma se arma con las fechas, con el formato de Flutter.
+  String _etiqueta(PeriodoComparacion p) {
+    if (idioma.value.languageCode == 'es') return p.etiqueta;
+    final f = MaterialLocalizations.of(context);
+    return widget.granularidad == 'SEMANA'
+        ? '${f.formatShortMonthDay(p.fechaInicio)} – ${f.formatShortMonthDay(p.fechaFin)}'
+        : f.formatMonthYear(p.fechaInicio);
+  }
+
   Widget _filaPeriodo(PeriodoComparacion p, double maxValor, double anchoEtiqueta) {
     final fIng = maxValor > 0 ? (p.ingresos.abs() / maxValor) : 0.0;
     final fEgr = maxValor > 0 ? (p.egresos.abs() / maxValor) : 0.0;
@@ -128,14 +138,14 @@ class _GraficoBarrasComparacionState extends State<GraficoBarrasComparacion> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(p.etiqueta,
+          Text(_etiqueta(p),
               style: const TextStyle(color: AppColors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Row(
             children: [
               SizedBox(
                 width: anchoEtiqueta,
-                child: const Text('Ingresos',
+                child: Text(context.tr('Ingresos'),
                     style: TextStyle(color: AppColors.muted, fontSize: 11.5)),
               ),
               Expanded(child: _barra(fIng, AppColors.accent)),
@@ -153,7 +163,7 @@ class _GraficoBarrasComparacionState extends State<GraficoBarrasComparacion> {
             children: [
               SizedBox(
                 width: anchoEtiqueta,
-                child: const Text('Egresos',
+                child: Text(context.tr('Egresos'),
                     style: TextStyle(color: AppColors.muted, fontSize: 11.5)),
               ),
               Expanded(child: _barra(fEgr, const Color(0xFF7C9CFF))),

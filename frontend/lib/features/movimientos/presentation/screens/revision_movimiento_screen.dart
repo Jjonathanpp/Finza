@@ -11,6 +11,7 @@ import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/monto_formatter.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/revision_movimiento_view_model.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class RevisionMovimientoScreen extends StatefulWidget {
   const RevisionMovimientoScreen({super.key, required this.movimiento});
@@ -62,7 +63,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, 'Revisar Inferencia'),
+      appBar: barraConVolver(context, context.tr('Revisar Inferencia')),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -75,7 +76,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
               _campoMonto(),
               _categorias(),
               Campo(
-                etiqueta: 'Fecha',
+                etiqueta: context.tr('Fecha'),
                 child: InkWell(
                   onTap: () async {
                     final elegida = await showDatePicker(
@@ -94,7 +95,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
                 ),
               ),
               Campo(
-                etiqueta: 'Descripción',
+                etiqueta: context.tr('Descripción'),
                 child: TextField(
                   controller: _descripcion,
                   inputFormatters: [LengthLimitingTextInputFormatter(255)],
@@ -122,13 +123,13 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
       ),
-      child: const Row(
+      child: Row(
         children: [
           Icon(Icons.auto_awesome, color: AppColors.accent),
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Revisá y ajustá los datos inferidos por la IA antes de confirmar la transacción.',
+              context.tr('Revisá y ajustá los datos inferidos por la IA antes de confirmar la transacción.'),
               style: TextStyle(fontSize: 13, color: AppColors.text),
             ),
           ),
@@ -167,9 +168,9 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
             )
           // Con otra moneda elegida se aclara: lo que se carga son pesos (US-8.2).
           else if (convierte)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 6),
-              child: Text('En pesos', style: TextStyle(color: AppColors.faint, fontSize: 12)),
+              child: Text(context.tr('En pesos'), style: TextStyle(color: AppColors.faint, fontSize: 12)),
             ),
         ],
       ),
@@ -178,7 +179,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
 
   Widget _categorias() {
     return Campo(
-      etiqueta: 'Categoría',
+      etiqueta: context.tr('Categoría'),
       error: _vm.errorCategoria,
       child: Wrap(
         spacing: 7,
@@ -186,7 +187,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
         children: _vm.categoriasDelTipo.map((c) {
           final seleccionado = c.nombre == _vm.categoria;
           return ChoiceChip(
-            label: Text('${c.emoji ?? ''} ${c.nombre}'),
+            label: Text('${c.emoji ?? ''} ${context.tr(c.nombre)}'),
             selected: seleccionado,
             onSelected: (_) => _vm.elegirCategoria(c.nombre),
             backgroundColor: AppColors.surface2,
@@ -205,7 +206,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
           child: OutlinedButton.icon(
             onPressed: _vm.cargando ? null : _descartar,
             icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-            label: const Text('Descartar', style: TextStyle(color: AppColors.danger)),
+            label: Text(context.tr('Descartar'), style: TextStyle(color: AppColors.danger)),
             style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.danger)),
           ),
         ),
@@ -217,7 +218,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
             icon: _vm.cargando 
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.check),
-            label: const Text('Confirmar'),
+            label: Text(context.tr('Confirmar')),
           ),
         ),
       ],

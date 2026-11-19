@@ -4,6 +4,7 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/configuracion/data/datasources/preferencias_api.dart';
 import 'package:frontend/features/configuracion/presentation/viewmodels/cambiar_password_view_model.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Se abre desde Configuración. Pide la contraseña actual y la nueva (mínimo 8 caracteres, igual que en el registro).
 class CambiarPasswordScreen extends StatefulWidget {
@@ -42,7 +43,7 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
     if (!ok || !mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Contraseña cambiada exitosamente')),
+      SnackBar(content: Text(context.tr('Contraseña cambiada exitosamente'))),
     );
     Navigator.of(context).pop();
   }
@@ -50,7 +51,7 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, 'Cambiar contraseña'),
+      appBar: barraConVolver(context, context.tr('Cambiar contraseña')),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -67,7 +68,7 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
                     obscureText: _ocultar,
                     enabled: !_vm.guardando,
                     decoration: InputDecoration(
-                      labelText: 'Contraseña actual',
+                      labelText: context.tr('Contraseña actual'),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _ocultar ? Icons.visibility : Icons.visibility_off,
@@ -76,7 +77,7 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
                       ),
                     ),
                     validator: (v) => (v == null || v.isEmpty)
-                        ? 'Ingresá tu contraseña actual'
+                        ? context.tr('Ingresá tu contraseña actual')
                         : null,
                   ),
                   const SizedBox(height: 16),
@@ -84,15 +85,19 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
                     controller: _nuevaCtrl,
                     obscureText: _ocultar,
                     enabled: !_vm.guardando,
-                    decoration: const InputDecoration(
-                      labelText: 'Nueva contraseña',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Nueva contraseña'),
                     ),
                     validator: (v) {
                       if (v == null || v.length < 8) {
-                        return 'La contraseña debe tener al menos 8 caracteres';
+                        return context.tr(
+                          'La contraseña debe tener al menos 8 caracteres',
+                        );
                       }
                       if (v == _actualCtrl.text) {
-                        return 'La nueva contraseña debe ser distinta a la actual';
+                        return context.tr(
+                          'La nueva contraseña debe ser distinta a la actual',
+                        );
                       }
                       return null;
                     },
@@ -102,11 +107,11 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
                     controller: _confirmarCtrl,
                     obscureText: _ocultar,
                     enabled: !_vm.guardando,
-                    decoration: const InputDecoration(
-                      labelText: 'Confirmar nueva contraseña',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Confirmar nueva contraseña'),
                     ),
                     validator: (v) => v != _nuevaCtrl.text
-                        ? 'Las contraseñas no coinciden'
+                        ? context.tr('Las contraseñas no coinciden')
                         : null,
                   ),
                   if (error != null) ...[
@@ -130,7 +135,7 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Cambiar contraseña'),
+                          : Text(context.tr('Cambiar contraseña')),
                     ),
                   ),
                 ],

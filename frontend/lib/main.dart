@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
 import 'app.dart';
+import 'l10n/idioma.dart';
 
-void main() => runApp(const App());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await leerIdioma();
+  runApp(const App());
+}

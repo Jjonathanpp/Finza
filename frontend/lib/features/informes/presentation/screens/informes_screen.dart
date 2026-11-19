@@ -10,6 +10,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:frontend/features/informes/presentation/widgets/exportar_reporte_dialog.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'dart:io';
+import 'package:frontend/l10n/idioma.dart';
+
 class InformesScreen extends StatefulWidget {
   const InformesScreen({super.key});
 
@@ -21,74 +23,79 @@ class _InformesScreenState extends State<InformesScreen> {
   DateTime? _inicio;
   DateTime? _fin;
   String _granularidad = 'MES';
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Informes')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          SelectorRangoFechas(
-            key: const PageStorageKey('selector_rango_informes'),
-            onCambio: (start, end) => setState(() {
+      appBar: AppBar(title: Text(context.tr('Informes'))),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            SelectorRangoFechas(
+              key: const PageStorageKey('selector_rango_informes'),
+              onCambio: (start, end) => setState(() {
                 _inicio = start;
                 _fin = end;
-            }),
-           ),
-          const SizedBox(height: 12),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'MES', label: Text('Por mes')),
-              ButtonSegment(value: 'SEMANA', label: Text('Por semana')),
-            ],
-            selected: {_granularidad},
-            onSelectionChanged: (s) => setState(() => _granularidad = s.first),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: () => ExportarReporteDialog.mostrar(
-              context,
-              fechaInicial: _inicio,
-              fechaFinal: _fin,
-              cuentaCompartidaActiva: cuentaActiva.value != null,
-              onExportar: (alcance, desde, hasta) async {
-                final api = InformeApi(ApiClient());
-                final bytes = await api.descargarReporte(
-                  alcance: alcance,
-                  fechaDesde: desde,
-                  fechaHasta: hasta,
-                );
-                final dir = await getTemporaryDirectory();
-                final archivo = File('${dir.path}/reporte_finza.pdf');
-                await archivo.writeAsBytes(bytes, flush: true);
-                await SharePlus.instance.share(
-                  ShareParams(
-                    files: [XFile(archivo.path)],
-                    text: 'Reporte Finza',
-                  ),
-                );
-              },
+              }),
             ),
-            icon: const Icon(Icons.picture_as_pdf),
-            label: const Text('Exportar reporte'),
-          ),
-          const SizedBox(height: 12),
-          GraficoBarrasComparacion(
-            key: ValueKey('${_inicio}_${_fin}_$_granularidad'),
-            api: InformeApi(ApiClient()),
-            startDate: _inicio,
-            endDate: _fin,
-            granularidad: _granularidad,
-          ),
-          const SizedBox(height: 12),
-          GraficoTortaCategorias(
-            key: ValueKey('torta_$_inicio$_fin'),
-            api: InformeApi(ApiClient()),
-            startDate: _inicio,
-            endDate: _fin,
-          ),
-        ],
+            const SizedBox(height: 12),
+            SegmentedButton<String>(
+              segments: [
+                ButtonSegment(value: 'MES', label: Text(context.tr('Por mes'))),
+                ButtonSegment(
+                  value: 'SEMANA',
+                  label: Text(context.tr('Por semana')),
+                ),
+              ],
+              selected: {_granularidad},
+              onSelectionChanged: (s) =>
+                  setState(() => _granularidad = s.first),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => ExportarReporteDialog.mostrar(
+                context,
+                fechaInicial: _inicio,
+                fechaFinal: _fin,
+                cuentaCompartidaActiva: cuentaActiva.value != null,
+                onExportar: (alcance, desde, hasta) async {
+                  final api = InformeApi(ApiClient());
+                  final bytes = await api.descargarReporte(
+                    alcance: alcance,
+                    fechaDesde: desde,
+                    fechaHasta: hasta,
+                  );
+                  final dir = await getTemporaryDirectory();
+                  final archivo = File('${dir.path}/reporte_finza.pdf');
+                  await archivo.writeAsBytes(bytes, flush: true);
+                  await SharePlus.instance.share(
+                    ShareParams(
+                      files: [XFile(archivo.path)],
+                      text: 'Reporte Finza',
+                    ),
+                  );
+                },
+              ),
+              icon: const Icon(Icons.picture_as_pdf),
+              label: Text(context.tr('Exportar reporte')),
+            ),
+            const SizedBox(height: 12),
+            GraficoBarrasComparacion(
+              key: ValueKey('${_inicio}_${_fin}_$_granularidad'),
+              api: InformeApi(ApiClient()),
+              startDate: _inicio,
+              endDate: _fin,
+              granularidad: _granularidad,
+            ),
+            const SizedBox(height: 12),
+            GraficoTortaCategorias(
+              key: ValueKey('torta_$_inicio$_fin'),
+              api: InformeApi(ApiClient()),
+              startDate: _inicio,
+              endDate: _fin,
+            ),
+          ],
+        ),
       ),
     );
   }

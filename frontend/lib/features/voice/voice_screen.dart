@@ -8,6 +8,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class VoiceScreen extends StatefulWidget {
   const VoiceScreen({super.key});
@@ -18,14 +19,12 @@ class VoiceScreen extends StatefulWidget {
 
 class _VoiceScreenState extends State<VoiceScreen> {
   late final AudioRecorder _audioRecorder;
-  
-  // Estados de la grabación
-  bool _isRecording = false; 
+
+  bool _isRecording = false;
   bool _isPaused = false;
   bool _isProcessing = false;
-  
-  String _text = 'Tocá el micrófono y hablá...';
-  
+  String _text = tr('Tocá el micrófono y hablá...');
+
   Timer? _timer;
   int _recordDuration = 0;
 
@@ -44,6 +43,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
 
   // --- Lógica del Cronómetro ---
   void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
       setState(() {
         _recordDuration++;
@@ -56,11 +56,11 @@ class _VoiceScreenState extends State<VoiceScreen> {
     final minutes = _recordDuration ~/ 60;
     final seconds = _recordDuration % 60;
     final tiempoFormateado = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    
+
     if (_isPaused) {
-      _text = 'Pausado... $tiempoFormateado';
+      _text = '${tr('Pausado...')} $tiempoFormateado';
     } else {
-      _text = 'Grabando... $tiempoFormateado';
+      _text = '${tr('Grabando...')} $tiempoFormateado';
     }
   }
 
@@ -68,22 +68,20 @@ class _VoiceScreenState extends State<VoiceScreen> {
   Future<void> _iniciarGrabacion() async {
     if (await _audioRecorder.hasPermission()) {
       if (kIsWeb) {
-        // En Web se graba en memoria con Opus/WebM
         await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.opus), 
-          path: ''
+          const RecordConfig(encoder: AudioEncoder.opus),
+          path: '',
         );
       } else {
-        // En Mobile (Android/iOS) se guarda archivo físico m4a
         final dir = await getApplicationDocumentsDirectory();
         final filePath = '${dir.path}/finza_movimiento.m4a';
 
         await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.aacLc), 
-          path: filePath
+          const RecordConfig(encoder: AudioEncoder.aacLc),
+          path: filePath,
         );
       }
-      
+
       setState(() {
         _isRecording = true;
         _isPaused = false;
@@ -93,7 +91,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
 
       _startTimer();
     } else {
-      setState(() => _text = 'Se necesita permiso de micrófono.');
+      setState(() => _text = tr('Se necesita permiso de micrófono.'));
     }
   }
 
@@ -116,27 +114,26 @@ class _VoiceScreenState extends State<VoiceScreen> {
   }
 
   Future<void> _cancelarYBorrarGrabacion() async {
-    // Frenamos la grabación pero no hacemos nada con el path (se descarta)
-    await _audioRecorder.stop(); 
+    await _audioRecorder.stop();
     _timer?.cancel();
-    
+
     setState(() {
       _isRecording = false;
       _isPaused = false;
       _recordDuration = 0;
-      _text = 'Tocá el micrófono y hablá...';
+      _text = tr('Tocá el micrófono y hablá...');
     });
   }
 
   Future<void> _finalizarYEnviarAudio() async {
     final path = await _audioRecorder.stop();
     _timer?.cancel();
-    
+
     setState(() {
       _isRecording = false;
       _isPaused = false;
       _isProcessing = true;
-      _text = 'Procesando con la IA...';
+      _text = tr('Procesando con la IA...');
     });
 
     if (path != null) {
@@ -144,7 +141,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
     } else {
       setState(() {
         _isProcessing = false;
-        _text = 'Error: No se pudo guardar el audio localmente.';
+        _text = tr('Error: No se pudo guardar el audio localmente.');
       });
     }
   }
@@ -176,14 +173,12 @@ class _VoiceScreenState extends State<VoiceScreen> {
       await ApiClient().postMultipart('/api/movimientos/procesar-audio', formData);
 
       if (mounted) {
-        mostrarExito(context, 'Audio enviado. Procesando en segundo plano.');
-        // Volvemos a la pantalla principal o cerramos el modal si se requiere,
-        // por ahora reseteamos el estado:
-        setState(() => _text = 'Tocá el micrófono y hablá...');
+        mostrarExito(context, tr('Audio enviado. Procesando en segundo plano.'));
+        setState(() => _text = tr('Tocá el micrófono y hablá...'));
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _text = 'Error al procesar: $e');
+        setState(() => _text = tr('Error al procesar: {error}', {'error': '$e'}));
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -193,30 +188,29 @@ class _VoiceScreenState extends State<VoiceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, 'Registro por voz'),
+      appBar: barraConVolver(context, context.tr('Registro por voz')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
             Expanded(
               child: Center(
-                child: _isProcessing 
-                  ? const CircularProgressIndicator(color: AppColors.accent)
-                  : Text(
-                      _text,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18, 
-                        fontWeight: _isRecording ? FontWeight.bold : FontWeight.normal,
-                        color: (_isRecording && !_isPaused) ? AppColors.danger : AppColors.text
+                child: _isProcessing
+                    ? const CircularProgressIndicator(color: AppColors.accent)
+                    : Text(
+                        _text,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: _isRecording ? FontWeight.bold : FontWeight.normal,
+                          color: (_isRecording && !_isPaused) ? AppColors.danger : AppColors.text,
+                        ),
                       ),
-                    ),
               ),
             ),
-            
+
             // --- PANEL DE BOTONES ---
             if (!_isRecording && !_isProcessing)
-              // Botón inicial para empezar a grabar
               FloatingActionButton.large(
                 onPressed: _iniciarGrabacion,
                 backgroundColor: AppColors.accent,
@@ -225,11 +219,9 @@ class _VoiceScreenState extends State<VoiceScreen> {
                 child: const Icon(Icons.mic, size: 36),
               )
             else if (_isRecording)
-              // Controles mientras está la grabación activa o pausada
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Botón de Cancelar / Eliminar
                   FloatingActionButton(
                     heroTag: 'btn_cancelar',
                     onPressed: _cancelarYBorrarGrabacion,
@@ -239,8 +231,6 @@ class _VoiceScreenState extends State<VoiceScreen> {
                     child: const Icon(Icons.delete_outline, size: 28),
                   ),
                   const SizedBox(width: 24),
-                  
-                  // Botón de Pausa / Reanudar
                   FloatingActionButton.large(
                     heroTag: 'btn_pausa',
                     onPressed: _isPaused ? _reanudarGrabacion : _pausarGrabacion,
@@ -250,8 +240,6 @@ class _VoiceScreenState extends State<VoiceScreen> {
                     child: Icon(_isPaused ? Icons.mic : Icons.pause, size: 36),
                   ),
                   const SizedBox(width: 24),
-
-                  // Botón de Enviar
                   FloatingActionButton(
                     heroTag: 'btn_enviar',
                     onPressed: _finalizarYEnviarAudio,
@@ -262,16 +250,15 @@ class _VoiceScreenState extends State<VoiceScreen> {
                   ),
                 ],
               ),
-              
+
             const SizedBox(height: 16),
-            
-            // Mensaje de ayuda abajo
+
             Text(
-              _isProcessing 
-                  ? 'Aguardá un momento...' 
-                  : _isRecording 
-                      ? (_isPaused ? 'Grabación pausada' : 'Grabando ahora...')
-                      : 'Tocá para grabar',
+              _isProcessing
+                  ? context.tr('Aguardá un momento...')
+                  : _isRecording
+                      ? (_isPaused ? context.tr('Grabación pausada') : context.tr('Grabando ahora...'))
+                      : context.tr('Tocá para grabar'),
               style: const TextStyle(color: AppColors.faint),
             ),
             const SizedBox(height: 24),

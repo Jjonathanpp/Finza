@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/shared/utils/importe.dart';
 
 // Lo que se ve al abrir la tarjeta de un presupuesto de una cuenta compartida (t-13.2.2): cuánto gastó
@@ -27,14 +28,14 @@ class DesgloseIntegrantes extends StatelessWidget {
         children: [
           const Divider(height: 1, thickness: 1, color: AppColors.line),
           const SizedBox(height: 14),
-          const Text(
-            'Cuánto gastó cada uno',
+          Text(
+            context.tr('Cuánto gastó cada uno'),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.muted),
           ),
           if (presupuesto.montoGastado == 0) ...[
             const SizedBox(height: 10),
             Text(
-              'Todavía nadie gastó en ${presupuesto.categoriaNombre} este mes.',
+              context.tr('Todavía nadie gastó en {categoria} este mes.', {'categoria': context.tr(presupuesto.categoriaNombre)}),
               style: const TextStyle(fontSize: 13, height: 1.45, color: AppColors.muted),
             ),
           ],
@@ -47,7 +48,7 @@ class DesgloseIntegrantes extends StatelessWidget {
             TextButton.icon(
               onPressed: alEditar,
               icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Editar tope', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              label: Text(context.tr('Editar tope'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             ),
           ],
         ],
@@ -92,11 +93,11 @@ class _FilaIntegrante extends StatelessWidget {
                   ),
                   if (esVos) ...[
                     const SizedBox(width: 6),
-                    _Etiqueta('vos', fondo: AppColors.accent.withValues(alpha: 0.12), colorTexto: AppColors.text),
+                    _Etiqueta(context.tr('vos'), fondo: AppColors.accent.withValues(alpha: 0.12), colorTexto: AppColors.text),
                   ],
                   if (!gasto.activo) ...[
                     const SizedBox(width: 6),
-                    const _Etiqueta('ya no está', fondo: AppColors.surface3, colorTexto: AppColors.muted),
+                    _Etiqueta(context.tr('ya no está'), fondo: AppColors.surface3, colorTexto: AppColors.muted),
                   ],
                 ],
               ),

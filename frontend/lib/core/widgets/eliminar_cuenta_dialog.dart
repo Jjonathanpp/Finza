@@ -3,6 +3,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import '../network/cuenta_service.dart';
 import '../storage/token_storage.dart';
 import 'package:frontend/core/session/portero.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class EliminarCuentaDialog extends StatefulWidget {
   const EliminarCuentaDialog({super.key});
@@ -59,7 +60,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
       case EliminarCuentaResultado.passwordIncorrecta:
         setState(() {
           _cargando = false;
-          _error = 'La contraseña es incorrecta';
+          _error = tr('La contraseña es incorrecta');
         });
         break;
       case EliminarCuentaResultado.sesionInvalida:
@@ -72,7 +73,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
       case EliminarCuentaResultado.error:
         setState(() {
           _cargando = false;
-          _error = 'No se pudo eliminar la cuenta. Intentá de nuevo.';
+          _error = tr('No se pudo eliminar la cuenta. Intentá de nuevo.');
         });
         break;
     }
@@ -82,8 +83,8 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text(
-        'Eliminar cuenta',
+      title: Text(
+        context.tr('Eliminar cuenta'),
         style: TextStyle(color: AppColors.text),
       ),
       content: SingleChildScrollView(
@@ -109,9 +110,10 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: const Text(
-                      'Esta acción es definitiva: se eliminarán tu cuenta, tus perfiles, '
-                      'movimientos, presupuestos y categorías. No se puede deshacer.',
+                    child: Text(
+                      context.tr(
+                        'Esta acción es definitiva: se eliminarán tu cuenta, tus perfiles, movimientos, presupuestos y categorías. No se puede deshacer.',
+                      ),
                       style: TextStyle(
                         color: Color.fromARGB(255, 214, 23, 23),
                         fontSize: 13,
@@ -133,7 +135,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
               style: const TextStyle(color: AppColors.text),
               onChanged: (_) => setState(() => _error = null),
               decoration: InputDecoration(
-                labelText: 'Contraseña actual',
+                labelText: context.tr('Contraseña actual'),
                 errorText: _error,
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -153,8 +155,10 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
               onChanged: _cargando
                   ? null
                   : (valor) => setState(() => _aceptoTerminos = valor ?? false),
-              title: const Text(
-                'Entiendo que perderé todos mis datos y no podré recuperar la cuenta.',
+              title: Text(
+                context.tr(
+                  'Entiendo que perderé todos mis datos y no podré recuperar la cuenta.',
+                ),
                 style: TextStyle(color: AppColors.text, fontSize: 13),
               ),
               controlAffinity: ListTileControlAffinity.leading,
@@ -167,7 +171,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
       actions: [
         TextButton(
           onPressed: _cargando ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text(context.tr('Cancelar')),
         ),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
@@ -181,7 +185,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Eliminar definitivamente'),
+              : Text(context.tr('Eliminar definitivamente')),
         ),
       ],
     );

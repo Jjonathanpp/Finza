@@ -1,6 +1,7 @@
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
+import 'package:frontend/l10n/idioma.dart';
  
 class PresupuestoApi {
   PresupuestoApi(this._client);
@@ -19,7 +20,7 @@ class PresupuestoApi {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(500, 'Error al obtener los presupuestos: $e');
+      throw ApiException(500, tr('Error al obtener los presupuestos: {error}', {'error': '$e'}));
     }
   }
  
@@ -41,7 +42,7 @@ class PresupuestoApi {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(500, 'Error al crear el presupuesto: $e');
+      throw ApiException(500, tr('Error al crear el presupuesto: {error}', {'error': '$e'}));
     }
   }
  
@@ -76,7 +77,7 @@ class PresupuestoApi {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(500, 'Error al obtener categorías: $e');
+      throw ApiException(500, tr('Error al obtener categorías: {error}', {'error': '$e'}));
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class CampoCodigo extends StatelessWidget {
   final TextEditingController controller;
@@ -10,7 +11,7 @@ class CampoCodigo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Campo(
-      etiqueta: 'Código',
+      etiqueta: context.tr('Código'),
       child: TextFormField(
         controller: controller,
         textAlign: TextAlign.center,
@@ -23,7 +24,7 @@ class CampoCodigo extends StatelessWidget {
         ],
         validator: (v) {
           if (v == null || v.trim().length != 6) {
-            return 'Ingresá los 6 dígitos del código';
+            return context.tr('Ingresá los 6 dígitos del código');
           }
           return null;
         },
