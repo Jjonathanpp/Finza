@@ -4,15 +4,15 @@ import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
 
-// El panel que sube desde abajo (showModalBottomSheet) al tocar un presupuesto de una cuenta compartida,
-// si sos admin (t-13.1.2): cambiar el tope o desactivarlo para todos. Se cierra solo cuando el backend
-// dice que sí; si dice que no, muestra su mensaje.
+// El panel que sube desde abajo (showModalBottomSheet) al tocar un presupuesto para cambiar 
+// el tope o desactivarlo.
 class EditarPresupuestoSheet extends StatefulWidget {
   const EditarPresupuestoSheet({
     super.key,
     required this.presupuesto,
     required this.periodo,
     required this.cuenta,
+    required this.enCompartida,
     required this.alGuardar,
     required this.alDesactivar,
   });
@@ -20,6 +20,7 @@ class EditarPresupuestoSheet extends StatefulWidget {
   final Presupuesto presupuesto;
   final String periodo;
   final String cuenta;
+  final bool enCompartida;
   final Future<void> Function(double tope, int intervaloAviso) alGuardar;
   final Future<void> Function() alDesactivar;
 
@@ -71,7 +72,10 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Desactivar presupuesto'),
-        content: Text('¿Desactivar el presupuesto de $nombre de ${widget.periodo} para todos los de ${widget.cuenta}?'),
+        // ACÁ ESTÁ EL CAMBIO: Modificamos el texto si es cuenta propia o compartida
+        content: Text(widget.enCompartida 
+            ? '¿Desactivar el presupuesto de $nombre de ${widget.periodo} para todos los integrantes de ${widget.cuenta}?'
+            : '¿Estás seguro de que querés desactivar el presupuesto de $nombre de ${widget.periodo}?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
           TextButton(
@@ -89,7 +93,6 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 18, 18, 18 + MediaQuery.of(context).viewInsets.bottom),
-      // Con el selector de avisos y el teclado abierto puede no entrar: que se pueda deslizar.
       child: SingleChildScrollView(
         child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -18,8 +18,12 @@ class VoiceScreen extends StatefulWidget {
 
 class _VoiceScreenState extends State<VoiceScreen> {
   late final AudioRecorder _audioRecorder;
-  bool _isRecording = false;
+  
+  // Estados de la grabación
+  bool _isRecording = false; 
+  bool _isPaused = false;
   bool _isProcessing = false;
+  
   String _text = 'Tocá el micrófono y hablá...';
   
   Timer? _timer;
@@ -38,25 +42,30 @@ class _VoiceScreenState extends State<VoiceScreen> {
     super.dispose();
   }
 
-  Future<void> _toggleRecording() async {
-    // Si ya está grabando, frenamos y enviamos
-    if (_isRecording) {
-      final path = await _audioRecorder.stop();
-      _timer?.cancel();
-      
+  // --- Lógica del Cronómetro ---
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
       setState(() {
-        _isRecording = false;
-        _isProcessing = true;
-        _text = 'Procesando con la IA...';
+        _recordDuration++;
+        _actualizarTextoTiempo();
       });
+    });
+  }
 
-      if (path != null) {
-        await _enviarAudioABackend(path);
-      }
-      return;
+  void _actualizarTextoTiempo() {
+    final minutes = _recordDuration ~/ 60;
+    final seconds = _recordDuration % 60;
+    final tiempoFormateado = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    
+    if (_isPaused) {
+      _text = 'Pausado... $tiempoFormateado';
+    } else {
+      _text = 'Grabando... $tiempoFormateado';
     }
+  }
 
-    // Si no está grabando, pedimos permiso e iniciamos
+  // --- Controles de Grabación ---
+  Future<void> _iniciarGrabacion() async {
     if (await _audioRecorder.hasPermission()) {
       if (kIsWeb) {
         // En Web se graba en memoria con Opus/WebM
@@ -77,21 +86,66 @@ class _VoiceScreenState extends State<VoiceScreen> {
       
       setState(() {
         _isRecording = true;
+        _isPaused = false;
         _recordDuration = 0;
-        _text = 'Grabando... 00:00';
+        _actualizarTextoTiempo();
       });
 
-      // Cronómetro para feedback visual
-      _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
-        setState(() {
-          _recordDuration++;
-          final minutes = _recordDuration ~/ 60;
-          final seconds = _recordDuration % 60;
-          _text = 'Grabando... ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-        });
-      });
+      _startTimer();
     } else {
       setState(() => _text = 'Se necesita permiso de micrófono.');
+    }
+  }
+
+  Future<void> _pausarGrabacion() async {
+    await _audioRecorder.pause();
+    _timer?.cancel();
+    setState(() {
+      _isPaused = true;
+      _actualizarTextoTiempo();
+    });
+  }
+
+  Future<void> _reanudarGrabacion() async {
+    await _audioRecorder.resume();
+    setState(() {
+      _isPaused = false;
+      _actualizarTextoTiempo();
+    });
+    _startTimer();
+  }
+
+  Future<void> _cancelarYBorrarGrabacion() async {
+    // Frenamos la grabación pero no hacemos nada con el path (se descarta)
+    await _audioRecorder.stop(); 
+    _timer?.cancel();
+    
+    setState(() {
+      _isRecording = false;
+      _isPaused = false;
+      _recordDuration = 0;
+      _text = 'Tocá el micrófono y hablá...';
+    });
+  }
+
+  Future<void> _finalizarYEnviarAudio() async {
+    final path = await _audioRecorder.stop();
+    _timer?.cancel();
+    
+    setState(() {
+      _isRecording = false;
+      _isPaused = false;
+      _isProcessing = true;
+      _text = 'Procesando con la IA...';
+    });
+
+    if (path != null) {
+      await _enviarAudioABackend(path);
+    } else {
+      setState(() {
+        _isProcessing = false;
+        _text = 'Error: No se pudo guardar el audio localmente.';
+      });
     }
   }
 
@@ -100,7 +154,6 @@ class _VoiceScreenState extends State<VoiceScreen> {
       final MultipartFile audioFile;
 
       if (kIsWeb) {
-        // En Web descargamos los bytes del Blob generado en Chrome
         final response = await Dio().get<List<int>>(
           path,
           options: Options(responseType: ResponseType.bytes),
@@ -110,7 +163,6 @@ class _VoiceScreenState extends State<VoiceScreen> {
           filename: "movimiento.webm",
         );
       } else {
-        // En Mobile enviamos directamente el archivo local
         audioFile = await MultipartFile.fromFile(
           path,
           filename: "movimiento.m4a",
@@ -121,11 +173,12 @@ class _VoiceScreenState extends State<VoiceScreen> {
         "audio": audioFile,
       });
 
-      // Enviamos al backend
       await ApiClient().postMultipart('/api/movimientos/procesar-audio', formData);
 
       if (mounted) {
-        mostrarExito(context, 'Movimiento registrado correctamente');
+        mostrarExito(context, 'Audio enviado. Procesando en segundo plano.');
+        // Volvemos a la pantalla principal o cerramos el modal si se requiere,
+        // por ahora reseteamos el estado:
         setState(() => _text = 'Tocá el micrófono y hablá...');
       }
     } catch (e) {
@@ -155,21 +208,70 @@ class _VoiceScreenState extends State<VoiceScreen> {
                       style: TextStyle(
                         fontSize: 18, 
                         fontWeight: _isRecording ? FontWeight.bold : FontWeight.normal,
-                        color: _isRecording ? AppColors.danger : AppColors.muted
+                        color: (_isRecording && !_isPaused) ? AppColors.danger : AppColors.text
                       ),
                     ),
               ),
             ),
-            FloatingActionButton.large(
-              onPressed: _isProcessing ? null : _toggleRecording,
-              backgroundColor: _isRecording ? AppColors.danger : AppColors.accent,
-              foregroundColor: AppColors.accentInk,
-              elevation: _isRecording ? 8 : 2,
-              child: Icon(_isRecording ? Icons.stop : Icons.mic, size: 36),
-            ),
+            
+            // --- PANEL DE BOTONES ---
+            if (!_isRecording && !_isProcessing)
+              // Botón inicial para empezar a grabar
+              FloatingActionButton.large(
+                onPressed: _iniciarGrabacion,
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                child: const Icon(Icons.mic, size: 36),
+              )
+            else if (_isRecording)
+              // Controles mientras está la grabación activa o pausada
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Botón de Cancelar / Eliminar
+                  FloatingActionButton(
+                    heroTag: 'btn_cancelar',
+                    onPressed: _cancelarYBorrarGrabacion,
+                    backgroundColor: AppColors.surface2,
+                    foregroundColor: AppColors.danger,
+                    elevation: 1,
+                    child: const Icon(Icons.delete_outline, size: 28),
+                  ),
+                  const SizedBox(width: 24),
+                  
+                  // Botón de Pausa / Reanudar
+                  FloatingActionButton.large(
+                    heroTag: 'btn_pausa',
+                    onPressed: _isPaused ? _reanudarGrabacion : _pausarGrabacion,
+                    backgroundColor: _isPaused ? AppColors.accent : AppColors.surface3,
+                    foregroundColor: _isPaused ? Colors.white : AppColors.text,
+                    elevation: _isPaused ? 4 : 2,
+                    child: Icon(_isPaused ? Icons.mic : Icons.pause, size: 36),
+                  ),
+                  const SizedBox(width: 24),
+
+                  // Botón de Enviar
+                  FloatingActionButton(
+                    heroTag: 'btn_enviar',
+                    onPressed: _finalizarYEnviarAudio,
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: Colors.white,
+                    elevation: 1,
+                    child: const Icon(Icons.send, size: 24),
+                  ),
+                ],
+              ),
+              
             const SizedBox(height: 16),
+            
+            // Mensaje de ayuda abajo
             Text(
-              _isRecording ? 'Tocá para detener y procesar' : 'Tocá para grabar',
+              _isProcessing 
+                  ? 'Aguardá un momento...' 
+                  : _isRecording 
+                      ? (_isPaused ? 'Grabación pausada' : 'Grabando ahora...')
+                      : 'Tocá para grabar',
               style: const TextStyle(color: AppColors.faint),
             ),
             const SizedBox(height: 24),
