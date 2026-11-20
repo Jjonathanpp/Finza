@@ -253,7 +253,7 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
       builder: (_) => EditarPresupuestoSheet(
         presupuesto: p,
         periodo: '${context.tr(_meses[vm.mesActual])} ${vm.anioActual}',
-        cuenta: enCompartida ? cuentaActiva.value!['nombre'] as String : context.tr('tu cuenta'),
+        cuenta: enCompartida ? cuentaActiva.value!['nombre'] as String : 'tu cuenta',
         enCompartida: enCompartida,
         alGuardar: (tope, intervalo) => vm.editarTope(p, tope, intervaloAviso: intervalo),
         alDesactivar: () => vm.desactivar(p),

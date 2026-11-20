@@ -23,7 +23,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
   bool _isRecording = false;
   bool _isPaused = false;
   bool _isProcessing = false;
-  String _text = tr('Tocá el micrófono y hablá...');
+  String _text = 'Tocá el micrófono y hablá...';
 
   Timer? _timer;
   int _recordDuration = 0;
@@ -41,7 +41,6 @@ class _VoiceScreenState extends State<VoiceScreen> {
     super.dispose();
   }
 
-  // --- Lógica del Cronómetro ---
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
@@ -58,13 +57,12 @@ class _VoiceScreenState extends State<VoiceScreen> {
     final tiempoFormateado = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
     if (_isPaused) {
-      _text = '${tr('Pausado...')} $tiempoFormateado';
+      _text = 'Pausado... $tiempoFormateado';
     } else {
-      _text = '${tr('Grabando...')} $tiempoFormateado';
+      _text = 'Grabando... $tiempoFormateado';
     }
   }
 
-  // --- Controles de Grabación ---
   Future<void> _iniciarGrabacion() async {
     if (await _audioRecorder.hasPermission()) {
       if (kIsWeb) {
@@ -121,7 +119,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
       _isRecording = false;
       _isPaused = false;
       _recordDuration = 0;
-      _text = tr('Tocá el micrófono y hablá...');
+      _text = 'Tocá el micrófono y hablá...';
     });
   }
 
@@ -133,7 +131,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
       _isRecording = false;
       _isPaused = false;
       _isProcessing = true;
-      _text = tr('Procesando con la IA...');
+      _text = 'Procesando con la IA...';
     });
 
     if (path != null) {
@@ -141,7 +139,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
     } else {
       setState(() {
         _isProcessing = false;
-        _text = tr('Error: No se pudo guardar el audio localmente.');
+        _text = 'Error: No se pudo guardar el audio localmente.';
       });
     }
   }
@@ -173,8 +171,8 @@ class _VoiceScreenState extends State<VoiceScreen> {
       await ApiClient().postMultipart('/api/movimientos/procesar-audio', formData);
 
       if (mounted) {
-        mostrarExito(context, tr('Audio enviado. Procesando en segundo plano.'));
-        setState(() => _text = tr('Tocá el micrófono y hablá...'));
+        mostrarExito(context, 'Audio enviado. Procesando en segundo plano.');
+        setState(() => _text = 'Tocá el micrófono y hablá...');
       }
     } catch (e) {
       if (mounted) {
@@ -208,8 +206,6 @@ class _VoiceScreenState extends State<VoiceScreen> {
                       ),
               ),
             ),
-
-            // --- PANEL DE BOTONES ---
             if (!_isRecording && !_isProcessing)
               FloatingActionButton.large(
                 onPressed: _iniciarGrabacion,
@@ -250,15 +246,13 @@ class _VoiceScreenState extends State<VoiceScreen> {
                   ),
                 ],
               ),
-
             const SizedBox(height: 16),
-
             Text(
               _isProcessing
-                  ? context.tr('Aguardá un momento...')
+                  ? 'Aguardá un momento...'
                   : _isRecording
-                      ? (_isPaused ? context.tr('Grabación pausada') : context.tr('Grabando ahora...'))
-                      : context.tr('Tocá para grabar'),
+                      ? (_isPaused ? 'Grabación pausada' : 'Grabando ahora...')
+                      : 'Tocá para grabar',
               style: const TextStyle(color: AppColors.faint),
             ),
             const SizedBox(height: 24),

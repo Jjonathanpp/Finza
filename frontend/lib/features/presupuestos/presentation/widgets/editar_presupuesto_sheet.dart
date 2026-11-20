@@ -73,17 +73,14 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
         title: Text(context.tr('Desactivar presupuesto')),
         content: Text(
           widget.enCompartida
-              ? context.tr(
-                  '¿Desactivar el presupuesto de {nombre} de {periodo} para todos los integrantes de {cuenta}?',
-                  {'nombre': nombre, 'periodo': widget.periodo, 'cuenta': widget.cuenta},
-                )
-              : context.tr(
-                  '¿Estás seguro de que querés desactivar el presupuesto de {nombre} de {periodo}?',
-                  {'nombre': nombre, 'periodo': widget.periodo},
-                ),
+              ? '¿Desactivar el presupuesto de $nombre de ${widget.periodo} para todos los de ${widget.cuenta}?'
+              : '¿Estás seguro de que querés desactivar el presupuesto de $nombre de ${widget.periodo}?',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.tr('Cancelar'))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(context.tr('Cancelar')),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),

@@ -356,15 +356,29 @@ void main() {
   });
 
   group('presupuestos', () {
-    testWidgets('en la personal: se puede agregar y las tarjetas no abren nada', (tester) async {
-      await _abrirPresupuestos(tester, _PresupuestosDeMentira());
+    testWidgets('en la personal: se puede agregar, editar y desactivar desde la tarjeta', (tester) async {
+      final api = _PresupuestosDeMentira();
+      await _abrirPresupuestos(tester, api);
 
       expect(find.text('Presupuestos'), findsOneWidget);
       expect(find.text('Agregar presupuesto'), findsOneWidget);
+
       await tester.tap(find.text('Comida'));
       await tester.pumpAndSettle();
-      expect(find.text('Desactivar presupuesto'), findsNothing);
+
+      // No muestra desglose por integrante, pero sí abre el panel para editar/desactivar
       expect(find.text('Cuánto gastó cada uno'), findsNothing);
+      expect(find.text('Desactivar presupuesto'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '2500');
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+
+      final hoy = DateTime.now();
+      expect(api.editados, [
+        {'id': 7, 'categoriaId': 6, 'montoTope': 2500.0, 'mes': hoy.month, 'anio': hoy.year},
+      ]);
+      expect(find.text('Desactivar presupuesto'), findsNothing);
     });
 
     testWidgets('miembro de Casa: no puede agregar ni editar, y ve por qué', (tester) async {
