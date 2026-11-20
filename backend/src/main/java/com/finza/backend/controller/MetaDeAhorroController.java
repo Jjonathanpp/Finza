@@ -4,10 +4,12 @@ import com.finza.backend.dto.Response;
 import com.finza.backend.dto.meta_de_ahorro.AbonarMetaDTO;
 import com.finza.backend.dto.meta_de_ahorro.MetaDeAhorroRequestDTO;
 import com.finza.backend.dto.meta_de_ahorro.MetaDeAhorroResponseDTO;
+import com.finza.backend.dto.meta_de_ahorro.ResumenAportesMetaDTO;
 import com.finza.backend.model.MetaDeAhorro;
 import com.finza.backend.service.MetaDeAhorroService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/metas")
+@PreAuthorize("isAuthenticated()")
 public class MetaDeAhorroController {
 
     private final MetaDeAhorroService metaService;
@@ -60,9 +63,23 @@ public class MetaDeAhorroController {
     }
 
     /**
+     * T-15.3.3: Devuelve el resumen de avance total de la meta junto con
+     * la lista de aportes desglosada por nombre de integrante.
+     */
+    @GetMapping("/{id}/aportes")
+    public ResponseEntity<Object> obtenerResumenAportes(
+            @AuthenticationPrincipal Long cuentaId,
+            @PathVariable Long id) {
+
+        ResumenAportesMetaDTO resumen = metaService.obtenerResumenAportes(cuentaId, id);
+        return Response.ok(resumen, "Resumen de aportes obtenido exitosamente");
+    }
+
+    /**
      * Edita una meta existente (exige ADMIN si es compartida).
      */
     @PutMapping("/{id}")
+    @PreAuthorize("@metaSecurity.puedeAdministrarMeta(authentication.principal, #id)")
     public ResponseEntity<Object> editarMeta(
             @AuthenticationPrincipal Long cuentaId,
             @PathVariable Long id,
@@ -98,6 +115,7 @@ public class MetaDeAhorroController {
      * Elimina una meta de ahorro (exige ADMIN si es compartida).
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("@metaSecurity.puedeAdministrarMeta(authentication.principal, #id)")
     public ResponseEntity<Object> eliminarMeta(
             @AuthenticationPrincipal Long cuentaId,
             @PathVariable Long id) {
