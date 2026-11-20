@@ -14,6 +14,7 @@ import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/core/widgets/titulo_seccion.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
+import 'package:frontend/features/mercadopago/presentation/screens/importar_mp_screen.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
@@ -220,16 +221,30 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
               ChipEstado(context.tr('Activa'), TonoChip.menta, chico: true),
             ],
           ),
-          OutlinedButton.icon(
-            onPressed: _vm.cargando ? null : _sincronizar,
-            icon: _vm.cargando
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.sync, size: 18),
-            label: Text(_vm.cargando ? context.tr('Importando...') : context.tr('Importar ahora')),
-          ),
+          // En la personal se puede traer todo de una o elegir; en una compartida solo se eligen,
+          // para no meter lo personal en la cuenta de todos (Eze en main).
+          if (cuentaActiva.value == null)
+            OutlinedButton.icon(
+              onPressed: _vm.cargando ? null : _sincronizar,
+              icon: _vm.cargando
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync, size: 18),
+              label: Text(_vm.cargando ? context.tr('Importando...') : context.tr('Importar ahora')),
+            ),
+          if (cuentaActiva.value == null)
+            TextButton(
+              onPressed: _vm.cargando ? null : _elegirQueImportar,
+              child: Text(context.tr('Elegir cuáles importar')),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: _vm.cargando ? null : _elegirQueImportar,
+              icon: const Icon(Icons.checklist, size: 18),
+              label: Text(context.tr('Elegir de Mercado Pago')),
+            ),
         ],
       ),
     );
@@ -314,6 +329,14 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
       chip: ChipEstado(context.tr('Por revisar'), TonoChip.ambar, chico: true),
       alTocar: () => _revisarMovimiento(m),
     );
+  }
+
+  Future<void> _elegirQueImportar() async {
+    final importo = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => ImportarMPScreen(vm: _vm)),
+    );
+    if (importo == true) await _vm.cargarPendientes();
   }
 
   Future<void> _sincronizar() async {

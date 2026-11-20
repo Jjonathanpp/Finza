@@ -36,13 +36,13 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
       start = DateTime(hoy.year, hoy.month, 1);
       end = DateTime(hoy.year, hoy.month + 1, 0);
     } else if (opcion == 'Bimestral') {
-      int mesInicio = hoy.month % 2 == 0 ? hoy.month - 1 : hoy.month;
-      start = DateTime(hoy.year, mesInicio, 1);
-      end = DateTime(hoy.year, mesInicio + 2, 0);
+      // Los últimos 2 meses, con el actual (igual que el backend desde 8555abb de Eze).
+      start = DateTime(hoy.year, hoy.month - 1, 1);
+      end = DateTime(hoy.year, hoy.month + 1, 0);
     } else if (opcion == 'Trimestral') {
-      int mesInicio = ((hoy.month - 1) ~/ 3) * 3 + 1;
-      start = DateTime(hoy.year, mesInicio, 1);
-      end = DateTime(hoy.year, mesInicio + 3, 0);
+      // Los últimos 3 meses, con el actual.
+      start = DateTime(hoy.year, hoy.month - 2, 1);
+      end = DateTime(hoy.year, hoy.month + 1, 0);
     } else if (opcion == 'Anual') {
       start = DateTime(hoy.year, 1, 1);
       end = DateTime(hoy.year, 12, 31);
@@ -64,7 +64,7 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
       context: context,
       initialDate: inicial,
       firstDate: DateTime(2020),
-      lastDate: DateTime(hoy.year + 1),
+      lastDate: hoy,
     );
 
     if (seleccionada != null) {

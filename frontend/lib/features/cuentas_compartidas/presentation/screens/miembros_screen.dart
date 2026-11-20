@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/session/portero.dart';
+import 'package:frontend/core/storage/token_storage.dart';
 import 'package:frontend/core/widgets/avatar_inicial.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/core/widgets/chip_estado.dart';
+import 'package:frontend/core/widgets/confirmar.dart';
 import 'package:frontend/core/widgets/esqueleto.dart';
 import 'package:frontend/core/widgets/fila_opcion.dart';
 import 'package:frontend/core/widgets/hoja.dart';
@@ -31,8 +35,9 @@ class MiembrosScreen extends StatefulWidget {
 }
 
 class _MiembrosScreenState extends State<MiembrosScreen> {
+  late final _api = widget.api ?? CuentaCompartidaApi(ApiClient());
   late final _vm = MiembrosViewModel(
-    widget.api ?? CuentaCompartidaApi(ApiClient()),
+    _api,
     miPerfilId: cuentaActiva.value?['perfilId'] as int?,
   );
 
@@ -76,6 +81,40 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => ListaInvitacionesScreen(cuentaCompartidaId: id)),
     );
+  }
+
+  bool _saliendo = false;
+
+  // Salir (cualquiera) o eliminar la cuenta (el admin), con confirmación. Después la app vuelve a la
+  // personal y al Inicio, como al elegirla en el selector.
+  Future<void> _salirOEliminar({required bool eliminar}) async {
+    final id = cuentaActiva.value?['id'] as int?;
+    if (id == null) return;
+    final datos = {'cuenta': widget.nombreCuenta};
+    final ok = await confirmar(
+      context,
+      titulo: eliminar ? context.tr('¿Eliminar {cuenta}?', datos) : context.tr('¿Salir de {cuenta}?', datos),
+      texto: eliminar
+          ? context.tr('Se borran sus movimientos, presupuestos, metas y categorías para todos los integrantes. No se puede deshacer.')
+          : context.tr('Ya no vas a ver sus movimientos, presupuestos ni metas. Si sos el último integrante, la cuenta se borra.'),
+      textoAccion: eliminar ? context.tr('Eliminar') : context.tr('Salir'),
+      peligro: true,
+    );
+    if (!ok || !mounted) return;
+    setState(() => _saliendo = true);
+    try {
+      eliminar ? await _api.eliminar(id) : await _api.abandonar(id);
+      await TokenStorage().guardarCuentaActiva(null);
+      irAlInicio();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saliendo = false);
+      final c = context.colores;
+      final texto = e is ApiException ? e.message : context.tr('No pudimos completar la acción. Probá de nuevo.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(texto, style: TextStyle(color: c.coralTexto)), backgroundColor: c.coralFondo),
+      );
+    }
   }
 
   @override
@@ -152,6 +191,21 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
                   onPressed: _invitar,
                   icon: const Icon(Icons.mail_outline, size: 18),
                   label: Text(context.tr('Invitar a alguien')),
+                ),
+              // Al final y en coral: salir de la cuenta y, para el admin, eliminarla.
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                style: estiloBotonPeligro(context),
+                onPressed: _saliendo ? null : () => _salirOEliminar(eliminar: false),
+                icon: const Icon(Icons.logout, size: 18),
+                label: Text(context.tr('Salir de {cuenta}', {'cuenta': widget.nombreCuenta})),
+              ),
+              if (_vm.soyAdmin)
+                FilledButton.icon(
+                  style: estiloBotonPeligro(context),
+                  onPressed: _saliendo ? null : () => _salirOEliminar(eliminar: true),
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: Text(context.tr('Eliminar {cuenta}', {'cuenta': widget.nombreCuenta})),
                 ),
             ],
           ),

@@ -82,6 +82,15 @@ class MetasAhorroApi {
     }
   }
 
+  // El desglose de aportes de una meta: todos los integrantes (también los que todavía no pusieron
+  // nada y los que ya se fueron), con cuánto puso cada uno y qué parte del objetivo es.
+  Future<List<AporteMetaAhorro>> aportes(int id) async {
+    final response = await _client.get('/api/metas/$id/aportes');
+    final lista = response is Map ? response['aportes'] : null;
+    if (lista is! List) return const [];
+    return lista.map((item) => AporteMetaAhorro.fromJson(item as Map<String, dynamic>)).toList();
+  }
+
   String? _fecha(DateTime? fecha) => fecha == null
       ? null
       : '${fecha.year.toString().padLeft(4, '0')}-'

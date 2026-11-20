@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/metas_ahorro/data/datasources/metas_ahorro_api.dart';
@@ -9,6 +11,8 @@ class MetasAhorroViewModel extends ChangeNotifier {
 
   final MetasAhorroApi _api;
   List<MetaAhorro> _metas = [];
+  // El desglose de cada meta de una compartida, por id. Si no llegó, se usan los aportes de la lista.
+  final Map<int, List<AporteMetaAhorro>> _aportes = {};
   bool _cargando = false;
   String? _error;
   bool _cerrado = false;
@@ -16,6 +20,8 @@ class MetasAhorroViewModel extends ChangeNotifier {
   List<MetaAhorro> get metas => _metas;
   bool get cargando => _cargando;
   String? get error => _error;
+
+  List<AporteMetaAhorro> aportesDe(MetaAhorro meta) => _aportes[meta.id] ?? meta.aportes;
 
   @override
   void notifyListeners() {
@@ -34,6 +40,8 @@ class MetasAhorroViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       _metas = await _api.listar(cuentaCompartidaId: cuentaCompartidaId);
+      _aportes.clear();
+      if (cuentaCompartidaId != null) unawaited(_cargarAportes());
     } on ApiException catch (e) {
       _error = e.message;
     } catch (e) {
@@ -42,6 +50,15 @@ class MetasAhorroViewModel extends ChangeNotifier {
       _cargando = false;
       notifyListeners();
     }
+  }
+
+  // Pide el desglose de todas las metas a la vez; si alguno falla, esa meta se queda con lo básico.
+  Future<void> _cargarAportes() async {
+    await Future.wait([
+      for (final meta in _metas)
+        _api.aportes(meta.id).then((lista) => _aportes[meta.id] = lista).catchError((_) => const <AporteMetaAhorro>[]),
+    ]);
+    notifyListeners();
   }
 
   Future<void> crear({

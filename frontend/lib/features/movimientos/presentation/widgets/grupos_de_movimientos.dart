@@ -102,15 +102,20 @@ class _FilaDeMovimiento extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = movimiento;
-    final pendiente = m.estado == 'PENDIENTE';
-    final descripcion = m.descripcion;
+    final descripcion = m.descripcionVisible;
     return FilaMovimiento(
       leading: CirculoCategoria.de(m.categoria),
       titulo: m.categoria.nombre,
       subtitulo: descripcion != null && descripcion.isNotEmpty ? descripcion : context.tr('Sin descripción'),
       monto: Monto.texto(m.monto, ingreso: m.esIngreso),
       colorMonto: Monto.color(context, m.esIngreso),
-      chip: pendiente ? ChipEstado(context.tr('Por revisar'), TonoChip.ambar, chico: true) : null,
+      chip: switch (m.estado) {
+        'PENDIENTE' => ChipEstado(context.tr('Por revisar'), TonoChip.ambar, chico: true),
+        // Grabados por voz: mientras la IA lo analiza y si no pudo.
+        'PROCESANDO_IA' => ChipEstado(context.tr('Analizando'), TonoChip.hundido, chico: true),
+        'ERROR_IA' => ChipEstado(context.tr('Error de IA'), TonoChip.coral, chico: true),
+        _ => null,
+      },
       pie: mostrarAutor && m.perfilNombre != null ? _Autor(m.perfilNombre!, esPropio: !esMovimientoAjeno(m)) : null,
       alTocar: alTocar,
     );

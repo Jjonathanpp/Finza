@@ -45,4 +45,17 @@ class MercadoPagoApi {
     }
     return [];
   }
+
+  // Los movimientos de Mercado Pago que se pueden traer, para elegir cuáles (Eze en main, 408983b):
+  // en una cuenta compartida no se importa todo, se eligen.
+  Future<List<Map<String, dynamic>>> obtenerDisponibles() async {
+    final res = await _api.get('/api/mercadopago/movimientos/disponibles');
+    final lista = res is Map ? res['results'] : null;
+    return lista is List ? lista.cast<Map<String, dynamic>>() : const [];
+  }
+
+  Future<SincronizacionResumen> importarSeleccionados(List<String> externalIds) async {
+    final data = await _api.post('/api/mercadopago/importar-seleccionados', {'externalIds': externalIds});
+    return SincronizacionResumen.fromJson(data as Map<String, dynamic>);
+  }
 }

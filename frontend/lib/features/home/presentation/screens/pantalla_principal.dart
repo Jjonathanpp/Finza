@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/features/mercadopago/sincronizacion_al_entrar.dart';
 import 'package:frontend/features/home/presentation/screens/home_screen.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/mercadopago_screen.dart';
 import 'package:frontend/features/movimientos/presentation/screens/alta_movimiento_screen.dart';
@@ -67,6 +68,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     reintentos.addListener(_rearmar);
     pestanaPedida.addListener(_irAPedida);
     _cargarMoneda();
+    WidgetsBinding.instance.addPostFrameCallback((_) => sincronizarMercadoPagoAlEntrar());
   }
 
   @override

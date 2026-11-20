@@ -97,17 +97,24 @@ class _Fila extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ingreso = movimiento.esIngreso;
-    final pendiente = movimiento.estado == 'PENDIENTE';
     // El autor solo importa en una cuenta compartida.
     final autor = cuentaActiva.value != null ? movimiento.perfilNombre : null;
 
     return FilaMovimiento(
       leading: CirculoCategoria.de(movimiento.categoria),
       titulo: movimiento.categoria.nombre,
-      subtitulo: movimiento.descripcion?.isNotEmpty == true ? movimiento.descripcion! : _formatearFecha(movimiento.fecha),
+      subtitulo: movimiento.descripcionVisible?.isNotEmpty == true
+          ? movimiento.descripcionVisible!
+          : _formatearFecha(movimiento.fecha),
       monto: Monto.texto(movimiento.monto, ingreso: ingreso),
       colorMonto: Monto.color(context, ingreso),
-      chip: pendiente ? ChipEstado(context.tr('Por revisar'), TonoChip.ambar, chico: true) : null,
+      chip: switch (movimiento.estado) {
+        'PENDIENTE' => ChipEstado(context.tr('Por revisar'), TonoChip.ambar, chico: true),
+        // Grabados por voz: mientras la IA lo analiza y si no pudo.
+        'PROCESANDO_IA' => ChipEstado(context.tr('Analizando'), TonoChip.hundido, chico: true),
+        'ERROR_IA' => ChipEstado(context.tr('Error de IA'), TonoChip.coral, chico: true),
+        _ => null,
+      },
       pie: autor == null || autor.isEmpty
           ? null
           : ConstrainedBox(

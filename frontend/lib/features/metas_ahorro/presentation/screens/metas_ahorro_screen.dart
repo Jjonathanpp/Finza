@@ -215,6 +215,8 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
           padding: const EdgeInsets.only(bottom: 12),
           child: _TarjetaMeta(
             meta: meta,
+            aportes: _vm.aportesDe(meta),
+            miPerfilId: (cuentaActiva.value?['perfilId'] as num?)?.toInt(),
             admin: admin,
             compartida: cuenta != null,
             alAbonar: () => _abonar(meta),
@@ -229,6 +231,8 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
 class _TarjetaMeta extends StatelessWidget {
   const _TarjetaMeta({
     required this.meta,
+    required this.aportes,
+    required this.miPerfilId,
     required this.admin,
     required this.compartida,
     required this.alAbonar,
@@ -237,6 +241,8 @@ class _TarjetaMeta extends StatelessWidget {
   });
 
   final MetaAhorro meta;
+  final List<AporteMetaAhorro> aportes;
+  final int? miPerfilId;
   final bool admin;
   final bool compartida;
   final VoidCallback alAbonar;
@@ -359,18 +365,37 @@ class _TarjetaMeta extends StatelessWidget {
               context.tr('Aportes'),
               style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: c.suave),
             ),
-            if (meta.aportes.isEmpty)
+            if (aportes.isEmpty)
               Text(context.tr('Todavía nadie ingresó dinero.'), style: textos.bodySmall?.copyWith(color: c.suave))
             else
-              for (final (i, aporte) in meta.aportes.indexed)
+              // Cada integrante con lo que puso y qué parte del objetivo es; "Vos" para el propio y
+              // "Ya no está" para quien salió de la cuenta (el desglose de Tomás en main).
+              for (final (i, aporte) in aportes.indexed)
                 Row(
                   spacing: 10,
                   children: [
                     AvatarInicial(aporte.nombre.isEmpty ? '?' : aporte.nombre[0].toUpperCase(), serie: i, tamano: 28),
-                    Expanded(
-                      child: Text(aporte.nombre, overflow: TextOverflow.ellipsis, style: textos.bodyMedium),
+                    Flexible(
+                      child: Text(
+                        aporte.nombre,
+                        overflow: TextOverflow.ellipsis,
+                        style: textos.bodyMedium?.copyWith(color: aporte.activo ? null : c.suave),
+                      ),
                     ),
+                    if (miPerfilId != null && aporte.perfilId == miPerfilId)
+                      ChipEstado(context.tr('Vos'), TonoChip.menta, chico: true),
+                    if (!aporte.activo) ChipEstado(context.tr('Ya no está'), TonoChip.hundido, chico: true),
+                    const Spacer(),
                     Monto(aporte.monto, estilo: const TextStyle(fontSize: 14)),
+                    if (aporte.porcentaje != null)
+                      SizedBox(
+                        width: 44,
+                        child: Text(
+                          '${aporte.porcentaje!.round()}%',
+                          textAlign: TextAlign.right,
+                          style: textos.bodySmall?.copyWith(color: c.suave),
+                        ),
+                      ),
                   ],
                 ),
           ],

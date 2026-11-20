@@ -1,3 +1,4 @@
+import 'package:frontend/core/errors/api_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
@@ -69,18 +70,21 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
       if (!mounted) return;
       setState(() {
         _cargando = false;
-        _error = context.tr('No se pudo generar el reporte. Intentá de nuevo.');
+        // Si el backend dice por qué (p. ej. no hay movimientos en ese período), se muestra eso.
+        _error = e is ApiException ? e.message : context.tr('No se pudo generar el reporte. Intentá de nuevo.');
       });
     }
   }
 
   Future<void> _elegirFecha(bool esDesde) async {
+    // Sin fechas futuras (Eze en main): un reporte de lo que todavía no pasó sale vacío.
+    final hoy = DateTime.now();
     final inicial = esDesde ? _desde : _hasta;
     final elegida = await showDatePicker(
       context: context,
-      initialDate: inicial,
+      initialDate: inicial.isAfter(hoy) ? hoy : inicial,
       firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      lastDate: hoy,
     );
     if (elegida == null) return;
     setState(() {
@@ -139,27 +143,25 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
                 style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: c.coralTexto),
               ),
             ),
-          Campo(
-            etiqueta: context.tr('Qué incluye'),
-            ayuda: compartida ? null : context.tr('El consolidado está solo en una cuenta compartida.'),
-            child: Segmento<String>(
-              opciones: [
-                ('solo_propios', context.tr('Mis registros')),
-                (
-                  'cuenta_completa',
-                  compartida && nombreCuenta != null
-                      ? context.tr('Todo {cuenta}', {'cuenta': nombreCuenta})
-                      : context.tr('Consolidado'),
-                ),
-              ],
-              valor: _alcance,
-              deshabilitadas: {
-                if (!compartida || _cargando) 'cuenta_completa',
-                if (_cargando) 'solo_propios',
-              },
-              alCambiar: (v) => setState(() => _alcance = v),
+          // Elegir qué incluye solo tiene sentido en una compartida (Eze en main); en la personal no se muestra.
+          if (compartida)
+            Campo(
+              etiqueta: context.tr('Qué incluye'),
+              child: Segmento<String>(
+                opciones: [
+                  ('solo_propios', context.tr('Mis registros')),
+                  (
+                    'cuenta_completa',
+                    compartida && nombreCuenta != null
+                        ? context.tr('Todo {cuenta}', {'cuenta': nombreCuenta})
+                        : context.tr('Consolidado'),
+                  ),
+                ],
+                valor: _alcance,
+                deshabilitadas: {if (_cargando) 'cuenta_completa', if (_cargando) 'solo_propios'},
+                alCambiar: (v) => setState(() => _alcance = v),
+              ),
             ),
-          ),
           Campo(
             etiqueta: context.tr('Formato'),
             child: Align(
@@ -219,10 +221,7 @@ class _Caja extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 48),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       alignment: Alignment.centerLeft,
-      decoration: BoxDecoration(
-        color: c.hundido,
-        borderRadius: BorderRadius.circular(Radios.control),
-      ),
+      decoration: BoxDecoration(color: c.hundido, borderRadius: BorderRadius.circular(Radios.control)),
       child: Text(
         texto,
         maxLines: 1,

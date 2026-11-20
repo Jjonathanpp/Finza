@@ -28,4 +28,15 @@ class CuentaCompartidaApi {
   Future<void> cambiarRol(int perfilId, String rol) async {
     await _api.put('/api/cuentas-compartidas/perfiles/$perfilId/rol', {'rol': rol});
   }
+
+  // Salir de la cuenta compartida (t-12.1.7). Si se va el último admin, el backend asciende a otro;
+  // si era el último integrante, la cuenta se borra.
+  Future<void> abandonar(int cuentaCompartidaId) async {
+    await _api.post('/api/cuentas-compartidas/$cuentaCompartidaId/abandonar', {});
+  }
+
+  // Borrar la cuenta compartida con todo lo que tiene, para todos (solo un admin; Axel en main).
+  Future<void> eliminar(int cuentaCompartidaId) async {
+    await _api.delete('/api/cuentas-compartidas/$cuentaCompartidaId/eliminar');
+  }
 }
