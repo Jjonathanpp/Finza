@@ -288,10 +288,15 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
                               const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final meta = _viewModel.metas[index];
+                            final miPerfilId = cuentaActiva.value?['perfilId'];
                             return _TarjetaMeta(
                               meta: meta,
+                              aportes: _viewModel.aportesDe(meta),
+                              cargandoAportes: _viewModel.cargandoAportes(meta.id),
+                              miPerfilId: miPerfilId is num ? miPerfilId.toInt() : null,
                               mostrarAcciones: puedeAdministrar,
                               mostrarAportes: compartida,
+                              alExpandirAportes: () => _viewModel.cargarAportes(meta.id),
                               abonar: () => _abonar(meta),
                               editar: () => _abrirFormulario(meta: meta),
                               eliminar: () => _eliminar(meta),
@@ -340,16 +345,24 @@ class _ErrorMetas extends StatelessWidget {
 class _TarjetaMeta extends StatelessWidget {
   const _TarjetaMeta({
     required this.meta,
+    required this.aportes,
+    required this.cargandoAportes,
+    required this.miPerfilId,
     required this.mostrarAcciones,
     required this.mostrarAportes,
+    required this.alExpandirAportes,
     required this.abonar,
     required this.editar,
     required this.eliminar,
   });
 
   final MetaAhorro meta;
+  final List<AporteMetaAhorro> aportes;
+  final bool cargandoAportes;
+  final int? miPerfilId;
   final bool mostrarAcciones;
   final bool mostrarAportes;
+  final VoidCallback alExpandirAportes;
   final VoidCallback abonar;
   final VoidCallback editar;
   final VoidCallback eliminar;
@@ -477,6 +490,9 @@ class _TarjetaMeta extends StatelessWidget {
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: const EdgeInsets.only(bottom: 8),
+                onExpansionChanged: (expandido) {
+                  if (expandido) alExpandirAportes();
+                },
                 title: Text(
                   context.tr('Aportes por integrante'),
                   style: const TextStyle(
@@ -485,34 +501,105 @@ class _TarjetaMeta extends StatelessWidget {
                   ),
                 ),
                 children: [
-                  for (final aporte in meta.aportes)
+                  if (cargandoAportes)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: LinearProgressIndicator(minHeight: 2),
+                    ),
+                  for (final aporte in aportes) ...[
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5),
-                      child: Row(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
                         children: [
-                          const Icon(
-                            Icons.person_outline,
-                            color: AppColors.muted,
-                            size: 18,
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                color: AppColors.muted,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        aporte.nombre,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                    if (miPerfilId != null &&
+                                        aporte.perfilId == miPerfilId) ...[
+                                      const SizedBox(width: 6),
+                                      _EtiquetaAporte(
+                                        'vos',
+                                        fondo: AppColors.accent.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        colorTexto: AppColors.text,
+                                      ),
+                                    ],
+                                    if (!aporte.activo) ...[
+                                      const SizedBox(width: 6),
+                                      const _EtiquetaAporte(
+                                        'ya no está',
+                                        fondo: AppColors.surface3,
+                                        colorTexto: AppColors.muted,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                importe(aporte.monto),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (aporte.porcentaje != null) ...[
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                  width: 46,
+                                  child: Text(
+                                    '${aporte.porcentaje!.toStringAsFixed(1)}%',
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.muted,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              aporte.nombre,
-                              style: const TextStyle(fontSize: 13),
+                          if (aporte.porcentaje != null) ...[
+                            const SizedBox(height: 5),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 26),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: LinearProgressIndicator(
+                                  value: (aporte.porcentaje! / 100).clamp(
+                                    0.0,
+                                    1.0,
+                                  ),
+                                  minHeight: 4,
+                                  backgroundColor: AppColors.surface3,
+                                  valueColor: const AlwaysStoppedAnimation(
+                                    AppColors.muted,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                          Text(
-                            importe(aporte.monto),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
-                  if (meta.aportes.isEmpty)
+                  ],
+                  if (!cargandoAportes && aportes.isEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
@@ -563,6 +650,35 @@ class _TarjetaMeta extends StatelessWidget {
       ),
     );
   }
+}
+
+class _EtiquetaAporte extends StatelessWidget {
+  const _EtiquetaAporte(
+    this.texto, {
+    required this.fondo,
+    required this.colorTexto,
+  });
+
+  final String texto;
+  final Color fondo;
+  final Color colorTexto;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: fondo,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(
+      texto,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: colorTexto,
+      ),
+    ),
+  );
 }
 
 class _DatoMeta extends StatelessWidget {

@@ -104,6 +104,23 @@ class MetasAhorroApi {
     }
   }
 
+  Future<ResumenAportesMeta> obtenerResumenAportes(int id) async {
+    try {
+      final response = await _client.get('/api/metas/$id/aportes');
+      final data = response is Map && response.containsKey('data')
+          ? response['data']
+          : response;
+      if (data is! Map<String, dynamic>) {
+        throw ApiException(500, 'Error al obtener el resumen de aportes');
+      }
+      return ResumenAportesMeta.fromJson(data);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(500, 'Error al obtener los aportes de la meta: $e');
+    }
+  }
+
   String? _fecha(DateTime? fecha) => fecha == null
       ? null
       : '${fecha.year.toString().padLeft(4, '0')}-'
