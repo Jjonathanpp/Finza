@@ -5,15 +5,13 @@ import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
 import 'package:frontend/l10n/idioma.dart';
 
-// El panel que sube desde abajo (showModalBottomSheet) al tocar un presupuesto de una cuenta compartida,
-// si sos admin (t-13.1.2): cambiar el tope o desactivarlo para todos. Se cierra solo cuando el backend
-// dice que sí; si dice que no, muestra su mensaje.
 class EditarPresupuestoSheet extends StatefulWidget {
   const EditarPresupuestoSheet({
     super.key,
     required this.presupuesto,
     required this.periodo,
     required this.cuenta,
+    required this.enCompartida,
     required this.alGuardar,
     required this.alDesactivar,
   });
@@ -21,6 +19,7 @@ class EditarPresupuestoSheet extends StatefulWidget {
   final Presupuesto presupuesto;
   final String periodo;
   final String cuenta;
+  final bool enCompartida;
   final Future<void> Function(double tope, int intervaloAviso) alGuardar;
   final Future<void> Function() alDesactivar;
 
@@ -67,20 +66,21 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
   }
 
   Future<void> _desactivar() async {
-    final nombre = widget.presupuesto.categoriaNombre;
+    final nombre = context.tr(widget.presupuesto.categoriaNombre);
     final seguro = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(context.tr('Desactivar presupuesto')),
         content: Text(
-          context.tr('¿Desactivar el presupuesto de {categoria} de {periodo} para todos los de {cuenta}?', {
-            'categoria': context.tr(nombre),
-            'periodo': widget.periodo,
-            'cuenta': widget.cuenta,
-          }),
+          widget.enCompartida
+              ? '¿Desactivar el presupuesto de $nombre de ${widget.periodo} para todos los de ${widget.cuenta}?'
+              : '¿Estás seguro de que querés desactivar el presupuesto de $nombre de ${widget.periodo}?',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.tr('Cancelar'))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(context.tr('Cancelar')),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
@@ -96,56 +96,55 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 18, 18, 18 + MediaQuery.of(context).viewInsets.bottom),
-      // Con el selector de avisos y el teclado abierto puede no entrar: que se pueda deslizar.
       child: SingleChildScrollView(
         child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            '${context.tr(widget.presupuesto.categoriaNombre)} · ${widget.periodo}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _tope,
-            enabled: !_guardando,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: context.tr('Tope (\$)')),
-          ),
-          const SizedBox(height: 18),
-          Text(context.tr('Avisarme cada'), style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          SelectorIntervaloAviso(
-            valor: _intervaloAviso,
-            habilitado: !_guardando,
-            alCambiar: (valor) => setState(() => _intervaloAviso = valor),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
-          ],
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _guardando ? null : _guardar,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 0,
-              ),
-              child: Text(context.tr('Guardar'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '${context.tr(widget.presupuesto.categoriaNombre)} · ${widget.periodo}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
-          ),
-          const SizedBox(height: 6),
-          TextButton(
-            onPressed: _guardando ? null : _desactivar,
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: Text(context.tr('Desactivar presupuesto')),
-          ),
-        ],
+            const SizedBox(height: 14),
+            TextField(
+              controller: _tope,
+              enabled: !_guardando,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(labelText: context.tr('Tope (\$)')),
+            ),
+            const SizedBox(height: 18),
+            Text(context.tr('Avisarme cada'), style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            SelectorIntervaloAviso(
+              valor: _intervaloAviso,
+              habilitado: !_guardando,
+              alCambiar: (valor) => setState(() => _intervaloAviso = valor),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _guardando ? null : _guardar,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: Text(context.tr('Guardar'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: _guardando ? null : _desactivar,
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              child: Text(context.tr('Desactivar presupuesto')),
+            ),
+          ],
         ),
       ),
     );

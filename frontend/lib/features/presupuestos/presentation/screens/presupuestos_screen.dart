@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
-import 'package:frontend/features/presupuestos/presentation/screens/alta_presupuestos_screen.dart'; // Nombre con "s" como lo guardaste
+import 'package:frontend/features/presupuestos/presentation/screens/alta_presupuestos_screen.dart';
 import 'package:frontend/features/presupuestos/presentation/viewmodels/presupuestos_view_model.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/barra_progreso_presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/desglose_integrantes.dart';
@@ -91,7 +91,10 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                   child: Text(
-                    context.tr('Solo los administradores de {cuenta} pueden agregar o cambiar presupuestos.', {'cuenta': '${cuentaActiva.value!['nombre']}'}),
+                    context.tr(
+                      'Solo los administradores de {cuenta} pueden agregar o cambiar presupuestos.',
+                      {'cuenta': '${cuentaActiva.value!['nombre']}'},
+                    ),
                     style: const TextStyle(color: AppColors.muted, fontSize: 13),
                   ),
                 )
@@ -103,7 +106,10 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                     height: 54,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.add_circle_outline, size: 22),
-                      label: Text(context.tr('Agregar presupuesto'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      label: Text(
+                        context.tr('Agregar presupuesto'),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
                         foregroundColor: Colors.white,
@@ -115,7 +121,6 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                           context,
                           MaterialPageRoute(builder: (_) => const AltaPresupuestoScreen()),
                         );
-                        // Si se creó uno, recargamos la vista del mes actual
                         if (creado == true && mounted) {
                           vm.cargarPresupuestos();
                         }
@@ -193,8 +198,6 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
     }
 
     final lista = vm.presupuestosOrdenados;
-    // En una cuenta compartida la tarjeta se abre y muestra cuánto gastó cada integrante; si sos
-    // admin, desde ahí se edita el tope (t-13.2.2). En la personal no se abre.
     final enCompartida = cuentaActiva.value != null;
 
     return RefreshIndicator(
@@ -204,7 +207,6 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
         itemCount: lista.length + 1,
-        // Entre el resumen y la primera tarjeta va el título de la sección.
         separatorBuilder: (context, i) => i == 0
             ? Padding(
                 padding: const EdgeInsets.fromLTRB(4, 24, 4, 10),
@@ -227,7 +229,9 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
             enCompartida: enCompartida,
             abierta: abierta,
             diasRestantes: vm.diasRestantes,
-            alTocar: enCompartida ? () => setState(() => _abierto = abierta ? null : p.presupuestoId) : null,
+            alTocar: enCompartida
+                ? () => setState(() => _abierto = abierta ? null : p.presupuestoId)
+                : () => _editar(vm, p),
             desglose: abierta
                 ? DesgloseIntegrantes(
                     presupuesto: p,
@@ -242,13 +246,15 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
   }
 
   void _editar(PresupuestosViewModel vm, Presupuesto p) {
+    final enCompartida = cuentaActiva.value != null;
     showModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true, // sube con el teclado
+      isScrollControlled: true,
       builder: (_) => EditarPresupuestoSheet(
         presupuesto: p,
         periodo: '${context.tr(_meses[vm.mesActual])} ${vm.anioActual}',
-        cuenta: cuentaActiva.value!['nombre'] as String,
+        cuenta: enCompartida ? cuentaActiva.value!['nombre'] as String : 'tu cuenta',
+        enCompartida: enCompartida,
         alGuardar: (tope, intervalo) => vm.editarTope(p, tope, intervaloAviso: intervalo),
         alDesactivar: () => vm.desactivar(p),
       ),
@@ -258,9 +264,6 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
 
 // ======================= RESUMEN DEL MES =======================
 
-// Tarjeta de arriba: cuánto se gastó del total presupuestado, cuánto queda (y a
-// qué ritmo diario se puede gastar) y cuántas categorías están bien, cerca del
-// tope o pasadas. El fondo toma el color del consumo total.
 class _ResumenMes extends StatelessWidget {
   const _ResumenMes({required this.vm, required this.nombreMes});
 
@@ -387,7 +390,6 @@ class _TarjetaPresupuesto extends StatelessWidget {
   final bool abierta;
   final int? diasRestantes;
   final VoidCallback? alTocar;
-  // El detalle por integrante (solo con la tarjeta abierta en una cuenta compartida).
   final Widget? desglose;
 
   @override
@@ -408,7 +410,6 @@ class _TarjetaPresupuesto extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        // Desde el 80% el borde toma el color del consumo: se nota sin abrir nada.
         border: Border.all(
           color: porcentaje >= 80 ? color.withValues(alpha: 0.5) : Colors.transparent,
           width: 1.2,
@@ -429,7 +430,6 @@ class _TarjetaPresupuesto extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Encabezado: categoría, estado y porcentaje
                       Row(
                         children: [
                           Container(
@@ -485,7 +485,6 @@ class _TarjetaPresupuesto extends StatelessWidget {
                       const SizedBox(height: 14),
                       BarraProgresoPresupuesto(porcentaje: porcentaje, altura: 10),
                       const SizedBox(height: 12),
-                      // Gastado · Disponible (o Excedido) · Tope
                       Row(
                         children: [
                           Expanded(child: _Dato(etiqueta: context.tr('Gastado'), valor: importe(p.montoGastado))),
@@ -539,7 +538,6 @@ class _TarjetaPresupuesto extends StatelessWidget {
   }
 }
 
-// Qué decir según el consumo. Los cortes de 80% y 100% son los de la alerta del backend.
 (IconData, String) _estado(BuildContext context, double porcentaje) {
   if (porcentaje >= 100) return (Icons.error_outline, context.tr('Tope superado'));
   if (porcentaje >= 80) return (Icons.warning_amber_rounded, context.tr('Cerca del tope'));
@@ -550,7 +548,6 @@ class _TarjetaPresupuesto extends StatelessWidget {
 
 // ======================= PIEZAS CHICAS =======================
 
-// El porcentaje en una pastilla del color del consumo.
 class _ChipPorcentaje extends StatelessWidget {
   const _ChipPorcentaje({required this.porcentaje});
 
@@ -558,7 +555,6 @@ class _ChipPorcentaje extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sin decimales si es entero (50%), con uno si no (79,6% no es lo mismo que 80%).
     final texto = porcentaje == porcentaje.roundToDouble()
         ? porcentaje.toStringAsFixed(0)
         : porcentaje.toStringAsFixed(1);
@@ -582,7 +578,6 @@ class _ChipPorcentaje extends StatelessWidget {
   }
 }
 
-// "3 en orden", "1 cerca del tope", "1 excedido".
 class _ChipEstado extends StatelessWidget {
   const _ChipEstado({required this.cantidad, required this.texto, required this.color});
 
@@ -613,7 +608,6 @@ class _ChipEstado extends StatelessWidget {
   }
 }
 
-// Una cifra con su etiqueta chiquita arriba.
 class _Dato extends StatelessWidget {
   const _Dato({
     required this.etiqueta,
