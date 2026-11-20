@@ -6,6 +6,7 @@ import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class GraficoBalanceMes extends StatefulWidget {
   const GraficoBalanceMes({super.key, this.api, this.startDate, this.endDate});
@@ -45,18 +46,18 @@ class _GraficoBalanceMesState extends State<GraficoBalanceMes> {
               Semantics(
                 header: true,
                 child: Text(
-                  'Ingresos y egresos del mes',
+                  context.tr('Ingresos y egresos del mes'),
                   style: textos.labelLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               _FilaBarra(
-                etiqueta: 'Ingresos',
+                etiqueta: context.tr('Ingresos'),
                 monto: ingresos,
                 factor: mayor > 0 ? ingresos / mayor : 0.0,
                 tono: TonoBarra.barra,
               ),
               _FilaBarra(
-                etiqueta: 'Egresos',
+                etiqueta: context.tr('Egresos'),
                 monto: egresos,
                 factor: mayor > 0 ? egresos / mayor : 0.0,
                 tono: TonoBarra.coral,

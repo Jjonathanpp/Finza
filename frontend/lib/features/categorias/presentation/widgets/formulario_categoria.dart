@@ -10,6 +10,7 @@ import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/paleta_categorias.dart';
 import 'package:frontend/features/categorias/presentation/viewmodels/formulario_categoria_view_model.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Nombre, tipo y color de una categoría. Lo usan las hojas "Nueva categoría" y
 // "Editar categoría" (con editando), y el panel de "Nuevo movimiento".
@@ -62,7 +63,7 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
               const SizedBox(height: 18),
             ],
             Campo(
-              etiqueta: 'Nombre',
+              etiqueta: context.tr('Nombre'),
               error: _vm.errorNombre,
               child: TextField(
                 controller: _nombre,
@@ -70,12 +71,12 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
                 textCapitalization: TextCapitalization.sentences,
                 // La columna del nombre es de 100 caracteres.
                 inputFormatters: [LengthLimitingTextInputFormatter(100)],
-                decoration: const InputDecoration(hintText: 'Por ejemplo, Mascotas'),
+                decoration: InputDecoration(hintText: context.tr('Por ejemplo, Mascotas')),
                 onSubmitted: (_) => _guardar(),
               ),
             ),
             Campo(
-              etiqueta: 'Color',
+              etiqueta: context.tr('Color'),
               // El padding deja lugar al aro del color elegido, que se dibuja por fuera del círculo.
               child: Padding(
                 padding: const EdgeInsets.all(4),
@@ -106,7 +107,7 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: context.colores.sobrePrimario),
                     )
-                  : Text(widget.editando == null ? 'Crear categoría' : 'Guardar cambios'),
+                  : Text(widget.editando == null ? context.tr('Crear categoría') : context.tr('Guardar cambios')),
             ),
           ],
         );
@@ -126,7 +127,7 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
   Widget _circulo(String hex) {
     final colores = context.colores;
     final elegido = hex == _vm.color;
-    final nombre = nombresColoresCategorias[hex] ?? 'Color actual';
+    final nombre = context.tr(nombresColoresCategorias[hex] ?? context.tr('Color actual'));
     return Tocable(
       alTocar: () => _vm.elegirColor(hex),
       etiqueta: elegido ? '$nombre, elegido' : nombre,

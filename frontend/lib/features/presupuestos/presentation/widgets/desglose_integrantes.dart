@@ -6,6 +6,7 @@ import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/barra_progreso_presupuesto.dart';
 import 'package:frontend/core/widgets/monto.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // "Cuánto gastó cada uno" en el detalle de un presupuesto de una cuenta compartida (t-13.2.2): cuánto gastó
 // cada integrante, de mayor a menor como lo manda el backend, y qué parte del tope es. La barrita de cada
@@ -30,15 +31,16 @@ class DesgloseIntegrantes extends StatelessWidget {
         children: [
           Semantics(
             header: true,
-            child: Text('Cuánto gastó cada uno', style: textos.titleMedium?.copyWith(fontSize: 15)),
+            child: Text(context.tr('Cuánto gastó cada uno'), style: textos.titleMedium?.copyWith(fontSize: 15)),
           ),
           if (presupuesto.montoGastado == 0)
             Text(
-              'Todavía nadie gastó en ${presupuesto.categoriaNombre} este mes.',
+              context.tr('Todavía nadie gastó en {categoria} este mes.', {
+                'categoria': context.tr(presupuesto.categoriaNombre),
+              }),
               style: textos.bodySmall,
             ),
-          for (final gasto in presupuesto.porPerfil)
-            _FilaIntegrante(gasto: gasto, esVos: gasto.perfilId == miPerfilId),
+          for (final gasto in presupuesto.porPerfil) _FilaIntegrante(gasto: gasto, esVos: gasto.perfilId == miPerfilId),
         ],
       ),
     );
@@ -77,8 +79,8 @@ class _FilaIntegrante extends StatelessWidget {
                         Flexible(
                           child: Text(gasto.nombre, maxLines: 1, overflow: TextOverflow.ellipsis, style: negrita),
                         ),
-                        if (esVos) const ChipEstado('vos', TonoChip.menta, chico: true),
-                        if (!gasto.activo) const ChipEstado('ya no está', TonoChip.hundido, chico: true),
+                        if (esVos) ChipEstado(context.tr('vos'), TonoChip.menta, chico: true),
+                        if (!gasto.activo) ChipEstado(context.tr('ya no está'), TonoChip.hundido, chico: true),
                       ],
                     ),
                   ),

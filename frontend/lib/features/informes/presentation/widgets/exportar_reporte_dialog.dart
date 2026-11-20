@@ -6,6 +6,7 @@ import 'package:frontend/core/widgets/chip_estado.dart';
 import 'package:frontend/core/widgets/hoja.dart';
 import 'package:frontend/core/widgets/segmento.dart';
 import 'package:frontend/core/widgets/tocable.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // La hoja "Exportar reporte" (maqueta L718-727): desde y hasta, qué incluye, el formato y los botones.
 class ExportarReporteDialog extends StatefulWidget {
@@ -31,7 +32,7 @@ class ExportarReporteDialog extends StatefulWidget {
   }) {
     return mostrarHoja<void>(
       context,
-      titulo: 'Exportar reporte',
+      titulo: context.tr('Exportar reporte'),
       contenido: ExportarReporteDialog(
         fechaInicial: fechaInicial,
         fechaFinal: fechaFinal,
@@ -68,7 +69,7 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
       if (!mounted) return;
       setState(() {
         _cargando = false;
-        _error = 'No se pudo generar el reporte. Intentá de nuevo.';
+        _error = context.tr('No se pudo generar el reporte. Intentá de nuevo.');
       });
     }
   }
@@ -110,20 +111,20 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
             children: [
               Expanded(
                 child: Campo(
-                  etiqueta: 'Desde',
+                  etiqueta: context.tr('Desde'),
                   child: _Caja(
                     texto: _fecha(_desde),
-                    etiqueta: 'Desde ${_fecha(_desde)}',
+                    etiqueta: context.tr('Desde {fecha}', {'fecha': _fecha(_desde)}),
                     alTocar: _cargando ? null : () => _elegirFecha(true),
                   ),
                 ),
               ),
               Expanded(
                 child: Campo(
-                  etiqueta: 'Hasta',
+                  etiqueta: context.tr('Hasta'),
                   child: _Caja(
                     texto: _fecha(_hasta),
-                    etiqueta: 'Hasta ${_fecha(_hasta)}',
+                    etiqueta: context.tr('Hasta {fecha}', {'fecha': _fecha(_hasta)}),
                     alTocar: _cargando ? null : () => _elegirFecha(false),
                   ),
                 ),
@@ -139,14 +140,16 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
               ),
             ),
           Campo(
-            etiqueta: 'Qué incluye',
-            ayuda: compartida ? null : 'El consolidado está solo en una cuenta compartida.',
+            etiqueta: context.tr('Qué incluye'),
+            ayuda: compartida ? null : context.tr('El consolidado está solo en una cuenta compartida.'),
             child: Segmento<String>(
               opciones: [
-                const ('solo_propios', 'Mis registros'),
+                ('solo_propios', context.tr('Mis registros')),
                 (
                   'cuenta_completa',
-                  compartida && nombreCuenta != null ? 'Todo $nombreCuenta' : 'Consolidado',
+                  compartida && nombreCuenta != null
+                      ? context.tr('Todo {cuenta}', {'cuenta': nombreCuenta})
+                      : context.tr('Consolidado'),
                 ),
               ],
               valor: _alcance,
@@ -157,8 +160,8 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
               alCambiar: (v) => setState(() => _alcance = v),
             ),
           ),
-          const Campo(
-            etiqueta: 'Formato',
+          Campo(
+            etiqueta: context.tr('Formato'),
             child: Align(
               alignment: Alignment.centerLeft,
               child: ChipEstado('PDF', TonoChip.menta, icono: Icons.picture_as_pdf_outlined),
@@ -178,7 +181,7 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _cargando ? null : () => Navigator.of(context).pop(),
-                  child: const Text('Cancelar'),
+                  child: Text(context.tr('Cancelar')),
                 ),
               ),
               Expanded(
@@ -190,7 +193,7 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2, color: c.sobrePrimario),
                         )
-                      : const Text('Exportar'),
+                      : Text(context.tr('Exportar')),
                 ),
               ),
             ],

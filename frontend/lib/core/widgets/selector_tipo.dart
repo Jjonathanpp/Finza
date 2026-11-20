@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Gasto e Ingreso juntos (.seg de la maqueta). Lo usan el alta de movimientos y la de categorías.
 // esIngreso en false es Gasto.
@@ -21,18 +22,10 @@ class SelectorTipo extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: _Segmento(
-                texto: 'Gasto',
-                activo: !esIngreso,
-                alTocar: () => alCambiar(false),
-              ),
+              child: _Segmento(texto: context.tr('Gasto'), activo: !esIngreso, alTocar: () => alCambiar(false)),
             ),
             Expanded(
-              child: _Segmento(
-                texto: 'Ingreso',
-                activo: esIngreso,
-                alTocar: () => alCambiar(true),
-              ),
+              child: _Segmento(texto: context.tr('Ingreso'), activo: esIngreso, alTocar: () => alCambiar(true)),
             ),
           ],
         ),

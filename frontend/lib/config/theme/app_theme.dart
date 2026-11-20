@@ -54,7 +54,7 @@ class ColoresFinza extends ThemeExtension<ColoresFinza> {
   final Color coral; // --coral: barra pasada del tope
   final Color coralTexto; // --coral-t
   final Color coralFondo; // --coral-f
-  final Color destacado; // --dest: tarjeta destacada (saldo del inicio), snackbar
+  final Color destacado; // --dest: tarjeta destacada (saldo del inicio); en oscuro, también el snackbar
   final Color destacadoTexto; // --dest-t
   final Color destacadoSuave; // --dest-s: texto secundario sobre destacado
   final Color destacadoVerde; // --dest-v: verde sobre destacado
@@ -84,10 +84,11 @@ class ColoresFinza extends ThemeExtension<ColoresFinza> {
     coral: Color(0xFFC9483A),
     coralTexto: Color(0xFFB23A2A),
     coralFondo: Color(0xFFF8E3DF),
-    destacado: Color(0xFF16211C),
-    destacadoTexto: Color(0xFFFCFBF7),
-    destacadoSuave: Color(0xFFA9B5AE),
-    destacadoVerde: Color(0xFF34C185),
+    // En el modo claro la tarjeta destacada también es clara: menta con texto oscuro.
+    destacado: Color(0xFFDCEFE3),
+    destacadoTexto: Color(0xFF16211C),
+    destacadoSuave: Color(0xFF4A6155),
+    destacadoVerde: Color(0xFF15784F),
     velo: Color.fromRGBO(14, 22, 18, .45),
     serie: [
       Color(0xFF56625C),
@@ -337,6 +338,9 @@ TextTheme _textTheme(ColoresFinza c, Brightness brillo) {
   );
 }
 
+// Los colores del snackbar en el modo claro (los que eran de la tarjeta destacada antes de ser clara).
+const _snack = (fondo: Color(0xFF16211C), texto: Color(0xFFFCFBF7), suave: Color(0xFFA9B5AE), verde: Color(0xFF34C185));
+
 ThemeData temaFinza({bool oscuro = false}) {
   final c = oscuro ? ColoresFinza.oscuro : ColoresFinza.claro;
   final brillo = oscuro ? Brightness.dark : Brightness.light;
@@ -495,12 +499,16 @@ ThemeData temaFinza({bool oscuro = false}) {
       contentTextStyle: textos.bodyMedium?.copyWith(color: c.suave),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radios.dialogo)),
     ),
+    // El snackbar es oscuro en los dos modos (en el claro, la tarjeta destacada ya no lo es).
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: c.destacado,
-      contentTextStyle: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: c.destacadoTexto),
-      actionTextColor: c.destacadoVerde,
-      disabledActionTextColor: c.destacadoSuave,
+      backgroundColor: oscuro ? c.destacado : _snack.fondo,
+      contentTextStyle: textos.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+        color: oscuro ? c.destacadoTexto : _snack.texto,
+      ),
+      actionTextColor: oscuro ? c.destacadoVerde : _snack.verde,
+      disabledActionTextColor: oscuro ? c.destacadoSuave : _snack.suave,
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radios.aviso)),
     ),

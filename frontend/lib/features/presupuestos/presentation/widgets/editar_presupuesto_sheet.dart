@@ -6,6 +6,7 @@ import 'package:frontend/core/widgets/confirmar.dart';
 import 'package:frontend/core/widgets/hoja.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // "Editar tope": la hoja que sube desde abajo en el detalle de un presupuesto, si podés cambiarlo (sos
 // admin de la cuenta compartida, t-13.1.2, o es tu cuenta personal): cambiar el tope y el aviso, o
@@ -39,8 +40,9 @@ class EditarPresupuestoSheet extends StatefulWidget {
   }) {
     return mostrarHoja<void>(
       context,
-      titulo: 'Editar tope · ${presupuesto.categoriaNombre}',
-      texto: '${cuenta ?? 'Personal'} · ${periodo.toLowerCase()}${cuenta == null ? '.' : '. Lo ven todos.'}',
+      titulo: context.tr('Editar tope · {categoria}', {'categoria': context.tr(presupuesto.categoriaNombre)}),
+      texto:
+          '${cuenta ?? context.tr('Personal')} · ${periodo.toLowerCase()}${cuenta == null ? '.' : '. Lo ven todos.'}',
       contenido: EditarPresupuestoSheet(
         presupuesto: presupuesto,
         periodo: periodo,
@@ -87,20 +89,25 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
   void _guardar() {
     final tope = double.tryParse(_tope.text.trim().replaceAll(',', '.'));
     if (tope == null || tope <= 0) {
-      setState(() => _error = 'Ingresá un tope mayor a cero');
+      setState(() => _error = context.tr('Ingresá un tope mayor a cero'));
       return;
     }
     _enviar(() => widget.alGuardar(tope, _intervaloAviso));
   }
 
   Future<void> _desactivar() async {
-    final nombre = widget.presupuesto.categoriaNombre;
-    final paraTodos = widget.cuenta == null ? '' : ' para todos los de ${widget.cuenta}';
+    final datos = {
+      'categoria': context.tr(widget.presupuesto.categoriaNombre),
+      'periodo': widget.periodo,
+      'cuenta': '${widget.cuenta}',
+    };
     final seguro = await confirmar(
       context,
-      titulo: 'Desactivar presupuesto',
-      texto: '¿Desactivar el presupuesto de $nombre de ${widget.periodo}$paraTodos?',
-      textoAccion: 'Desactivar',
+      titulo: context.tr('Desactivar presupuesto'),
+      texto: widget.cuenta == null
+          ? context.tr('¿Desactivar el presupuesto de {categoria} de {periodo}?', datos)
+          : context.tr('¿Desactivar el presupuesto de {categoria} de {periodo} para todos los de {cuenta}?', datos),
+      textoAccion: context.tr('Desactivar'),
       peligro: true,
     );
     if (seguro) await _enviar(widget.alDesactivar);
@@ -114,7 +121,7 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Campo(
-          etiqueta: 'Tope del mes',
+          etiqueta: context.tr('Tope del mes'),
           child: TextField(
             controller: _tope,
             enabled: !_guardando,
@@ -123,7 +130,7 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
           ),
         ),
         Campo(
-          etiqueta: 'Avisarme cada',
+          etiqueta: context.tr('Avisarme cada'),
           child: SelectorIntervaloAviso(
             valor: _intervaloAviso,
             habilitado: !_guardando,
@@ -138,15 +145,12 @@ class _EditarPresupuestoSheetState extends State<EditarPresupuestoSheet> {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: c.coralTexto),
             ),
           ),
-        FilledButton(
-          onPressed: _guardando ? null : _guardar,
-          child: const Text('Guardar'),
-        ),
+        FilledButton(onPressed: _guardando ? null : _guardar, child: Text(context.tr('Guardar'))),
         const SizedBox(height: 12),
         FilledButton(
           onPressed: _guardando ? null : _desactivar,
           style: estiloBotonPeligro(context),
-          child: const Text('Desactivar presupuesto'),
+          child: Text(context.tr('Desactivar presupuesto')),
         ),
       ],
     );

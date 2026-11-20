@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'config/theme/apariencia.dart';
 import 'config/theme/app_theme.dart';
 import 'core/actualizacion/aviso_de_version.dart';
@@ -6,6 +7,7 @@ import 'core/avisos/aviso_de_presupuestos.dart';
 import 'core/session/deep_link_service.dart';
 import 'core/session/portero.dart';
 import 'core/widgets/sin_conexion.dart';
+import 'l10n/idioma.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -45,14 +47,18 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: apariencia,
-      builder: (context, modo, _) => MaterialApp(
+    // Escucha la apariencia y el idioma elegidos en Configuración: al cambiar uno, toda la app se redibuja.
+    return ListenableBuilder(
+      listenable: Listenable.merge([apariencia, idioma]),
+      builder: (context, _) => MaterialApp(
         navigatorKey: navegador,
         debugShowCheckedModeBanner: false,
         theme: temaFinza(),
         darkTheme: temaFinza(oscuro: true),
-        themeMode: modo,
+        themeMode: apariencia.value,
+        locale: idioma.value,
+        supportedLocales: idiomas.keys.map(Locale.new),
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         // El aviso de "sin conexión" va arriba de todo, sobre cualquier pantalla.
         builder: (context, pantalla) => Stack(
           fit: StackFit.expand,

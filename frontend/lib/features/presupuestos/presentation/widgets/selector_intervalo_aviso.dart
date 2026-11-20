@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/filtro_pastilla.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // "Avisarme cada": el intervalo del popup de presupuesto (ver core/avisos/aviso_de_presupuestos.dart).
 // Opciones rápidas y "Otro" para escribir cualquier valor entre 5 y 100. Debajo dice en qué
@@ -40,7 +41,7 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
     if (!_otro || _texto.text.trim().isEmpty) return null;
     final v = int.tryParse(_texto.text.trim());
     if (v == null || v < intervaloAvisoMinimo || v > intervaloAvisoMaximo) {
-      return 'Entre $intervaloAvisoMinimo y $intervaloAvisoMaximo';
+      return tr('Entre {minimo} y {maximo}', {'minimo': '$intervaloAvisoMinimo', 'maximo': '$intervaloAvisoMaximo'});
     }
     return null;
   }
@@ -67,11 +68,7 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
                       widget.alCambiar(opcion);
                     },
                   ),
-                FiltroPastilla(
-                  texto: 'Otro',
-                  activo: _otro,
-                  alTocar: () => setState(() => _otro = true),
-                ),
+                FiltroPastilla(texto: context.tr('Otro'), activo: _otro, alTocar: () => setState(() => _otro = true)),
               ],
             ),
           ),
@@ -85,11 +82,7 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
               enabled: widget.habilitado,
               autofocus: true,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Cada cuánto',
-                suffixText: '%',
-                errorText: _errorOtro,
-              ),
+              decoration: InputDecoration(labelText: context.tr('Cada cuánto'), suffixText: '%', errorText: _errorOtro),
               onChanged: (texto) {
                 setState(() {}); // para el mensaje de error
                 final v = int.tryParse(texto.trim());
@@ -124,11 +117,11 @@ String describirAvisos(int intervalo) {
   if (intervalo < 1) return '';
   final marcas = [for (var k = 1; k * intervalo <= 100; k++) '${k * intervalo}%'];
   final tocaElTope = marcas.isNotEmpty && marcas.last == '100%';
-  if (marcas.length == 1 && tocaElTope) return 'Te avisamos cuando llegues al tope.';
+  if (marcas.length == 1 && tocaElTope) return tr('Te avisamos cuando llegues al tope.');
   final lista = marcas.length == 1
       ? marcas.first
       : '${marcas.sublist(0, marcas.length - 1).join(', ')}${tocaElTope ? ' y ' : ', '}${marcas.last}';
   return tocaElTope
-      ? 'Te avisamos al $lista (el tope).'
-      : 'Te avisamos al $lista y si te pasás del tope.';
+      ? tr('Te avisamos al {lista} (el tope).', {'lista': lista})
+      : tr('Te avisamos al {lista} y si te pasás del tope.', {'lista': lista});
 }

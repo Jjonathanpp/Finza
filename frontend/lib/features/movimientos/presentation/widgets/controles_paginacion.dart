@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/tocable.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/movimientos_view_model.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Anterior, los números de página y Siguiente, pegados abajo de la lista. Con una sola página no se muestran.
 class ControlesPaginacion extends StatelessWidget {
@@ -26,7 +27,7 @@ class ControlesPaginacion extends StatelessWidget {
             IconButton(
               onPressed: vm.hayAnterior && !vm.cargando ? vm.paginaAnterior : null,
               icon: const Icon(Icons.chevron_left),
-              tooltip: 'Anterior',
+              tooltip: context.tr('Anterior'),
             ),
             if (vm.cargando)
               const SizedBox(
@@ -55,7 +56,7 @@ class ControlesPaginacion extends StatelessWidget {
             IconButton(
               onPressed: vm.hayMas && !vm.cargando ? vm.paginaSiguiente : null,
               icon: const Icon(Icons.chevron_right),
-              tooltip: 'Siguiente',
+              tooltip: context.tr('Siguiente'),
             ),
           ],
         ),
@@ -82,7 +83,7 @@ class _Pagina extends StatelessWidget {
       selected: actual,
       child: Tocable(
         alTocar: actual ? null : alTocar,
-        etiqueta: 'Página $numero',
+        etiqueta: context.tr('Página {numero}', {'numero': '$numero'}),
         child: Container(
           constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           alignment: Alignment.center,

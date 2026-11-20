@@ -4,9 +4,10 @@ import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/widgets/app_drawer.dart';
 import 'package:frontend/core/widgets/cuenta_usuario.dart';
 import 'package:frontend/features/cuentas_compartidas/presentation/widgets/selector_de_cuenta.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // El nombre de la cuenta en la que está la app: "Personal" o el de la compartida.
-String nombreDeCuentaActiva() => (cuentaActiva.value?['nombre'] as String?) ?? 'Personal';
+String nombreDeCuentaActiva() => (cuentaActiva.value?['nombre'] as String?) ?? tr('Personal');
 
 // .cab de la maqueta (L27-35): el avatar que abre el menú J, el título de la pestaña y, a la derecha,
 // los botones de la pantalla (.bi). `acciones` son widgets ya armados, de 44 px.
@@ -54,7 +55,7 @@ class EncabezadoInicio extends StatelessWidget {
             builder: (context, email) {
               final nombre = nombreDeUsuario(email);
               return Text(
-                nombre.isEmpty ? 'Hola' : 'Hola, $nombre',
+                nombre.isEmpty ? context.tr('Hola') : context.tr('Hola, {nombre}', {'nombre': nombre}),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w500),
@@ -67,7 +68,7 @@ class EncabezadoInicio extends StatelessWidget {
               final nombre = nombreDeCuentaActiva();
               return Semantics(
                 button: true,
-                label: 'Estás en $nombre. Cambiar de cuenta',
+                label: context.tr('Estás en {cuenta}. Cambiar de cuenta', {'cuenta': nombre}),
                 excludeSemantics: true,
                 child: _Toque(
                   alTocar: () => SelectorDeCuenta.mostrar(context),
@@ -113,7 +114,7 @@ class ChipCuenta extends StatelessWidget {
         final nombre = nombreDeCuentaActiva();
         return Semantics(
           button: true,
-          label: 'Estás en $nombre. Cambiar de cuenta',
+          label: context.tr('Estás en {cuenta}. Cambiar de cuenta', {'cuenta': nombre}),
           excludeSemantics: true,
           child: _Toque(
             alTocar: () => SelectorDeCuenta.mostrar(context),
@@ -168,8 +169,10 @@ class _Cabecera extends StatelessWidget {
           child: Row(
             spacing: 12,
             children: [
-              AvatarUsuario(alTocar: () => abrirMenu(context), ayuda: 'Abrir el menú'),
-              Expanded(child: Align(alignment: Alignment.centerLeft, child: centro)),
+              AvatarUsuario(alTocar: () => abrirMenu(context), ayuda: context.tr('Abrir el menú')),
+              Expanded(
+                child: Align(alignment: Alignment.centerLeft, child: centro),
+              ),
               ...acciones,
             ],
           ),

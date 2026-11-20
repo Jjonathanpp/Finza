@@ -3,6 +3,7 @@ import 'package:frontend/core/widgets/campo.dart';
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/movimientos/presentation/viewmodels/movimientos_view_model.dart';
 import 'package:frontend/features/movimientos/presentation/widgets/caja_fecha.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // El contenido de la hoja "Filtrar movimientos": lo que no entra en las pastillas de la pantalla (fechas y
 // categoría). Tipo, estado e integrante se eligen con las pastillas y acá se conservan tal cual están.
@@ -68,7 +69,7 @@ class _HojaFiltrosMovimientosState extends State<HojaFiltrosMovimientos> {
           children: [
             Expanded(
               child: CajaFecha(
-                etiqueta: 'Desde',
+                etiqueta: context.tr('Desde'),
                 fecha: _desde,
                 textoVacio: 'Elegir',
                 alTocar: () => _elegirFecha(true),
@@ -76,7 +77,7 @@ class _HojaFiltrosMovimientosState extends State<HojaFiltrosMovimientos> {
             ),
             Expanded(
               child: CajaFecha(
-                etiqueta: 'Hasta',
+                etiqueta: context.tr('Hasta'),
                 fecha: _hasta,
                 textoVacio: 'Elegir',
                 alTocar: () => _elegirFecha(false),
@@ -85,16 +86,13 @@ class _HojaFiltrosMovimientosState extends State<HojaFiltrosMovimientos> {
           ],
         ),
         Campo(
-          etiqueta: 'Categoría',
+          etiqueta: context.tr('Categoría'),
           child: DropdownButtonFormField<Categoria>(
             initialValue: _categoria,
             isExpanded: true,
-            hint: const Text('Todas las categorías'),
+            hint: Text(context.tr('Todas las categorías')),
             items: [
-              const DropdownMenuItem<Categoria>(
-                value: null,
-                child: Text('Todas las categorías'),
-              ),
+              DropdownMenuItem<Categoria>(value: null, child: Text(context.tr('Todas las categorías'))),
               ...widget.vm.categorias.map(
                 (c) => DropdownMenuItem(
                   value: c,
@@ -112,16 +110,10 @@ class _HojaFiltrosMovimientosState extends State<HojaFiltrosMovimientos> {
           spacing: 8,
           children: [
             Expanded(
-              child: OutlinedButton(
-                onPressed: _limpiar,
-                child: const Text('Limpiar'),
-              ),
+              child: OutlinedButton(onPressed: _limpiar, child: Text(context.tr('Limpiar'))),
             ),
             Expanded(
-              child: FilledButton(
-                onPressed: _aplicar,
-                child: const Text('Aplicar filtros'),
-              ),
+              child: FilledButton(onPressed: _aplicar, child: Text(context.tr('Aplicar filtros'))),
             ),
           ],
         ),

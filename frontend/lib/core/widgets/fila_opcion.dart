@@ -68,7 +68,7 @@ class FilaOpcion extends StatelessWidget {
         style: textos.labelLarge?.copyWith(fontSize: 14, color: c.primario),
       );
     } else if (flecha) {
-      derecha = Icon(Icons.chevron_right_rounded, size: 18, color: c.suave);
+      derecha = Icon(Icons.chevron_right_rounded, size: 24, color: c.suave);
     }
     final fila = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 56),
@@ -97,16 +97,14 @@ class FilaOpcion extends StatelessWidget {
                   ],
                 ),
               ),
-              // Lo de la derecha no pasa de poco más de la mitad de la fila, para que el título conserve
-              // su lugar. Un chip largo adentro tiene que ir en un Flexible para cortarse con puntos.
+              // Lo de la derecha ocupa solo lo que mide (así la flecha queda pegada al borde) y no pasa
+              // de poco más de la mitad de la fila, para que el título conserve su lugar. Antes iba en un
+              // Flexible, y la fila le daba la mitad del ancho aunque fuera una flecha: quedaba al medio.
+              // Un chip largo adentro tiene que ir en un Flexible para cortarse con puntos.
               if (derecha != null)
-                Flexible(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: restriccion.maxWidth * 0.55,
-                    ),
-                    child: derecha,
-                  ),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: restriccion.maxWidth * 0.55),
+                  child: derecha,
                 ),
             ],
           ),

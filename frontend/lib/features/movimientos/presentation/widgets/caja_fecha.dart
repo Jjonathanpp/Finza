@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/campo.dart';
 import 'package:frontend/core/widgets/tocable.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // .caja de la maqueta con una fecha: un recuadro hundido de 48 px que, al tocarlo, abre el selector de fecha.
 // Sin fecha muestra textoVacio, en suave. Con etiqueta lleva arriba su título (.campo); sin etiqueta va
@@ -25,10 +26,10 @@ class CajaFecha extends StatelessWidget {
     final c = context.colores;
     String dos(int n) => n.toString().padLeft(2, '0');
     final f = fecha;
-    final texto = f == null ? textoVacio : '${dos(f.day)}/${dos(f.month)}/${f.year}';
+    final texto = f == null ? context.tr(textoVacio) : '${dos(f.day)}/${dos(f.month)}/${f.year}';
     final caja = Tocable(
       alTocar: alTocar,
-      etiqueta: '${etiqueta ?? 'Fecha'}: $texto',
+      etiqueta: '${etiqueta ?? context.tr('Fecha')}: $texto',
       child: Container(
         constraints: const BoxConstraints(minHeight: 48),
         padding: const EdgeInsets.symmetric(horizontal: 14),

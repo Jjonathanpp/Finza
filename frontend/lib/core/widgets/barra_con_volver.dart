@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/boton_icono.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // El encabezado de las pantallas empujadas (.cab): el botón redondo para volver y el título,
 // con un subtítulo chico opcional abajo y, a la derecha, las acciones (por ejemplo un BotonIcono con el +).
@@ -16,11 +17,7 @@ AppBar barraConVolver(
     titleSpacing: 20,
     title: Row(
       children: [
-        BotonIcono(
-          icono: Icons.arrow_back,
-          ayuda: 'Volver',
-          alTocar: () => Navigator.maybePop(context),
-        ),
+        BotonIcono(icono: Icons.arrow_back, ayuda: context.tr('Volver'), alTocar: () => Navigator.maybePop(context)),
         const SizedBox(width: 12),
         Expanded(
           child: Column(

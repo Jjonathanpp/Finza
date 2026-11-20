@@ -5,6 +5,7 @@ import '../../features/home/presentation/screens/pantalla_principal.dart';
 import '../avisos/aviso_de_presupuestos.dart';
 import '../storage/token_storage.dart';
 import 'sesion.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // La llave del navegador de la app (va en app.dart): deja cambiar de pantalla desde lugares
 // que no son pantallas, como el interceptor del ApiClient.
@@ -60,12 +61,12 @@ class _PorteroState extends State<Portero> {
       builder: (context, respuesta) {
         if (respuesta.connectionState != ConnectionState.done) {
           // Mientras se revisa la sesión: el fondo del tema y un indicador chico, sin textos.
-          return const Scaffold(
+          return Scaffold(
             body: Center(
               child: SizedBox(
                 width: 28,
                 height: 28,
-                child: CircularProgressIndicator(strokeWidth: 3, semanticsLabel: 'Cargando'),
+                child: CircularProgressIndicator(strokeWidth: 3, semanticsLabel: context.tr('Cargando')),
               ),
             ),
           );

@@ -14,6 +14,7 @@ import 'package:frontend/features/invitacion/presentation/viewmodels/invitacion_
 import 'package:frontend/features/lista-invitaciones/data/datasources/invitacion_api.dart';
 import 'package:frontend/features/lista-invitaciones/data/models/invitacion_enviada.dart';
 import 'package:frontend/features/lista-invitaciones/data/models/invitacion_recibida.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Sin sesión (o para entrar con otra cuenta): deja la invitación guardada en
 // InvitacionPendiente (deep_link_service.dart) y va al login. Después de entrar,
@@ -64,22 +65,24 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
     // Entra directo a la cuenta compartida, como si la hubiera elegido en el selector.
     await TokenStorage().guardarCuentaActiva(cuenta);
     irAlInicio();
-    _avisar('Ya sos parte de ${invitacion.cuentaCompartidaNombre}');
+    _avisar(tr('Ya sos parte de {cuenta}', {'cuenta': invitacion.cuentaCompartidaNombre}));
   }
 
   Future<void> _rechazar(InvitacionRecibida invitacion) async {
     final seguro = await confirmar(
       context,
-      titulo: 'Rechazar invitación',
-      texto: '¿Rechazar la invitación a ${invitacion.cuentaCompartidaNombre}? '
-          'Para entrar después, ${invitacion.invitadoPor} te tendría que mandar otra.',
-      textoAccion: 'Rechazar',
+      titulo: context.tr('Rechazar invitación'),
+      texto: context.tr(
+        '¿Rechazar la invitación a {cuenta}? Para entrar después, {quien} te tendría que mandar otra.',
+        {'cuenta': invitacion.cuentaCompartidaNombre, 'quien': invitacion.invitadoPor},
+      ),
+      textoAccion: context.tr('Rechazar'),
       peligro: true,
     );
     if (!seguro) return;
     if (await _vm.rechazar()) {
       irAlInicio();
-      _avisar('Rechazaste la invitación a ${invitacion.cuentaCompartidaNombre}');
+      _avisar(tr('Rechazaste la invitación a {cuenta}', {'cuenta': invitacion.cuentaCompartidaNombre}));
     }
   }
 
@@ -87,9 +90,11 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
   Future<void> _entrarConOtraCuenta() async {
     final seguro = await confirmar(
       context,
-      titulo: 'Entrar con otra cuenta',
-      texto: 'Se va a cerrar la sesión de esta cuenta. Después de entrar, vas a volver a ver la invitación.',
-      textoAccion: 'Cerrar sesión',
+      titulo: context.tr('Entrar con otra cuenta'),
+      texto: context.tr(
+        'Se va a cerrar la sesión de esta cuenta. Después de entrar, vas a volver a ver la invitación.',
+      ),
+      textoAccion: context.tr('Cerrar sesión'),
     );
     if (!seguro) return;
     await TokenStorage().limpiar();
@@ -99,7 +104,7 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, 'Te invitaron'),
+      appBar: barraConVolver(context, context.tr('Te invitaron')),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -118,13 +123,10 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
   Widget _sinSesion() {
     return _Centrado(
       icono: Icons.lock_outline,
-      titulo: 'Iniciá sesión para ver la invitación',
-      texto: 'La invitación es para una cuenta de Finza. Entrá con esa cuenta y te la mostramos.',
+      titulo: context.tr('Iniciá sesión para ver la invitación'),
+      texto: context.tr('La invitación es para una cuenta de Finza. Entrá con esa cuenta y te la mostramos.'),
       acciones: [
-        FilledButton(
-          onPressed: () => _irAlLoginYVolver(widget.token),
-          child: const Text('Iniciar sesión'),
-        ),
+        FilledButton(onPressed: () => _irAlLoginYVolver(widget.token), child: Text(context.tr('Iniciar sesión'))),
       ],
     );
   }
@@ -132,11 +134,11 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
   Widget _sinInvitacion() {
     return _Centrado(
       icono: Icons.link_off,
-      titulo: 'No pudimos abrir la invitación',
-      texto: _vm.error ?? 'El enlace puede estar incompleto.',
+      titulo: context.tr('No pudimos abrir la invitación'),
+      texto: _vm.error ?? context.tr('El enlace puede estar incompleto.'),
       acciones: [
-        FilledButton(onPressed: _vm.cargar, child: const Text('Reintentar')),
-        TextButton(onPressed: irAlInicio, child: const Text('Ir al inicio')),
+        FilledButton(onPressed: _vm.cargar, child: Text(context.tr('Reintentar'))),
+        TextButton(onPressed: irAlInicio, child: Text(context.tr('Ir al inicio'))),
       ],
     );
   }
@@ -168,16 +170,18 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
               ),
             ),
             Text(
-              'Si aceptás, vas a ver y cargar los movimientos de ${inv.cuentaCompartidaNombre}.',
+              context.tr('Si aceptás, vas a ver y cargar los movimientos de {cuenta}.', {
+                'cuenta': inv.cuentaCompartidaNombre,
+              }),
               textAlign: TextAlign.center,
               style: textos.bodyMedium?.copyWith(fontSize: 14.5, color: c.suave),
             ),
             TarjetaLista(
               children: [
-                _Dato(etiqueta: 'Cuenta compartida', valor: inv.cuentaCompartidaNombre),
-                _Dato(etiqueta: 'Invitación para', valor: inv.emailInvitado),
-                const _Dato(etiqueta: 'Vas a ser', valor: 'Miembro'),
-                _Dato(etiqueta: 'Vence', valor: _vence(inv.fechaExpiracion)),
+                _Dato(etiqueta: context.tr('Cuenta compartida'), valor: inv.cuentaCompartidaNombre),
+                _Dato(etiqueta: context.tr('Invitación para'), valor: inv.emailInvitado),
+                _Dato(etiqueta: context.tr('Vas a ser'), valor: context.tr('Miembro')),
+                _Dato(etiqueta: context.tr('Vence'), valor: _vence(inv.fechaExpiracion)),
               ],
             ),
             if (motivo != null) AvisoEnLinea(motivo, icono: Icons.info_outline),
@@ -192,16 +196,16 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
                 onPressed: _vm.respondiendo ? null : () => _aceptar(inv),
                 child: _vm.respondiendo
                     ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Aceptar y entrar'),
+                    : Text(context.tr('Aceptar y entrar')),
               ),
               OutlinedButton(
                 onPressed: _vm.respondiendo ? null : () => _rechazar(inv),
-                child: const Text('Rechazar'),
+                child: Text(context.tr('Rechazar')),
               ),
             ] else ...[
               if (inv.estado == EstadoInvitacion.pendiente && !inv.esParaVos)
-                FilledButton(onPressed: _entrarConOtraCuenta, child: const Text('Entrar con otra cuenta')),
-              OutlinedButton(onPressed: irAlInicio, child: const Text('Ir al inicio')),
+                FilledButton(onPressed: _entrarConOtraCuenta, child: Text(context.tr('Entrar con otra cuenta'))),
+              OutlinedButton(onPressed: irAlInicio, child: Text(context.tr('Ir al inicio'))),
             ],
           ],
         ),
@@ -211,25 +215,33 @@ class _InvitacionScreenState extends State<InvitacionScreen> {
 
   // Por qué no se puede aceptar ni rechazar (null si se puede).
   String? _motivoSinRespuesta(InvitacionRecibida inv) {
-    if (inv.yaSosMiembro) return 'Ya sos parte de ${inv.cuentaCompartidaNombre}.';
+    if (inv.yaSosMiembro) return context.tr('Ya sos parte de {cuenta}.', {'cuenta': inv.cuentaCompartidaNombre});
     return switch (inv.estado) {
-      EstadoInvitacion.aceptada => 'Esta invitación ya fue aceptada.',
-      EstadoInvitacion.rechazada => 'Esta invitación fue rechazada.',
-      EstadoInvitacion.expirada => 'La invitación venció. Pedile a ${inv.invitadoPor} que te mande otra.',
-      EstadoInvitacion.cancelada => 'La invitación fue cancelada.',
-      EstadoInvitacion.pendiente => inv.esParaVos
-          ? null
-          : 'Esta invitación es para ${inv.emailInvitado}. Entrá con esa cuenta para aceptarla.',
+      EstadoInvitacion.aceptada => context.tr('Esta invitación ya fue aceptada.'),
+      EstadoInvitacion.rechazada => context.tr('Esta invitación fue rechazada.'),
+      EstadoInvitacion.expirada => context.tr('La invitación venció. Pedile a {quien} que te mande otra.', {
+        'quien': inv.invitadoPor,
+      }),
+      EstadoInvitacion.cancelada => context.tr('La invitación fue cancelada.'),
+      EstadoInvitacion.pendiente =>
+        inv.esParaVos
+            ? null
+            : context.tr('Esta invitación es para {email}. Entrá con esa cuenta para aceptarla.', {
+                'email': inv.emailInvitado,
+              }),
     };
   }
 
   String _vence(DateTime fecha) {
     String dos(int n) => n.toString().padLeft(2, '0');
-    final texto = '${dos(fecha.day)}/${dos(fecha.month)} a las ${dos(fecha.hour)}:${dos(fecha.minute)}';
+    final texto = context.tr('{dia} a las {hora}', {
+      'dia': '${dos(fecha.day)}/${dos(fecha.month)}',
+      'hora': '${dos(fecha.hour)}:${dos(fecha.minute)}',
+    });
     final falta = fecha.difference(DateTime.now());
-    if (falta.isNegative) return 'Venció el $texto';
-    if (falta.inHours >= 1) return '$texto (en ${falta.inHours} h)';
-    return '$texto (en ${falta.inMinutes} min)';
+    if (falta.isNegative) return context.tr('Venció el {fecha}', {'fecha': texto});
+    if (falta.inHours >= 1) return context.tr('{fecha} (en {horas} h)', {'fecha': texto, 'horas': '${falta.inHours}'});
+    return context.tr('{fecha} (en {minutos} min)', {'fecha': texto, 'minutos': '${falta.inMinutes}'});
   }
 }
 

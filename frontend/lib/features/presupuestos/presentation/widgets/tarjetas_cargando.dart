@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/esqueleto.dart';
 import 'package:frontend/core/widgets/tarjeta.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Mientras llegan los presupuestos del mes (t-13.2.2): tarjetas con la forma de las de verdad hechas de
 // Esqueleto (bloques grises con un destello). No lleva padding horizontal: lo pone la pantalla. Con
@@ -19,7 +20,7 @@ class TarjetasCargando extends StatelessWidget {
     return Semantics(
       container: true,
       liveRegion: true,
-      label: 'Cargando presupuestos',
+      label: context.tr('Cargando presupuestos'),
       child: ExcludeSemantics(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

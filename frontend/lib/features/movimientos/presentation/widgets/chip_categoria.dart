@@ -3,6 +3,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/circulo_categoria.dart';
 import 'package:frontend/core/widgets/tocable.dart';
 import 'package:frontend/features/categorias/data/models/categoria.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // .cchip de la maqueta: una pastilla de 40 de alto con el círculo de la categoría adelante (30) y el nombre.
 // La elegida (.on) va en menta, con el borde de 2 px en verde. El círculo lleva el emoji de la
@@ -37,12 +38,9 @@ class ChipNuevaCategoria extends StatelessWidget {
     return _Pastilla(
       elegida: false,
       alTocar: alTocar,
-      etiqueta: 'Nueva categoría',
-      adelante: const Padding(
-        padding: EdgeInsets.only(left: 9),
-        child: Icon(Icons.add, size: 16),
-      ),
-      texto: 'Nueva',
+      etiqueta: context.tr('Nueva categoría'),
+      adelante: const Padding(padding: EdgeInsets.only(left: 9), child: Icon(Icons.add, size: 16)),
+      texto: context.tr('Nueva'),
     );
   }
 }

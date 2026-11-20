@@ -4,6 +4,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/widgets/logo_finza.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Aviso de versión nueva (t-1.8.5): al abrir la app, si en GitHub Releases hay una más nueva que la
 // instalada, un cuadro para bajarla. La versión instalada la pasa el workflow "Publicar APK" al armar
@@ -69,10 +70,13 @@ Future<void> avisarSiHayVersionNueva({
             children: [
               const LogoFinza(tamano: 56),
               const SizedBox(height: 14),
-              Text('Hay una versión nueva de Finza', style: textos.titleLarge),
+              Text(tr('Hay una versión nueva de Finza'), style: textos.titleLarge),
               const SizedBox(height: 14),
               Text(
-                'Tenés la $instalada y ya salió la $version. Se instala encima, sin perder nada.',
+                tr('Tenés la {instalada} y ya salió la {version}. Se instala encima, sin perder nada.', {
+                  'instalada': instalada,
+                  'version': version,
+                }),
                 style: textos.bodyMedium?.copyWith(color: contexto.colores.suave),
               ),
               const SizedBox(height: 14),
@@ -81,15 +85,12 @@ Future<void> avisarSiHayVersionNueva({
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(contexto, false),
-                      child: const Text('Más tarde'),
+                      child: Text(tr('Más tarde')),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: FilledButton(
-                      onPressed: () => Navigator.pop(contexto, true),
-                      child: const Text('Actualizar'),
-                    ),
+                    child: FilledButton(onPressed: () => Navigator.pop(contexto, true), child: Text(tr('Actualizar'))),
                   ),
                 ],
               ),

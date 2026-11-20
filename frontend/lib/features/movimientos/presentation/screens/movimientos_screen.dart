@@ -21,6 +21,7 @@ import 'package:frontend/features/movimientos/presentation/widgets/controles_pag
 import 'package:frontend/features/movimientos/presentation/widgets/grupos_de_movimientos.dart';
 import 'package:frontend/features/movimientos/presentation/widgets/hoja_edicion_movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/widgets/hoja_filtros_movimientos.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 enum _Accion { editar, eliminar }
 
@@ -57,7 +58,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
   void _abrirFiltros() {
     mostrarHoja<void>(
       context,
-      titulo: 'Filtrar movimientos',
+      titulo: context.tr('Filtrar movimientos'),
       contenido: HojaFiltrosMovimientos(vm: _vm),
     );
   }
@@ -102,16 +103,12 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             FilaOpcion(
-              titulo: 'Editar',
-              leading: CirculoCategoria(
-                icono: Icons.edit_outlined,
-                color: c.primario,
-                fondo: c.menta,
-              ),
+              titulo: context.tr('Editar'),
+              leading: CirculoCategoria(icono: Icons.edit_outlined, color: c.primario, fondo: c.menta),
               alTocar: () => Navigator.pop(contexto, _Accion.editar),
             ),
             FilaOpcion(
-              titulo: 'Eliminar',
+              titulo: context.tr('Eliminar'),
               colorTitulo: c.coralTexto,
               leading: CirculoCategoria(
                 icono: Icons.delete_outline,
@@ -138,9 +135,9 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
   Future<void> _confirmarEliminar(Movimiento m) async {
     final confirmado = await confirmar(
       context,
-      titulo: 'Eliminar movimiento',
-      texto: '¿Estás seguro de eliminar este movimiento?',
-      textoAccion: 'Eliminar',
+      titulo: context.tr('Eliminar movimiento'),
+      texto: context.tr('¿Estás seguro de eliminar este movimiento?'),
+      textoAccion: context.tr('Eliminar'),
       peligro: true,
     );
 
@@ -149,15 +146,15 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     final error = await _vm.eliminar(m);
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      _avisoDeResultado(error ?? 'Movimiento eliminado', esError: error != null),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(_avisoDeResultado(error ?? context.tr('Movimiento eliminado'), esError: error != null));
   }
 
   Future<void> _mostrarEdicion(Movimiento movimiento) async {
     final resultado = await mostrarHoja<({String? error})>(
       context,
-      titulo: 'Editar movimiento',
+      titulo: context.tr('Editar movimiento'),
       contenido: HojaEdicionMovimiento(
         movimiento: movimiento,
         alGuardar:
@@ -182,7 +179,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       _avisoDeResultado(
-        resultado.error ?? 'Movimiento actualizado con éxito',
+        resultado.error ?? context.tr('Movimiento actualizado con éxito'),
         esError: resultado.error != null,
       ),
     );
@@ -221,13 +218,11 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   _vm.hasta != null ||
                   _vm.categoriaFiltro != null;
               return EncabezadoPestana(
-                titulo: 'Movimientos',
+                titulo: context.tr('Movimientos'),
                 acciones: [
                   BotonIcono(
-                    icono: conFiltrosDeLaHoja
-                        ? Icons.filter_alt
-                        : Icons.filter_alt_outlined,
-                    ayuda: 'Filtrar',
+                    icono: conFiltrosDeLaHoja ? Icons.filter_alt : Icons.filter_alt_outlined,
+                    ayuda: context.tr('Filtrar'),
                     alTocar: _abrirFiltros,
                   ),
                 ],
@@ -316,25 +311,25 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     final sinEstado = _vm.estadoFiltro == null;
     final todos = _vm.esIngresoFiltro == null && sinEstado;
     return FilaFiltros(
-      etiqueta: 'Qué ver',
+      etiqueta: context.tr('Qué ver'),
       children: [
         FiltroPastilla(
-          texto: 'Todos',
+          texto: context.tr('Todos'),
           activo: todos,
           alTocar: () => _filtrar(perfilId: _vm.perfilFiltroId),
         ),
         FiltroPastilla(
-          texto: 'Gastos',
+          texto: context.tr('Gastos'),
           activo: _vm.esIngresoFiltro == false && sinEstado,
           alTocar: () => _filtrar(esIngreso: false, perfilId: _vm.perfilFiltroId),
         ),
         FiltroPastilla(
-          texto: 'Ingresos',
+          texto: context.tr('Ingresos'),
           activo: _vm.esIngresoFiltro == true && sinEstado,
           alTocar: () => _filtrar(esIngreso: true, perfilId: _vm.perfilFiltroId),
         ),
         FiltroPastilla(
-          texto: 'Por revisar',
+          texto: context.tr('Por revisar'),
           activo: !sinEstado,
           ambar: true,
           alTocar: () => _filtrar(estado: 'PENDIENTE', perfilId: _vm.perfilFiltroId),
@@ -350,16 +345,14 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     void elegir(int? perfilId) =>
         _filtrar(esIngreso: _vm.esIngresoFiltro, estado: _vm.estadoFiltro, perfilId: perfilId);
     return FilaFiltros(
-      etiqueta: 'De quién',
+      etiqueta: context.tr('De quién'),
       children: [
-        FiltroPastilla(
-          texto: 'De todos',
-          activo: _vm.perfilFiltroId == null,
-          alTocar: () => elegir(null),
-        ),
+        FiltroPastilla(texto: context.tr('De todos'), activo: _vm.perfilFiltroId == null, alTocar: () => elegir(null)),
         for (final p in _vm.perfilesDisponibles)
           FiltroPastilla(
-            texto: p.id == miPerfil ? 'Solo míos' : 'De ${nombreCortoPerfil(p.nombre)}',
+            texto: p.id == miPerfil
+                ? context.tr('Solo míos')
+                : context.tr('De {nombre}', {'nombre': nombreCortoPerfil(p.nombre)}),
             activo: _vm.perfilFiltroId == p.id,
             alTocar: () => elegir(p.id),
           ),
@@ -384,7 +377,7 @@ class _CuentaYRol extends StatelessWidget {
             const ChipCuenta(),
             if (cuenta != null)
               ChipEstado(
-                admin ? 'Sos administrador' : 'Sos miembro',
+                admin ? context.tr('Sos administrador') : context.tr('Sos miembro'),
                 admin ? TonoChip.menta : TonoChip.hundido,
               ),
           ],
@@ -414,16 +407,12 @@ class _SinResultados extends StatelessWidget {
         children: [
           Text(
             conFiltros
-                ? 'No hay movimientos con este filtro.'
-                : 'No hay movimientos registrados en la cuenta.',
+                ? context.tr('No hay movimientos con este filtro.')
+                : context.tr('No hay movimientos registrados en la cuenta.'),
             textAlign: TextAlign.center,
             style: textos.bodyMedium?.copyWith(color: textos.bodySmall?.color),
           ),
-          if (conFiltros)
-            TextButton(
-              onPressed: alLimpiarFiltros,
-              child: const Text('Limpiar filtros'),
-            ),
+          if (conFiltros) TextButton(onPressed: alLimpiarFiltros, child: Text(context.tr('Limpiar filtros'))),
         ],
       ),
     );
@@ -450,10 +439,7 @@ class _VistaError extends StatelessWidget {
             textAlign: TextAlign.center,
             style: textos.bodyMedium?.copyWith(color: textos.bodySmall?.color),
           ),
-          OutlinedButton(
-            onPressed: alReintentar,
-            child: const Text('Reintentar'),
-          ),
+          OutlinedButton(onPressed: alReintentar, child: Text(context.tr('Reintentar'))),
         ],
       ),
     );

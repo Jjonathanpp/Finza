@@ -12,6 +12,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:frontend/features/informes/presentation/widgets/exportar_reporte_dialog.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'dart:io';
+import 'package:frontend/l10n/idioma.dart';
+
 class InformesScreen extends StatefulWidget {
   const InformesScreen({super.key});
 
@@ -29,8 +31,8 @@ class _InformesScreenState extends State<InformesScreen> {
     return Scaffold(
       appBar: barraConVolver(
         context,
-        'Informes',
-        subtitulo: cuentaActiva.value?['nombre'] as String? ?? 'Personal',
+        context.tr('Informes'),
+        subtitulo: cuentaActiva.value?['nombre'] as String? ?? context.tr('Personal'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -44,10 +46,7 @@ class _InformesScreenState extends State<InformesScreen> {
            ),
           const SizedBox(height: 12),
           Segmento<String>(
-            opciones: const [
-              ('MES', 'Por mes'),
-              ('SEMANA', 'Por semana'),
-            ],
+            opciones: [('MES', context.tr('Por mes')), ('SEMANA', context.tr('Por semana'))],
             valor: _granularidad,
             alCambiar: (g) => setState(() => _granularidad = g),
           ),
@@ -92,7 +91,7 @@ class _InformesScreenState extends State<InformesScreen> {
               },
             ),
             icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-            label: const Text('Exportar reporte en PDF'),
+            label: Text(context.tr('Exportar reporte en PDF')),
           ),
         ],
       ),

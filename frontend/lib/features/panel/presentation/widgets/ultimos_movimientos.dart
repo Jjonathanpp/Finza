@@ -14,6 +14,7 @@ import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
 import 'package:frontend/features/panel/presentation/widgets/error_con_reintento.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class UltimosMovimientos extends StatefulWidget {
   const UltimosMovimientos({super.key, this.api, this.startDate, this.endDate});
@@ -47,9 +48,9 @@ class _UltimosMovimientosState extends State<UltimosMovimientos> {
           spacing: 12,
           children: [
             TituloSeccion(
-              'Últimos movimientos',
+              context.tr('Últimos movimientos'),
               grande: true,
-              link: 'Ver todos',
+              link: context.tr('Ver todos'),
               // La pestaña 1 es Movimientos.
               alLink: () => pestanaPedida.value = 1,
             ),
@@ -65,7 +66,7 @@ class _UltimosMovimientosState extends State<UltimosMovimientos> {
     if (error != null) {
       return Tarjeta(
         child: ErrorConReintento(
-          mensaje: error is ApiException ? error.message : 'No se pudieron cargar los movimientos',
+          mensaje: error is ApiException ? error.message : context.tr('No se pudieron cargar los movimientos'),
           alReintentar: () => setState(() => _resumen = _pedir()),
         ),
       );
@@ -73,7 +74,9 @@ class _UltimosMovimientosState extends State<UltimosMovimientos> {
 
     final movimientos = respuesta.data!.ultimosMovimientos;
     if (movimientos.isEmpty) {
-      return Tarjeta(child: Text('Todavía no hay movimientos recientes.', style: Theme.of(context).textTheme.bodySmall));
+      return Tarjeta(
+        child: Text(context.tr('Todavía no hay movimientos recientes.'), style: Theme.of(context).textTheme.bodySmall),
+      );
     }
 
     return TarjetaLista(
@@ -104,7 +107,7 @@ class _Fila extends StatelessWidget {
       subtitulo: movimiento.descripcion?.isNotEmpty == true ? movimiento.descripcion! : _formatearFecha(movimiento.fecha),
       monto: Monto.texto(movimiento.monto, ingreso: ingreso),
       colorMonto: Monto.color(context, ingreso),
-      chip: pendiente ? const ChipEstado('Por revisar', TonoChip.ambar, chico: true) : null,
+      chip: pendiente ? ChipEstado(context.tr('Por revisar'), TonoChip.ambar, chico: true) : null,
       pie: autor == null || autor.isEmpty
           ? null
           : ConstrainedBox(

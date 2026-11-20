@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/estado_conexion.dart';
 import 'package:frontend/core/widgets/circulo_categoria.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // El aviso "No pudimos conectarnos" (maqueta L643-646, role=alert). Aparece arriba de todo mientras
 // sinConexion sea true (lo prende ApiClient cuando un pedido falla por falta de conexión y lo apaga con
@@ -116,22 +117,13 @@ class _Aviso extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 2,
                         children: [
-                          Text(
-                            'No pudimos conectarnos',
-                            style: textos.titleSmall?.copyWith(fontSize: 15),
-                          ),
-                          Text(
-                            'Revisá tu conexión a internet y probá de nuevo.',
-                            style: textos.bodySmall,
-                          ),
+                          Text(context.tr('No pudimos conectarnos'), style: textos.titleSmall?.copyWith(fontSize: 15)),
+                          Text(context.tr('Revisá tu conexión a internet y probá de nuevo.'), style: textos.bodySmall),
                         ],
                       ),
                     ),
                   ),
-                  TextButton(
-                    onPressed: alReintentar,
-                    child: const Text('Reintentar'),
-                  ),
+                  TextButton(onPressed: alReintentar, child: Text(context.tr('Reintentar'))),
                 ],
               ),
             ),

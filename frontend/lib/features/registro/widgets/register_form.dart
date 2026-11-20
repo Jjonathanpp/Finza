@@ -6,6 +6,7 @@ import 'package:frontend/core/widgets/segmento.dart';
 import 'package:frontend/core/widgets/titulo_seccion.dart';
 import '../../auth/service/auth_service.dart';
 import '../models/registro_request.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class RegisterForm extends StatefulWidget {
   const RegisterForm({super.key});
@@ -60,11 +61,11 @@ class _RegisterFormState extends State<RegisterForm> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _errorGeneral = null);
     if (_fechaNacimiento == null) {
-      setState(() => _errorGeneral = 'Seleccioná tu fecha de nacimiento');
+      setState(() => _errorGeneral = context.tr('Seleccioná tu fecha de nacimiento'));
       return;
     }
     if (_genero == null) {
-      setState(() => _errorGeneral = 'Seleccioná tu género');
+      setState(() => _errorGeneral = context.tr('Seleccioná tu género'));
       return;
     }
 
@@ -91,7 +92,7 @@ class _RegisterFormState extends State<RegisterForm> {
       );
 
       if (mounted) {
-        mostrarExito(context, 'Cuenta creada correctamente');
+        mostrarExito(context, context.tr('Cuenta creada correctamente'));
         Navigator.pop(context);
       }
     } catch (e) {
@@ -119,7 +120,7 @@ class _RegisterFormState extends State<RegisterForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const TituloSeccion('Tus datos'),
+          TituloSeccion(context.tr('Tus datos')),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,27 +128,23 @@ class _RegisterFormState extends State<RegisterForm> {
             children: [
               Expanded(
                 child: Campo(
-                  etiqueta: 'Nombre',
+                  etiqueta: context.tr('Nombre'),
                   child: TextFormField(
                     controller: _nombreCtrl,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(hintText: 'Tu nombre'),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Ingresá tu nombre'
-                        : null,
+                    decoration: InputDecoration(hintText: context.tr('Tu nombre')),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? context.tr('Ingresá tu nombre') : null,
                   ),
                 ),
               ),
               Expanded(
                 child: Campo(
-                  etiqueta: 'Apellido',
+                  etiqueta: context.tr('Apellido'),
                   child: TextFormField(
                     controller: _apellidoCtrl,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(hintText: 'Tu apellido'),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Ingresá tu apellido'
-                        : null,
+                    decoration: InputDecoration(hintText: context.tr('Tu apellido')),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? context.tr('Ingresá tu apellido') : null,
                   ),
                 ),
               ),
@@ -159,20 +156,18 @@ class _RegisterFormState extends State<RegisterForm> {
             children: [
               Expanded(
                 child: Campo(
-                  etiqueta: 'DNI',
+                  etiqueta: context.tr('DNI'),
                   child: TextFormField(
                     controller: _dniCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: 'Sin puntos'),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Ingresá tu DNI'
-                        : null,
+                    decoration: InputDecoration(hintText: context.tr('Sin puntos')),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? context.tr('Ingresá tu DNI') : null,
                   ),
                 ),
               ),
               Expanded(
                 child: Campo(
-                  etiqueta: 'Nacimiento',
+                  etiqueta: context.tr('Nacimiento'),
                   child: Material(
                     color: colores.hundido,
                     borderRadius: BorderRadius.circular(Radios.control),
@@ -214,56 +209,53 @@ class _RegisterFormState extends State<RegisterForm> {
             ],
           ),
           Campo(
-            etiqueta: 'Género',
+            etiqueta: context.tr('Género'),
             child: Segmento<String?>(
-              opciones: [for (final g in _generos) (g, g)],
+              opciones: [for (final g in _generos) (g, context.tr(g))],
               valor: _genero,
               alCambiar: (v) => setState(() => _genero = v),
             ),
           ),
           Campo(
-            etiqueta: 'Teléfono',
+            etiqueta: context.tr('Teléfono'),
             child: TextFormField(
               controller: _telefonoCtrl,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(hintText: '11 2345 6789'),
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Ingresá tu teléfono'
-                  : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? context.tr('Ingresá tu teléfono') : null,
             ),
           ),
-          const TituloSeccion('Tu acceso'),
+          TituloSeccion(context.tr('Tu acceso')),
           const SizedBox(height: 12),
           Campo(
-            etiqueta: 'Email',
+            etiqueta: context.tr('Email'),
             child: TextFormField(
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(hintText: 'tu@email.com'),
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Ingresá tu email';
+                if (v == null || v.trim().isEmpty) return context.tr('Ingresá tu email');
                 final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
-                if (!regex.hasMatch(v.trim())) return 'Email inválido';
+                if (!regex.hasMatch(v.trim())) return context.tr('Email inválido');
                 return null;
               },
             ),
           ),
           Campo(
-            etiqueta: 'Contraseña',
+            etiqueta: context.tr('Contraseña'),
             child: TextFormField(
               controller: _passwordCtrl,
               decoration: InputDecoration(
-                hintText: 'Mínimo 8 caracteres',
+                hintText: context.tr('Mínimo 8 caracteres'),
                 suffixIcon: TextButton(
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                  child: Text(_obscurePassword ? 'Ver' : 'Ocultar'),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  child: Text(_obscurePassword ? context.tr('Ver') : context.tr('Ocultar')),
                 ),
               ),
               obscureText: _obscurePassword,
               validator: (v) {
-                if (v == null || v.isEmpty) return 'Ingresá una contraseña';
-                if (v.length < 8) return 'Mínimo 8 caracteres';
+                if (v == null || v.isEmpty) return context.tr('Ingresá una contraseña');
+                if (v.length < 8) return context.tr('Mínimo 8 caracteres');
                 return null;
               },
             ),
@@ -291,7 +283,7 @@ class _RegisterFormState extends State<RegisterForm> {
                       color: colores.sobrePrimario,
                     ),
                   )
-                : const Text('Crear cuenta'),
+                : Text(context.tr('Crear cuenta')),
           ),
         ],
       ),

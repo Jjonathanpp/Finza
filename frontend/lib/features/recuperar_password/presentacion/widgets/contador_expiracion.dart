@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class ContadorExpiracion extends StatelessWidget {
   final int segundosRestantes;
@@ -29,8 +30,8 @@ class ContadorExpiracion extends StatelessWidget {
         Flexible(
           child: Text(
             _expirado
-                ? 'El código expiró. Pedí uno nuevo.'
-                : 'Vence en $_tiempoTexto',
+                ? context.tr('El código expiró. Pedí uno nuevo.')
+                : context.tr('Vence en {tiempo}', {'tiempo': _tiempoTexto}),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color),
           ),
         ),

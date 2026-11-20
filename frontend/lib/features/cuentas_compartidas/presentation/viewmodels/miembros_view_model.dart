@@ -3,7 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/cuentas_compartidas/data/datasources/cuenta_compartida_api.dart';
 import 'package:frontend/features/cuentas_compartidas/data/models/miembro.dart';
- 
+import 'package:frontend/l10n/idioma.dart';
+
 // Pantalla de miembros (t-11.3.2): la lista con el rol de cada uno y, si sos admin, el
 // cambio de rol de los demás. Las reglas son las mismas que valida el backend
 // (PerfilService.cambiarRol); acá solo sirven para no ofrecer lo que igual rechazaría.
@@ -39,9 +40,9 @@ class MiembrosViewModel extends ChangeNotifier {
  
   // Por qué no se puede cambiar el rol de alguien (para el tooltip); null si se puede.
   String? motivoNoEditable(Miembro m) {
-    if (!soyAdmin) return 'Solo los administradores pueden cambiar roles';
-    if (esVos(m)) return 'No podés cambiar tu propio rol';
-    if (m.esCreador) return 'A quien creó la cuenta compartida no se le puede cambiar el rol';
+    if (!soyAdmin) return tr('Solo los administradores pueden cambiar roles');
+    if (esVos(m)) return tr('No podés cambiar tu propio rol');
+    if (m.esCreador) return tr('A quien creó la cuenta compartida no se le puede cambiar el rol');
     return null;
   }
  
@@ -68,7 +69,7 @@ class MiembrosViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _error = e.message;
     } catch (_) {
-      _error = 'No se pudieron cargar los miembros';
+      _error = tr('No se pudieron cargar los miembros');
     } finally {
       _cargando = false;
       notifyListeners();
@@ -92,7 +93,7 @@ class MiembrosViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       return e.message;
     } catch (_) {
-      return 'No se pudo cambiar el rol';
+      return tr('No se pudo cambiar el rol');
     } finally {
       _cambiando.remove(miembro.perfilId);
       notifyListeners();

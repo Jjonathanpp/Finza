@@ -8,6 +8,7 @@ import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/session/sesion.dart';
 import 'package:frontend/core/storage/token_storage.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class ApiClient {
   final Dio _dio = Dio(BaseOptions(baseUrl: apiBaseUrl))
@@ -66,10 +67,9 @@ class ApiClient {
   }
 }
 
-const _errorSinConexion =
-    'No pudimos conectarnos. Revisá tu conexión a internet y probá de nuevo.';
-const _errorInesperado =
-    'Algo salió mal de nuestro lado. Probá de nuevo en un rato.';
+// Getters y no const: el texto sale en el idioma elegido al momento del error.
+String get _errorSinConexion => tr('No pudimos conectarnos. Revisá tu conexión a internet y probá de nuevo.');
+String get _errorInesperado => tr('Algo salió mal de nuestro lado. Probá de nuevo en un rato.');
 
 // Un pedido que no tuvo respuesta: si fue por falta de conexión (sin red, backend que no contesta o
 // demora de más) se prende el aviso global de la app; si fue por otra cosa, un mensaje genérico.
@@ -86,7 +86,7 @@ ApiException _errorSinRespuesta(DioException e) {
     sinConexion.value = true;
     return ApiException(null, _errorSinConexion);
   }
-  return ApiException(null, 'No pudimos completar la acción. Probá de nuevo.');
+  return ApiException(null, tr('No pudimos completar la acción. Probá de nuevo.'));
 }
 
 // Antes de que salga cada pedido, le agrega el token del login (si hay uno guardado) y, si se eligió

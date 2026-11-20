@@ -15,6 +15,7 @@ import 'package:frontend/features/cuentas_compartidas/data/datasources/cuenta_co
 import 'package:frontend/features/cuentas_compartidas/data/models/miembro.dart';
 import 'package:frontend/features/cuentas_compartidas/presentation/viewmodels/miembros_view_model.dart';
 import 'package:frontend/features/lista-invitaciones/presentation/screens/lista_invitaciones_screen.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Configuración → Cuenta → "Miembros y roles" (t-11.3.2): quiénes están en la cuenta
 // compartida activa y con qué rol. Un admin toca el rol de otro para ascenderlo a
@@ -51,7 +52,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
   Future<void> _cambiarRol(Miembro miembro) async {
     final nuevoRol = await mostrarHoja<String>(
       context,
-      titulo: 'Cambiar el rol de ${miembro.nombre}',
+      titulo: context.tr('Cambiar el rol de {nombre}', {'nombre': miembro.nombre}),
       contenido: _HojaRol(rolActual: miembro.rol),
     );
     if (nuevoRol == null || nuevoRol == miembro.rol) return;
@@ -80,15 +81,8 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(
-        context,
-        'Miembros y roles',
-        subtitulo: widget.nombreCuenta,
-      ),
-      body: ListenableBuilder(
-        listenable: _vm,
-        builder: (context, _) => _contenido(),
-      ),
+      appBar: barraConVolver(context, context.tr('Miembros y roles'), subtitulo: widget.nombreCuenta),
+      body: ListenableBuilder(listenable: _vm, builder: (context, _) => _contenido()),
     );
   }
 
@@ -109,7 +103,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
             spacing: 12,
             children: [
               Text(_vm.error!, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
-              FilledButton(onPressed: _vm.cargar, child: const Text('Reintentar')),
+              FilledButton(onPressed: _vm.cargar, child: Text(context.tr('Reintentar'))),
             ],
           ),
         ),
@@ -128,7 +122,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
             spacing: 12,
             children: [
               const _QueHaceCadaRol(),
-              TituloSeccion('Integrantes · ${_vm.miembros.length}'),
+              TituloSeccion(context.tr('Integrantes · {cantidad}', {'cantidad': '${_vm.miembros.length}'})),
               TarjetaLista(
                 children: [
                   for (final m in _vm.miembros)
@@ -146,8 +140,10 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   _vm.soyAdmin
-                      ? 'Sos administrador: tocá el rol de alguien para cambiarlo. A quien creó la cuenta compartida no se le puede cambiar el rol, y nadie puede cambiar el suyo.'
-                      : 'Solo los administradores pueden cambiar los roles.',
+                      ? context.tr(
+                          'Sos administrador: tocá el rol de alguien para cambiarlo. A quien creó la cuenta compartida no se le puede cambiar el rol, y nadie puede cambiar el suyo.',
+                        )
+                      : context.tr('Solo los administradores pueden cambiar los roles.'),
                   style: textos.bodySmall,
                 ),
               ),
@@ -155,7 +151,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
                 FilledButton.icon(
                   onPressed: _invitar,
                   icon: const Icon(Icons.mail_outline, size: 18),
-                  label: const Text('Invitar a alguien'),
+                  label: Text(context.tr('Invitar a alguien')),
                 ),
             ],
           ),
@@ -180,7 +176,7 @@ class _QueHaceCadaRol extends StatelessWidget {
         spacing: 12,
         children: [
           Text(
-            'Qué puede hacer cada rol',
+            context.tr('Qué puede hacer cada rol'),
             style: textos.labelMedium?.copyWith(color: textos.bodySmall?.color),
           ),
           for (final (rol, detalle) in const [
@@ -192,7 +188,7 @@ class _QueHaceCadaRol extends StatelessWidget {
               spacing: 10,
               children: [
                 _chipRol(rol),
-                Expanded(child: Text(detalle, style: textos.bodySmall)),
+                Expanded(child: Text(context.tr(detalle), style: textos.bodySmall)),
               ],
             ),
         ],
@@ -203,8 +199,8 @@ class _QueHaceCadaRol extends StatelessWidget {
 
 ChipEstado _chipRol(String rol, {bool chico = true}) {
   return rol == 'ADMIN'
-      ? ChipEstado('Admin', TonoChip.menta, chico: chico)
-      : ChipEstado('Miembro', TonoChip.hundido, chico: chico);
+      ? ChipEstado(tr('Admin'), TonoChip.menta, chico: chico)
+      : ChipEstado(tr('Miembro'), TonoChip.hundido, chico: chico);
 }
 
 class _FilaMiembro extends StatelessWidget {
@@ -247,7 +243,9 @@ class _FilaMiembro extends StatelessWidget {
         tamano: 40,
       ),
       titulo: esVos ? '${m.nombre} (vos)' : m.nombre,
-      subtitulo: m.esCreador ? 'Creó la cuenta compartida' : (m.esAdmin ? 'Administrador' : 'Miembro'),
+      subtitulo: m.esCreador
+          ? context.tr('Creó la cuenta compartida')
+          : (m.esAdmin ? context.tr('Administrador') : context.tr('Miembro')),
       trailing: rol,
     );
   }
@@ -270,7 +268,9 @@ class _ChipRolTocable extends StatelessWidget {
     final color = esAdmin ? c.primario : c.texto;
     return Tocable(
       alTocar: alTocar,
-      etiqueta: 'Cambiar el rol de $nombre, ahora ${esAdmin ? 'administrador' : 'miembro'}',
+      etiqueta: esAdmin
+          ? context.tr('Cambiar el rol de {nombre}, ahora administrador', {'nombre': nombre})
+          : context.tr('Cambiar el rol de {nombre}, ahora miembro', {'nombre': nombre}),
       child: SizedBox(
         height: 44,
         child: Center(
@@ -284,7 +284,7 @@ class _ChipRolTocable extends StatelessWidget {
               spacing: 4,
               children: [
                 Text(
-                  esAdmin ? 'Admin' : 'Miembro',
+                  esAdmin ? context.tr('Admin') : context.tr('Miembro'),
                   maxLines: 1,
                   softWrap: false,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color),
@@ -320,14 +320,14 @@ class _HojaRolState extends State<_HojaRol> {
       spacing: 12,
       children: [
         _OpcionRol(
-          titulo: 'Administrador',
-          detalle: 'Invita, cambia roles, crea categorías y maneja los presupuestos.',
+          titulo: context.tr('Administrador'),
+          detalle: context.tr('Invita, cambia roles, crea categorías y maneja los presupuestos.'),
           activa: _elegido == 'ADMIN',
           alTocar: () => setState(() => _elegido = 'ADMIN'),
         ),
         _OpcionRol(
-          titulo: 'Miembro',
-          detalle: 'Ve y carga movimientos.',
+          titulo: context.tr('Miembro'),
+          detalle: context.tr('Ve y carga movimientos.'),
           activa: _elegido == 'MIEMBRO',
           alTocar: () => setState(() => _elegido = 'MIEMBRO'),
         ),
@@ -335,15 +335,12 @@ class _HojaRolState extends State<_HojaRol> {
           spacing: 8,
           children: [
             Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancelar'),
-              ),
+              child: OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.tr('Cancelar'))),
             ),
             Expanded(
               child: FilledButton(
                 onPressed: () => Navigator.of(context).pop(_elegido),
-                child: const Text('Guardar'),
+                child: Text(context.tr('Guardar')),
               ),
             ),
           ],

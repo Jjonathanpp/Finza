@@ -7,6 +7,7 @@ import 'package:frontend/core/widgets/monto.dart';
 import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/core/widgets/titulo_seccion.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Los integrantes invitados tienen como nombre de perfil su email (InvitacionService): se muestra solo la
 // parte antes de la @.
@@ -49,10 +50,17 @@ class GruposDeMovimientos extends StatelessWidget {
     final hoy = DateTime.utc(ahora.year, ahora.month, ahora.day);
     final dia = DateTime.utc(fecha.year, fecha.month, fecha.day);
     final diferencia = hoy.difference(dia).inDays;
-    if (diferencia == 0) return 'Hoy';
-    if (diferencia == 1) return 'Ayer';
-    final anio = fecha.year == ahora.year ? '' : ' de ${fecha.year}';
-    return '${_dias[fecha.weekday - 1]} ${fecha.day} de ${_meses[fecha.month - 1]}$anio';
+    if (diferencia == 0) return tr('Hoy');
+    if (diferencia == 1) return tr('Ayer');
+    final datos = {
+      'dia': tr(_dias[fecha.weekday - 1]),
+      'numero': '${fecha.day}',
+      'mes': tr(_meses[fecha.month - 1]),
+      'anio': '${fecha.year}',
+    };
+    return fecha.year == ahora.year
+        ? tr('{dia} {numero} de {mes}', datos)
+        : tr('{dia} {numero} de {mes} de {anio}', datos);
   }
 
   @override
@@ -99,10 +107,10 @@ class _FilaDeMovimiento extends StatelessWidget {
     return FilaMovimiento(
       leading: CirculoCategoria.de(m.categoria),
       titulo: m.categoria.nombre,
-      subtitulo: descripcion != null && descripcion.isNotEmpty ? descripcion : 'Sin descripción',
+      subtitulo: descripcion != null && descripcion.isNotEmpty ? descripcion : context.tr('Sin descripción'),
       monto: Monto.texto(m.monto, ingreso: m.esIngreso),
       colorMonto: Monto.color(context, m.esIngreso),
-      chip: pendiente ? const ChipEstado('Por revisar', TonoChip.ambar, chico: true) : null,
+      chip: pendiente ? ChipEstado(context.tr('Por revisar'), TonoChip.ambar, chico: true) : null,
       pie: mostrarAutor && m.perfilNombre != null ? _Autor(m.perfilNombre!, esPropio: !esMovimientoAjeno(m)) : null,
       alTocar: alTocar,
     );
@@ -119,9 +127,9 @@ class _Autor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final corto = nombreCortoPerfil(nombre);
-    final texto = esPropio ? 'Vos' : (corto.length > 12 ? '${corto.substring(0, 11)}…' : corto);
+    final texto = esPropio ? context.tr('Vos') : (corto.length > 12 ? '${corto.substring(0, 11)}…' : corto);
     return Tooltip(
-      message: esPropio ? 'Cargado por vos' : 'Cargado por $nombre',
+      message: esPropio ? context.tr('Cargado por vos') : context.tr('Cargado por {nombre}', {'nombre': nombre}),
       child: ChipEstado(texto, esPropio ? TonoChip.menta : TonoChip.hundido, chico: true),
     );
   }

@@ -19,6 +19,7 @@ import 'package:frontend/features/presupuestos/presentation/widgets/barra_progre
 import 'package:frontend/features/presupuestos/presentation/widgets/categoria_del_presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/tarjetas_cargando.dart';
 import 'package:provider/provider.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class PresupuestosScreen extends StatefulWidget {
   const PresupuestosScreen({super.key});
@@ -82,13 +83,13 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
             children: [
               // Crear presupuestos: en una cuenta compartida, solo para el admin (t-13.1.2).
               EncabezadoPestana(
-                titulo: 'Presupuestos',
+                titulo: context.tr('Presupuestos'),
                 acciones: [
                   if (esAdminDeCuentaActiva)
                     BotonIcono(
                       icono: Icons.add,
                       principal: true,
-                      ayuda: 'Nuevo presupuesto',
+                      ayuda: context.tr('Nuevo presupuesto'),
                       alTocar: () => _nuevo(vm),
                     ),
                 ],
@@ -115,8 +116,12 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
       debajo = Column(
         spacing: 12,
         children: [
-          Text(vm.error!, textAlign: TextAlign.center, style: textos.bodyMedium?.copyWith(color: c.coralTexto)),
-          OutlinedButton(onPressed: () => vm.cargarPresupuestos(), child: const Text('Reintentar')),
+          Text(
+            vm.error!,
+            textAlign: TextAlign.center,
+            style: textos.bodyMedium?.copyWith(color: c.coralTexto),
+          ),
+          OutlinedButton(onPressed: () => vm.cargarPresupuestos(), child: Text(context.tr('Reintentar'))),
         ],
       );
     } else if (lista.isEmpty) {
@@ -124,8 +129,11 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Text(
           cuenta == null
-              ? 'No hay presupuestos en ${nombresDeMeses[vm.mesActual]}'
-              : '${cuenta['nombre']} no tiene presupuestos en ${nombresDeMeses[vm.mesActual]}',
+              ? context.tr('No hay presupuestos en {mes}', {'mes': context.tr(nombresDeMeses[vm.mesActual])})
+              : context.tr('{cuenta} no tiene presupuestos en {mes}', {
+                  'cuenta': '${cuenta['nombre']}',
+                  'mes': context.tr(nombresDeMeses[vm.mesActual]),
+                }),
           textAlign: TextAlign.center,
           style: textos.bodyMedium?.copyWith(color: c.suave),
         ),
@@ -159,14 +167,16 @@ class _PresupuestosScreenState extends State<PresupuestosScreen> {
                 const ChipCuenta(),
                 if (compartida)
                   ChipEstado(
-                    esAdminDeCuentaActiva ? 'Sos administrador' : 'Sos miembro',
+                    esAdminDeCuentaActiva ? context.tr('Sos administrador') : context.tr('Sos miembro'),
                     esAdminDeCuentaActiva ? TonoChip.menta : TonoChip.hundido,
                   ),
               ],
             ),
             if (!esAdminDeCuentaActiva)
               AvisoEnLinea(
-                'En ${cuenta!['nombre']} los presupuestos los maneja un administrador. Vos ves cuánto gastó cada uno.',
+                context.tr('En {cuenta} los presupuestos los maneja un administrador. Vos ves cuánto gastó cada uno.', {
+                  'cuenta': '${cuenta!['nombre']}',
+                }),
                 icono: Icons.lock_outline,
               ),
             _ResumenMes(vm: vm, onAnterior: () => _cambiarMes(vm, -1), onSiguiente: () => _cambiarMes(vm, 1)),
@@ -207,14 +217,14 @@ class _ResumenMes extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.chevron_left, size: 22),
                 color: c.suave,
-                tooltip: 'Mes anterior',
+                tooltip: context.tr('Mes anterior'),
                 onPressed: onAnterior,
               ),
               Flexible(
                 child: Semantics(
                   liveRegion: true,
                   child: Text(
-                    '${nombresDeMeses[vm.mesActual]} ${vm.anioActual}',
+                    '${context.tr(nombresDeMeses[vm.mesActual])} ${vm.anioActual}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w800),
@@ -224,7 +234,7 @@ class _ResumenMes extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.chevron_right, size: 22),
                 color: c.suave,
-                tooltip: 'Mes siguiente',
+                tooltip: context.tr('Mes siguiente'),
                 onPressed: onSiguiente,
               ),
             ],
@@ -248,13 +258,18 @@ class _ResumenMes extends StatelessWidget {
 
     final String textoSaldo;
     if (disponible < 0) {
-      textoSaldo = 'Te pasaste ${Monto.texto(-disponible)} del total presupuestado.';
+      textoSaldo = context.tr('Te pasaste {monto} del total presupuestado.', {'monto': Monto.texto(-disponible)});
     } else if (disponible == 0) {
-      textoSaldo = 'Llegaste al total de los topes.';
+      textoSaldo = context.tr('Llegaste al total de los topes.');
     } else if (dias == null) {
-      textoSaldo = 'Te sobraron ${Monto.texto(disponible)} ese mes.';
+      textoSaldo = context.tr('Te sobraron {monto} ese mes.', {'monto': Monto.texto(disponible)});
     } else {
-      textoSaldo = 'Te quedan ${Monto.texto(disponible)} para ${dias == 1 ? 'el último día' : 'los próximos $dias días'}.';
+      textoSaldo = dias == 1
+          ? context.tr('Te quedan {monto} para el último día.', {'monto': Monto.texto(disponible)})
+          : context.tr('Te quedan {monto} para los próximos {dias} días.', {
+              'monto': Monto.texto(disponible),
+              'dias': '$dias',
+            });
     }
 
     return [
@@ -262,7 +277,7 @@ class _ResumenMes extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: 2,
         children: [
-          Text('Llevás gastado', style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+          Text(context.tr('Llevás gastado'), style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
           Text.rich(
             TextSpan(
               text: Monto.texto(vm.totalGastado),
@@ -281,7 +296,7 @@ class _ResumenMes extends StatelessWidget {
         grande: true,
         valor: vm.porcentajeTotal / 100,
         tono: estado.tonoBarra,
-        etiqueta: 'Gastado del total',
+        etiqueta: context.tr('Gastado del total'),
       ),
       Text(textoSaldo, style: textos.bodySmall),
     ];

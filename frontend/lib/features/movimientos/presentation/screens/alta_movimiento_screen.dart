@@ -20,6 +20,7 @@ import 'package:frontend/features/movimientos/presentation/widgets/caja_fecha.da
 import 'package:frontend/features/movimientos/presentation/widgets/chip_categoria.dart';
 import 'package:frontend/features/voice/voice_screen.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class AltaMovimientoScreen extends StatefulWidget {
   const AltaMovimientoScreen({super.key});
@@ -52,7 +53,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
     if (creado == null || !mounted) return;
     mostrarExito(
       context,
-      creado.esIngreso ? 'Ingreso registrado exitosamente' : 'Egreso registrado exitosamente',
+      creado.esIngreso ? context.tr('Ingreso registrado exitosamente') : context.tr('Egreso registrado exitosamente'),
     );
     _monto.clear();
     _descripcion.clear();
@@ -64,7 +65,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
   Future<void> _nuevaCategoria() async {
     final creada = await mostrarHoja<Categoria>(
       context,
-      titulo: 'Nueva categoría de ${_vm.esIngreso ? 'ingreso' : 'egreso'}',
+      titulo: _vm.esIngreso ? context.tr('Nueva categoría de ingreso') : context.tr('Nueva categoría de egreso'),
       contenido: FormularioCategoria(esIngreso: _vm.esIngreso, tipoFijo: true),
     );
     if (creada != null) _vm.agregarCategoria(creada);
@@ -88,7 +89,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
     final colores = context.colores;
     final cuenta = cuentaActiva.value;
     return Scaffold(
-      appBar: barraConVolver(context, 'Nuevo movimiento', subtitulo: nombreDeCuentaActiva()),
+      appBar: barraConVolver(context, context.tr('Nuevo movimiento'), subtitulo: nombreDeCuentaActiva()),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -100,22 +101,22 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
               _campoMonto(),
               _categorias(),
               Campo(
-                etiqueta: 'Fecha',
+                etiqueta: context.tr('Fecha'),
                 child: CajaFecha(fecha: _vm.fecha, alTocar: _elegirFecha),
               ),
               Campo(
-                etiqueta: 'Descripción (opcional)',
+                etiqueta: context.tr('Descripción (opcional)'),
                 child: TextField(
                   controller: _descripcion,
                   inputFormatters: [LengthLimitingTextInputFormatter(255)],
-                  decoration: const InputDecoration(hintText: 'Por ejemplo, el comercio'),
+                  decoration: InputDecoration(hintText: context.tr('Por ejemplo, el comercio')),
                 ),
               ),
               if (cuenta != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 14),
                   child: AvisoEnLinea(
-                    'Se guarda en ${cuenta['nombre']} y lo ven todos.',
+                    context.tr('Se guarda en {cuenta} y lo ven todos.', {'cuenta': '${cuenta['nombre']}'}),
                     icono: Icons.group_outlined,
                   ),
                 ),
@@ -138,7 +139,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2, color: colores.sobrePrimario),
                       )
-                    : const Text('Guardar'),
+                    : Text(context.tr('Guardar')),
               ),
               Center(
                 child: TextButton.icon(
@@ -147,7 +148,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
                     MaterialPageRoute(builder: (_) => const VoiceScreen()),
                   ),
                   icon: const Icon(Icons.mic_none, size: 18),
-                  label: const Text('Prefiero dictarlo'),
+                  label: Text(context.tr('Prefiero dictarlo')),
                 ),
               ),
             ],
@@ -168,7 +169,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
         children: [
           Text(
             // Con otra moneda elegida se aclara: lo que se carga son pesos (US-8.2).
-            '${_vm.esIngreso ? 'Cuánto entró' : 'Cuánto gastaste'}${convierte ? ', en pesos' : ''}',
+            '${_vm.esIngreso ? context.tr('Cuánto entró') : context.tr('Cuánto gastaste')}${convierte ? context.tr(', en pesos') : ''}',
             style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           Padding(
@@ -198,7 +199,7 @@ class _AltaMovimientoScreenState extends State<AltaMovimientoScreen> {
 
   Widget _categorias() {
     return Campo(
-      etiqueta: 'Categoría',
+      etiqueta: context.tr('Categoría'),
       error: _vm.errorCategoria,
       child: Wrap(
         spacing: 8,

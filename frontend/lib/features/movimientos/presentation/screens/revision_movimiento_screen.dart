@@ -15,6 +15,7 @@ import 'package:frontend/features/movimientos/presentation/viewmodels/revision_m
 import 'package:frontend/features/movimientos/presentation/widgets/caja_fecha.dart';
 import 'package:frontend/features/movimientos/presentation/widgets/chip_categoria.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class RevisionMovimientoScreen extends StatefulWidget {
   const RevisionMovimientoScreen({super.key, required this.movimiento});
@@ -77,15 +78,19 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
   Widget build(BuildContext context) {
     final colores = context.colores;
     return Scaffold(
-      appBar: barraConVolver(context, 'Revisá antes de guardar', subtitulo: 'Completado por la IA'),
+      appBar: barraConVolver(
+        context,
+        context.tr('Revisá antes de guardar'),
+        subtitulo: context.tr('Completado por la IA'),
+      ),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
             children: [
-              const AvisoEnLinea(
-                'La IA completó estos datos. Cambiá lo que no esté bien y confirmá.',
+              AvisoEnLinea(
+                context.tr('La IA completó estos datos. Cambiá lo que no esté bien y confirmá.'),
                 icono: Icons.check,
                 verde: true,
               ),
@@ -93,10 +98,10 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
               SelectorTipo(esIngreso: _vm.esIngreso, alCambiar: _vm.cambiarTipo),
               const SizedBox(height: 14),
               Campo(
-                etiqueta: 'Monto',
+                etiqueta: context.tr('Monto'),
                 error: _vm.errorMonto,
                 // Con otra moneda elegida se aclara: lo que se carga son pesos (US-8.2).
-                ayuda: convierte ? 'En pesos' : null,
+                ayuda: convierte ? context.tr('En pesos') : null,
                 child: TextField(
                   controller: _monto,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -106,15 +111,12 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
               ),
               _categorias(),
               Campo(
-                etiqueta: 'Fecha',
+                etiqueta: context.tr('Fecha'),
                 child: CajaFecha(fecha: _vm.fecha, alTocar: _elegirFecha),
               ),
               Campo(
-                etiqueta: 'Descripción',
-                child: TextField(
-                  controller: _descripcion,
-                  inputFormatters: [LengthLimitingTextInputFormatter(255)],
-                ),
+                etiqueta: context.tr('Descripción'),
+                child: TextField(controller: _descripcion, inputFormatters: [LengthLimitingTextInputFormatter(255)]),
               ),
               if (_vm.error != null)
                 Padding(
@@ -138,7 +140,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
 
   Widget _categorias() {
     return Campo(
-      etiqueta: 'Categoría',
+      etiqueta: context.tr('Categoría'),
       error: _vm.errorCategoria,
       child: Wrap(
         spacing: 8,
@@ -164,7 +166,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
           child: FilledButton(
             onPressed: _vm.cargando ? null : _descartar,
             style: estiloBotonPeligro(context),
-            child: const Text('Descartar'),
+            child: Text(context.tr('Descartar')),
           ),
         ),
         Expanded(
@@ -176,7 +178,7 @@ class _RevisionMovimientoScreenState extends State<RevisionMovimientoScreen> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2, color: context.colores.sobrePrimario),
                   )
-                : const Text('Confirmar'),
+                : Text(context.tr('Confirmar')),
           ),
         ),
       ],

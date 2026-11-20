@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class SelectorMiembros extends StatefulWidget {
   const SelectorMiembros({
@@ -24,7 +25,7 @@ class _SelectorMiembrosState extends State<SelectorMiembros> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Mostrar',
+          context.tr('Mostrar'),
           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: context.colores.suave),
         ),
         const SizedBox(height: 8),
@@ -33,12 +34,12 @@ class _SelectorMiembrosState extends State<SelectorMiembros> {
           runSpacing: 8,
           children: [
             FilterChip(
-              label: const Text('Todos'),
+              label: Text(context.tr('Todos')),
               selected: widget.seleccionado == null,
               onSelected: (_) => widget.alCambiar(null),
             ),
             FilterChip(
-              label: const Text('Solo míos'),
+              label: Text(context.tr('Solo míos')),
               selected: widget.seleccionado != null && widget.seleccionado!['esPropio'] == true,
               onSelected: (_) => widget.alCambiar({'esPropio': true}),
             ),

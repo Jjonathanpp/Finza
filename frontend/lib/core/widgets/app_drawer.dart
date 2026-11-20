@@ -12,6 +12,7 @@ import 'package:frontend/features/informes/presentation/screens/informes_screen.
 import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/lista-invitaciones/presentation/screens/lista_invitaciones_screen.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/mercadopago_screen.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Abre el menú J por encima de toda la pantalla (la barra de abajo incluida): entra desde la
 // izquierda con el velo detrás, como .menu de la maqueta. Es el que usa el avatar del encabezado.
@@ -19,7 +20,7 @@ Future<void> abrirMenu(BuildContext context) {
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Cerrar el menú',
+    barrierLabel: context.tr('Cerrar el menú'),
     barrierColor: context.colores.velo,
     transitionDuration: Duraciones.hoja,
     pageBuilder: (_, _, _) => const Align(alignment: Alignment.centerLeft, child: AppDrawer()),
@@ -116,12 +117,12 @@ class AppDrawer extends StatelessWidget {
                     ),
                     _Opcion(
                       icono: Icons.bar_chart,
-                      texto: 'Informes',
+                      texto: context.tr('Informes'),
                       alTocar: () => _ir(context, const InformesScreen()),
                     ),
                     _Opcion(
                       icono: Icons.category_outlined,
-                      texto: 'Categorías',
+                      texto: context.tr('Categorías'),
                       alTocar: () => _ir(context, const CategoriasScreen()),
                     ),
                     _Opcion(
@@ -140,20 +141,15 @@ class AppDrawer extends StatelessWidget {
                           children: [
                             _Opcion(
                               icono: Icons.group_outlined,
-                              texto: admin ? 'Miembros y roles' : 'Ver miembros',
-                              alTocar: () => _ir(
-                                context,
-                                MiembrosScreen(nombreCuenta: cuenta['nombre'] as String),
-                              ),
+                              texto: admin ? context.tr('Miembros y roles') : context.tr('Ver miembros'),
+                              alTocar: () => _ir(context, MiembrosScreen(nombreCuenta: cuenta['nombre'] as String)),
                             ),
                             if (admin)
                               _Opcion(
                                 icono: Icons.mail_outline,
-                                texto: 'Invitaciones',
-                                alTocar: () => _ir(
-                                  context,
-                                  ListaInvitacionesScreen(cuentaCompartidaId: cuenta['id'] as int),
-                                ),
+                                texto: context.tr('Invitaciones'),
+                                alTocar: () =>
+                                    _ir(context, ListaInvitacionesScreen(cuentaCompartidaId: cuenta['id'] as int)),
                               ),
                           ],
                         );
@@ -161,7 +157,7 @@ class AppDrawer extends StatelessWidget {
                     ),
                     _Opcion(
                       icono: Icons.settings_outlined,
-                      texto: 'Configuración',
+                      texto: context.tr('Configuración'),
                       alTocar: () => _ir(context, const ConfiguracionScreen()),
                     ),
                   ],
@@ -169,7 +165,7 @@ class AppDrawer extends StatelessWidget {
               ),
               _Opcion(
                 icono: Icons.logout,
-                texto: 'Cerrar sesión',
+                texto: context.tr('Cerrar sesión'),
                 conLinea: true,
                 alTocar: () => _cerrarSesion(context),
               ),

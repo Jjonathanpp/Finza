@@ -1,3 +1,5 @@
+import 'package:frontend/l10n/idioma.dart';
+
 class PerfilCuenta {
   const PerfilCuenta({
     required this.id,
@@ -11,7 +13,7 @@ class PerfilCuenta {
 
   factory PerfilCuenta.fromJson(Map<String, dynamic> json) => PerfilCuenta(
     id: json['perfilId'] as int,
-    nombre: (json['nombre'] as String?) ?? 'Sin nombre',
+    nombre: (json['nombre'] as String?) ?? tr('Sin nombre'),
     rol: (json['rol'] as String?) ?? '',
   );
 }

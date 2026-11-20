@@ -10,6 +10,7 @@ import 'package:frontend/features/informes/data/datasources/informe_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_gastos.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // "En qué gastás" (maqueta L499-505): una dona con los gastos por categoría y al lado la leyenda. Se dibuja
 // con una animación al aparecer. Cada categoría va con el color que se guardó para ella.
@@ -49,7 +50,7 @@ class _GraficoTortaCategoriasState extends State<GraficoTortaCategorias> {
           Semantics(
             header: true,
             child: Text(
-              'En qué gastás',
+              context.tr('En qué gastás'),
               style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w800),
             ),
           ),
@@ -62,14 +63,14 @@ class _GraficoTortaCategoriasState extends State<GraficoTortaCategorias> {
               if (snapshot.hasError) {
                 final e = snapshot.error;
                 return _Reintentar(
-                  mensaje: e is ApiException ? e.message : 'No se pudieron cargar los gastos.',
+                  mensaje: e is ApiException ? e.message : context.tr('No se pudieron cargar los gastos.'),
                   alTocar: () => setState(() => _futuro = _cargar()),
                 );
               }
               final categorias = snapshot.data!.categorias;
               if (categorias.isEmpty) {
                 return Text(
-                  'Todavía no hay gastos en el período.',
+                  context.tr('Todavía no hay gastos en el período.'),
                   style: textos.bodySmall?.copyWith(color: c.suave),
                 );
               }
@@ -80,7 +81,7 @@ class _GraficoTortaCategoriasState extends State<GraficoTortaCategorias> {
                 spacing: 18,
                 children: [
                   Semantics(
-                    label: 'Gráfico de gastos por categoría',
+                    label: context.tr('Gráfico de gastos por categoría'),
                     image: true,
                     excludeSemantics: true,
                     child: _Dona(categorias: categorias, colores: colores),
@@ -256,7 +257,7 @@ class _Reintentar extends StatelessWidget {
       spacing: 8,
       children: [
         Text(mensaje, style: textos.bodySmall?.copyWith(color: context.colores.suave)),
-        TextButton(onPressed: alTocar, child: const Text('Reintentar')),
+        TextButton(onPressed: alTocar, child: Text(context.tr('Reintentar'))),
       ],
     );
   }

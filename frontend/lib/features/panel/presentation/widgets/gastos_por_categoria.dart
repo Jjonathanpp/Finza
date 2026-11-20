@@ -11,6 +11,7 @@ import 'package:frontend/features/panel/data/models/resumen_gastos.dart';
 import 'package:frontend/features/panel/presentation/widgets/error_con_reintento.dart';
 import 'package:frontend/shared/utils/color_hex.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // "En qué gastás" (US-5.4), el bloque del panel con lo gastado en el mes por categoría, como en la maqueta:
 // una barra partida por categoría y abajo la leyenda. El orden, los totales y los porcentajes ya vienen
@@ -54,13 +55,13 @@ class _GastosPorCategoriaState extends State<GastosPorCategoria> {
                     child: Semantics(
                       header: true,
                       child: Text(
-                        'En qué gastás',
+                        context.tr('En qué gastás'),
                         style: textos.labelLarge?.copyWith(fontWeight: FontWeight.w800),
                       ),
                     ),
                   ),
                   if (resumen != null && resumen.categorias.isNotEmpty)
-                    Text('Total ${importe(resumen.total)}', style: textos.bodySmall),
+                    Text(context.tr('Total {monto}', {'monto': importe(resumen.total)}), style: textos.bodySmall),
                 ],
               ),
               ..._contenido(context, respuesta),
@@ -76,14 +77,14 @@ class _GastosPorCategoriaState extends State<GastosPorCategoria> {
     if (error != null) {
       return [
         ErrorConReintento(
-          mensaje: error is ApiException ? error.message : 'No se pudieron cargar los gastos',
+          mensaje: error is ApiException ? error.message : context.tr('No se pudieron cargar los gastos'),
           alReintentar: () => setState(() => _resumen = _pedir()),
         ),
       ];
     }
     final categorias = respuesta.data!.categorias;
     if (categorias.isEmpty) {
-      return [Text('Todavía no hay gastos este mes.', style: Theme.of(context).textTheme.bodySmall)];
+      return [Text(context.tr('Todavía no hay gastos este mes.'), style: Theme.of(context).textTheme.bodySmall)];
     }
     return [
       _BarraSegmentada(categorias),

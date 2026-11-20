@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // El código de 6 dígitos como 6 cajas (.caja). Abajo de las cajas va el pie (el contador de expiración).
 // Las cajas solo muestran lo escrito: el que recibe el teclado es un campo transparente encima, que usa
@@ -51,7 +52,7 @@ class _CampoCodigoState extends State<CampoCodigo> {
 
   String? _validar() {
     if (widget.controller.text.trim().length != _largo) {
-      return 'Ingresá los 6 dígitos del código';
+      return context.tr('Ingresá los 6 dígitos del código');
     }
     return null;
   }
@@ -70,15 +71,12 @@ class _CampoCodigoState extends State<CampoCodigo> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Código',
-                style: chico?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colores.suave,
-                ),
+                context.tr('Código'),
+                style: chico?.copyWith(fontWeight: FontWeight.w600, color: colores.suave),
               ),
               const SizedBox(height: 6),
               Semantics(
-                label: 'Código de 6 dígitos',
+                label: context.tr('Código de 6 dígitos'),
                 textField: true,
                 child: Stack(
                   children: [
@@ -128,10 +126,7 @@ class _CampoCodigoState extends State<CampoCodigo> {
                 ),
               Align(
                 alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: () => _pegar(estado),
-                  child: const Text('Pegar código'),
-                ),
+                child: TextButton(onPressed: () => _pegar(estado), child: Text(context.tr('Pegar código'))),
               ),
               if (widget.pie != null)
                 Padding(

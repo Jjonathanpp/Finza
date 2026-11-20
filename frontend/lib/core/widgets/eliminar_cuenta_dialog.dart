@@ -4,6 +4,7 @@ import '../network/cuenta_service.dart';
 import '../storage/token_storage.dart';
 import 'package:frontend/core/session/portero.dart';
 import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class EliminarCuentaDialog extends StatefulWidget {
   const EliminarCuentaDialog({super.key});
@@ -60,7 +61,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
       case EliminarCuentaResultado.passwordIncorrecta:
         setState(() {
           _cargando = false;
-          _error = 'La contraseña es incorrecta';
+          _error = context.tr('La contraseña es incorrecta');
         });
         break;
       case EliminarCuentaResultado.sesionInvalida:
@@ -73,7 +74,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
       case EliminarCuentaResultado.error:
         setState(() {
           _cargando = false;
-          _error = 'No se pudo eliminar la cuenta. Intentá de nuevo.';
+          _error = context.tr('No se pudo eliminar la cuenta. Intentá de nuevo.');
         });
         break;
     }
@@ -101,17 +102,17 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
               ),
             ),
             const SizedBox(height: 14),
-            Text('Eliminar tu cuenta', style: textos.titleLarge),
+            Text(context.tr('Eliminar tu cuenta'), style: textos.titleLarge),
             const SizedBox(height: 14),
             Text(
-              'Se borran tu cuenta, tus perfiles y todos tus datos. No se puede deshacer.',
+              context.tr('Se borran tu cuenta, tus perfiles y todos tus datos. No se puede deshacer.'),
               style: textos.bodyMedium?.copyWith(color: colores.suave),
             ),
             const SizedBox(height: 14),
 
             // Campo de contraseña
             Campo(
-              etiqueta: 'Tu contraseña',
+              etiqueta: context.tr('Tu contraseña'),
               child: TextField(
                 controller: _passwordController,
                 obscureText: _ocultarPassword,
@@ -120,10 +121,10 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
                 style: textos.bodyLarge,
                 onChanged: (_) => setState(() => _error = null),
                 decoration: InputDecoration(
-                  hintText: 'Para confirmar que sos vos',
+                  hintText: context.tr('Para confirmar que sos vos'),
                   errorText: _error,
                   suffixIcon: IconButton(
-                    tooltip: _ocultarPassword ? 'Mostrar contraseña' : 'Ocultar contraseña',
+                    tooltip: _ocultarPassword ? context.tr('Mostrar contraseña') : context.tr('Ocultar contraseña'),
                     icon: Icon(_ocultarPassword ? Icons.visibility : Icons.visibility_off),
                     onPressed: () => setState(() => _ocultarPassword = !_ocultarPassword),
                   ),
@@ -136,7 +137,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
               value: _aceptoTerminos,
               onChanged: _cargando ? null : (valor) => setState(() => _aceptoTerminos = valor ?? false),
               title: Text(
-                'Entiendo que pierdo todos mis datos y que no se pueden recuperar.',
+                context.tr('Entiendo que pierdo todos mis datos y que no se pueden recuperar.'),
                 style: textos.bodyMedium,
               ),
               controlAffinity: ListTileControlAffinity.leading,
@@ -152,7 +153,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _cargando ? null : () => Navigator.of(context).pop(),
-                    child: const Text('Cancelar'),
+                    child: Text(context.tr('Cancelar')),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -172,7 +173,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: colores.coralTexto),
                           )
-                        : const Text('Eliminar'),
+                        : Text(context.tr('Eliminar')),
                   ),
                 ),
               ],

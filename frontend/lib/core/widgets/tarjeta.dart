@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/tocable.dart';
 
-// .card de la maqueta: fondo tarjeta, radio 20 y sombra. Con destacada = true es .dest: fondo oscuro
-// (destacado), radio 28, padding 16 y sin sombra; el texto y los íconos de adentro salen con el color de
+// .card de la maqueta: fondo tarjeta, radio 20 y sombra. Con destacada = true es .dest: fondo destacado
+// (menta en el modo claro, verde oscuro en el oscuro), radio 28, padding 16 y sin sombra; el texto y los íconos de adentro salen con el color de
 // destacadoTexto. Si tiene alTocar se achica al apretarla (Tocable).
 // Sin padding usa el de .pad (14 vertical, 16 horizontal); para una lista de filas, Tarjeta.paddingLista.
 class Tarjeta extends StatelessWidget {

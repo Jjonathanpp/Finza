@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/logo_finza.dart';
 import '../widgets/login_form.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -27,7 +28,7 @@ class LoginScreen extends StatelessWidget {
                   const Center(child: NombreFinza()),
                   const SizedBox(height: 10),
                   Text(
-                    'Tus finanzas claras, en un solo lugar.',
+                    context.tr('Tus finanzas claras, en un solo lugar.'),
                     textAlign: TextAlign.center,
                     style: textos.bodyMedium?.copyWith(
                       fontSize: 15,

@@ -4,6 +4,7 @@ import 'package:frontend/core/session/sesion.dart';
 import 'package:frontend/core/storage/token_storage.dart';
 import 'package:frontend/features/lista-invitaciones/data/datasources/invitacion_api.dart';
 import 'package:frontend/features/lista-invitaciones/data/models/invitacion_recibida.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // La pantalla que se abre desde el enlace de la invitación (t-11.2.2): carga los datos con el
 // token, y acepta o rechaza. Sin sesión no se pide nada (un 401 mandaría al login y se perdería
@@ -52,7 +53,7 @@ class InvitacionViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _error = e.message;
     } catch (_) {
-      _error = 'No se pudo cargar la invitación';
+      _error = tr('No se pudo cargar la invitación');
     } finally {
       _cargando = false;
       notifyListeners();
@@ -80,7 +81,7 @@ class InvitacionViewModel extends ChangeNotifier {
       _error = e.message;
       return null;
     } catch (_) {
-      _error = 'No se pudo responder la invitación';
+      _error = tr('No se pudo responder la invitación');
       return null;
     } finally {
       _respondiendo = false;

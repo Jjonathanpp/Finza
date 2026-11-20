@@ -1,4 +1,5 @@
 import 'package:frontend/features/lista-invitaciones/data/models/invitacion_enviada.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Lo que ve quien abre el enlace de una invitación (POST /api/invitaciones/detalle, t-11.2.2).
 // esParaVos: la invitación es para el email de la cuenta logueada (si no, emailInvitado viene
@@ -26,12 +27,12 @@ class InvitacionRecibida {
   bool get sePuedeResponder => estado == EstadoInvitacion.pendiente && esParaVos && !yaSosMiembro;
 
   factory InvitacionRecibida.fromJson(Map<String, dynamic> json) => InvitacionRecibida(
-        cuentaCompartidaNombre: json['cuentaCompartidaNombre']?.toString() ?? 'Cuenta compartida',
-        invitadoPor: json['invitadoPor']?.toString() ?? 'Alguien',
-        emailInvitado: json['emailInvitado']?.toString() ?? '',
-        estado: EstadoInvitacion.desdeTexto(json['estado']?.toString() ?? 'PENDIENTE'),
-        fechaExpiracion: DateTime.parse(json['fechaExpiracion'] as String),
-        esParaVos: json['esParaVos'] as bool? ?? false,
-        yaSosMiembro: json['yaSosMiembro'] as bool? ?? false,
-      );
+    cuentaCompartidaNombre: json['cuentaCompartidaNombre']?.toString() ?? tr('Cuenta compartida'),
+    invitadoPor: json['invitadoPor']?.toString() ?? tr('Alguien'),
+    emailInvitado: json['emailInvitado']?.toString() ?? '',
+    estado: EstadoInvitacion.desdeTexto(json['estado']?.toString() ?? tr('PENDIENTE')),
+    fechaExpiracion: DateTime.parse(json['fechaExpiracion'] as String),
+    esParaVos: json['esParaVos'] as bool? ?? false,
+    yaSosMiembro: json['yaSosMiembro'] as bool? ?? false,
+  );
 }

@@ -4,6 +4,7 @@ import 'package:frontend/core/widgets/selector_tipo.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/widgets/caja_fecha.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 typedef GuardarMovimiento =
     Future<String?> Function({
@@ -89,32 +90,23 @@ class _HojaEdicionMovimientoState extends State<HojaEdicionMovimiento> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Campo(
-          etiqueta: 'Tipo de movimiento',
-          child: SelectorTipo(
-            esIngreso: _esIngreso,
-            alCambiar: (v) => setState(() => _esIngreso = v),
-          ),
+          etiqueta: context.tr('Tipo de movimiento'),
+          child: SelectorTipo(esIngreso: _esIngreso, alCambiar: (v) => setState(() => _esIngreso = v)),
         ),
         Campo(
-          etiqueta: convierte ? 'Monto en pesos' : 'Monto',
-          child: TextField(
-            controller: _monto,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
+          etiqueta: convierte ? context.tr('Monto en pesos') : context.tr('Monto'),
+          child: TextField(controller: _monto, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
         ),
         Campo(
-          etiqueta: 'Categoría',
+          etiqueta: context.tr('Categoría'),
           child: TextField(controller: _categoria),
         ),
-        CajaFecha(etiqueta: 'Fecha', fecha: _fecha, alTocar: _elegirFecha),
+        CajaFecha(etiqueta: context.tr('Fecha'), fecha: _fecha, alTocar: _elegirFecha),
         Campo(
-          etiqueta: 'Descripción',
+          etiqueta: context.tr('Descripción'),
           child: TextField(controller: _descripcion),
         ),
-        FilledButton(
-          onPressed: _guardando ? null : _guardar,
-          child: const Text('Guardar'),
-        ),
+        FilledButton(onPressed: _guardando ? null : _guardar, child: Text(context.tr('Guardar'))),
       ],
     );
   }

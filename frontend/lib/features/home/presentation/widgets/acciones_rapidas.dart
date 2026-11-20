@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/features/movimientos/presentation/screens/movimientos_screen.dart';
 import 'package:frontend/features/movimientos/presentation/screens/alta_movimiento_screen.dart';
 import 'package:frontend/features/voice/voice_screen.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Los atajos del Inicio (no están en la maqueta): botones secundarios (.btn.bs) con el estilo del tema.
 class AccionesRapidas extends StatelessWidget {
@@ -16,7 +17,7 @@ class AccionesRapidas extends StatelessWidget {
           flex: 3,
           child: _BotonAccion(
             icono: Icons.south_west,
-            texto: 'Ingreso',
+            texto: context.tr('Ingreso'),
             onPressed: () {
               Navigator.push(
                 context,
@@ -29,7 +30,7 @@ class AccionesRapidas extends StatelessWidget {
           flex: 4,
           child: _BotonAccion(
             icono: Icons.format_list_bulleted,
-            texto: 'Movimientos',
+            texto: context.tr('Movimientos'),
             onPressed: () {
               Navigator.push(
                 context,
@@ -42,7 +43,7 @@ class AccionesRapidas extends StatelessWidget {
           flex: 3,
           child: _BotonAccion(
             icono: Icons.mic_none,
-            texto: 'Voz',
+            texto: context.tr('Voz'),
             onPressed: () {
               Navigator.push(
                 context,

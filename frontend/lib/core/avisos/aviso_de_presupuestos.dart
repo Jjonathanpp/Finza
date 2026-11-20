@@ -10,6 +10,7 @@ import 'package:frontend/core/storage/token_storage.dart';
 import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Aviso de presupuesto: "Che, estás llegando al límite". Cada presupuesto avisa cada X % de
 // consumo (intervaloAviso, 33 por defecto): con 33, al 33 %, al 66 %, al 99 % y al pasarse del tope.
@@ -169,7 +170,9 @@ class _CuadroAviso extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  excedido ? 'Che, te pasaste del presupuesto' : 'Che, estás llegando al límite',
+                  excedido
+                      ? context.tr('Che, te pasaste del presupuesto')
+                      : context.tr('Che, estás llegando al límite'),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 14),
@@ -178,10 +181,7 @@ class _CuadroAviso extends StatelessWidget {
                   _FilaAviso(presupuesto: p),
                 ],
                 const SizedBox(height: 14),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Entendido'),
-                ),
+                FilledButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('Entendido'))),
               ],
             ),
           ),
@@ -232,8 +232,16 @@ class _FilaAviso extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           diferencia < 0
-              ? 'Gastaste ${importe(p.montoGastado)} de ${importe(p.montoTope)}: te pasaste ${importe(-diferencia)}.'
-              : 'Gastaste ${importe(p.montoGastado)} de ${importe(p.montoTope)}. Te quedan ${importe(diferencia)}.',
+              ? context.tr('Gastaste {gastado} de {tope}: te pasaste {exceso}.', {
+                  'gastado': importe(p.montoGastado),
+                  'tope': importe(p.montoTope),
+                  'exceso': importe(-diferencia),
+                })
+              : context.tr('Gastaste {gastado} de {tope}. Te quedan {quedan}.', {
+                  'gastado': importe(p.montoGastado),
+                  'tope': importe(p.montoTope),
+                  'quedan': importe(diferencia),
+                }),
           style: textos.bodyMedium?.copyWith(color: context.colores.suave),
         ),
       ],
@@ -254,7 +262,7 @@ class _BarraAviso extends StatelessWidget {
     final animar = !MediaQuery.disableAnimationsOf(context);
 
     return Semantics(
-      label: 'Consumo del presupuesto',
+      label: context.tr('Consumo del presupuesto'),
       value: '${porcentaje.toStringAsFixed(0)}%',
       child: ExcludeSemantics(
         child: DecoratedBox(

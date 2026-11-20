@@ -24,6 +24,7 @@ import 'package:frontend/features/lista-invitaciones/presentation/screens/lista_
 import 'package:frontend/features/login/screens/login_screen.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/mercadopago_screen.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Se abre desde el menú J. Tiene la cuenta (personal o compartida, t-13.1.2), la moneda (US-8.2),
 // la apariencia, Mercado Pago, la seguridad (contraseña y borrar la cuenta) y cerrar sesión.
@@ -66,7 +67,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     final c = context.colores;
     final textos = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: barraConVolver(context, 'Configuración'),
+      appBar: barraConVolver(context, context.tr('Configuración')),
       body: ListenableBuilder(
         listenable: Listenable.merge([
           _vm,
@@ -79,10 +80,11 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           // Eligió dólares o euros, pero el backend no consiguió la cotización: se ve en pesos.
           final sinCotizacion = elegida != 'PESO' && !convierte;
           final nota = sinCotizacion
-              ? 'No se pudo conseguir la cotización: por ahora se ve en pesos.'
+              ? context.tr('No se pudo conseguir la cotización: por ahora se ve en pesos.')
               : aclaracionCotizacion;
-          const explicacion =
-              'Los montos se cargan en pesos. En otra moneda se ven con la cotización del día.';
+          final explicacion = context.tr(
+            'Los montos se cargan en pesos. En otra moneda se ven con la cotización del día.',
+          );
           final cuenta = cuentaActiva.value;
           final admin = cuenta?['rol'] == 'ADMIN';
           return SingleChildScrollView(
@@ -131,14 +133,14 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                     },
                   ),
                 ),
-                const TituloSeccion('Cuenta que estás usando'),
+                TituloSeccion(context.tr('Cuenta que estás usando')),
                 const SelectorDeCuenta(),
                 if (cuenta != null) ...[
                   TituloSeccion(cuenta['nombre'] as String),
                   TarjetaLista(
                     children: [
                       FilaOpcion(
-                        titulo: admin ? 'Miembros y roles' : 'Ver miembros',
+                        titulo: admin ? context.tr('Miembros y roles') : context.tr('Ver miembros'),
                         leading: CirculoCategoria(
                           icono: Icons.group_outlined,
                           color: c.serie[3],
@@ -151,7 +153,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                       ),
                       if (admin)
                         FilaOpcion(
-                          titulo: 'Invitaciones',
+                          titulo: context.tr('Invitaciones'),
                           leading: CirculoCategoria(
                             icono: Icons.mail_outline,
                             color: c.serie[2],
@@ -167,21 +169,21 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                     ],
                   ),
                 ],
-                const TituloSeccion('Preferencias'),
+                TituloSeccion(context.tr('Preferencias')),
                 Tarjeta(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 2),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Campo(
-                        etiqueta: 'Moneda',
+                        etiqueta: context.tr('Moneda'),
                         error: _vm.error,
                         ayuda: nota == null ? explicacion : '$explicacion $nota',
                         child: Segmento<String>(
-                          opciones: const [
-                            ('PESO', 'Pesos'),
-                            ('DOLAR', 'Dólares'),
-                            ('EURO', 'Euros'),
+                          opciones: [
+                            ('PESO', context.tr('Pesos')),
+                            ('DOLAR', context.tr('Dólares')),
+                            ('EURO', context.tr('Euros')),
                           ],
                           valor: elegida,
                           deshabilitadas: _vm.guardando
@@ -191,20 +193,26 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                         ),
                       ),
                       Campo(
-                        etiqueta: 'Apariencia',
+                        etiqueta: context.tr('Apariencia'),
                         child: Segmento<ThemeMode>(
-                          opciones: const [
-                            (ThemeMode.light, 'Claro'),
-                            (ThemeMode.dark, 'Oscuro'),
-                          ],
+                          opciones: [(ThemeMode.light, context.tr('Claro')), (ThemeMode.dark, context.tr('Oscuro'))],
                           valor: apariencia.value,
                           alCambiar: guardarApariencia,
+                        ),
+                      ),
+                      // Un botón por cada archivo de assets/idiomas, más el español (US-8.3). Se guarda en el celular.
+                      Campo(
+                        etiqueta: context.tr('Idioma'),
+                        child: Segmento<String>(
+                          opciones: [for (final e in idiomas.entries) (e.key, e.value)],
+                          valor: idioma.value.languageCode,
+                          alCambiar: cambiarIdioma,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const TituloSeccion('Conexiones'),
+                TituloSeccion(context.tr('Conexiones')),
                 TarjetaLista(
                   children: [
                     FilaOpcion(
@@ -219,22 +227,18 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                     ),
                   ],
                 ),
-                const TituloSeccion('Seguridad'),
+                TituloSeccion(context.tr('Seguridad')),
                 TarjetaLista(
                   children: [
                     FilaOpcion(
-                      titulo: 'Cambiar contraseña',
-                      leading: CirculoCategoria(
-                        icono: Icons.lock_outline,
-                        color: c.serie[0],
-                        fondo: c.serieFondo[0],
-                      ),
+                      titulo: context.tr('Cambiar contraseña'),
+                      leading: CirculoCategoria(icono: Icons.lock_outline, color: c.serie[0], fondo: c.serieFondo[0]),
                       flecha: true,
                       alTocar: () => _ir(const CambiarPasswordScreen()),
                     ),
                     FilaOpcion(
-                      titulo: 'Eliminar cuenta',
-                      subtitulo: 'Borra todos tus datos',
+                      titulo: context.tr('Eliminar cuenta'),
+                      subtitulo: context.tr('Borra todos tus datos'),
                       colorTitulo: c.coralTexto,
                       leading: CirculoCategoria(
                         icono: Icons.delete_outline_rounded,
@@ -248,7 +252,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                 OutlinedButton.icon(
                   onPressed: _cerrarSesion,
                   icon: const Icon(Icons.logout, size: 18),
-                  label: const Text('Cerrar sesión'),
+                  label: Text(context.tr('Cerrar sesión')),
                 ),
                 Center(
                   child: Text(

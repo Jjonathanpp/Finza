@@ -18,6 +18,7 @@ import 'package:frontend/features/mercadopago/presentation/screens/sincronizacio
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 const _paddingPantalla = EdgeInsets.fromLTRB(20, 4, 20, 32);
 
@@ -61,9 +62,9 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
   Future<void> _desvincular() async {
     final confirmado = await confirmar(
       context,
-      titulo: '¿Desvincular Mercado Pago?',
-      texto: 'No se borrarán los movimientos ya importados.',
-      textoAccion: 'Desvincular',
+      titulo: context.tr('¿Desvincular Mercado Pago?'),
+      texto: context.tr('No se borrarán los movimientos ya importados.'),
+      textoAccion: context.tr('Desvincular'),
       peligro: true,
     );
 
@@ -73,19 +74,14 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
     if (!mounted) return;
 
     if (error == null) {
-      mostrarExito(context, 'Cuenta desvinculada exitosamente');
+      mostrarExito(context, context.tr('Cuenta desvinculada exitosamente'));
     } else {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Error al desvincular'),
+          title: Text(context.tr('Error al desvincular')),
           content: Text(error),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Entendido'),
-            ),
-          ],
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('Entendido')))],
         ),
       );
     }
@@ -110,15 +106,15 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al iniciar vinculación: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('Error al iniciar vinculación: {error}', {'error': '$e'}))));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final nombreCuenta = cuentaActiva.value?['nombre'] as String? ?? 'Personal';
+    final nombreCuenta = cuentaActiva.value?['nombre'] as String? ?? context.tr('Personal');
     return Scaffold(
       appBar: barraConVolver(context, 'Mercado Pago', subtitulo: nombreCuenta),
       body: ListenableBuilder(
@@ -148,10 +144,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                   spacing: 12,
                   children: [
                     Text(error, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
-                    FilledButton(
-                      onPressed: _vm.cargar,
-                      child: const Text('Reintentar'),
-                    ),
+                    FilledButton(onPressed: _vm.cargar, child: Text(context.tr('Reintentar'))),
                   ],
                 ),
               ),
@@ -173,7 +166,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                 _tarjetaEstadoConectado(),
                 if (_vm.pendientes.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  TituloSeccion('Para revisar · ${_vm.pendientes.length}'),
+                  TituloSeccion(context.tr('Para revisar · {cantidad}', {'cantidad': '${_vm.pendientes.length}'})),
                   const SizedBox(height: 12),
                   TarjetaLista(
                     children: [
@@ -217,14 +210,14 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                   spacing: 2,
                   children: [
                     Text(
-                      'Cuenta vinculada',
+                      context.tr('Cuenta vinculada'),
                       style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w700),
                     ),
-                    Text('Traemos tus pagos para que los revises', style: textos.bodySmall),
+                    Text(context.tr('Traemos tus pagos para que los revises'), style: textos.bodySmall),
                   ],
                 ),
               ),
-              const ChipEstado('Activa', TonoChip.menta, chico: true),
+              ChipEstado(context.tr('Activa'), TonoChip.menta, chico: true),
             ],
           ),
           OutlinedButton.icon(
@@ -235,7 +228,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.sync, size: 18),
-            label: Text(_vm.cargando ? 'Importando...' : 'Importar ahora'),
+            label: Text(_vm.cargando ? context.tr('Importando...') : context.tr('Importar ahora')),
           ),
         ],
       ),
@@ -256,11 +249,11 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
               disabledForegroundColor: context.colores.coralTexto.withValues(alpha: .45),
               minimumSize: const Size(44, 44),
             ),
-            child: const Text('Desvincular la cuenta'),
+            child: Text(context.tr('Desvincular la cuenta')),
           ),
         ),
         Text(
-          'No se borran los movimientos que ya importaste.',
+          context.tr('No se borran los movimientos que ya importaste.'),
           textAlign: TextAlign.center,
           style: textos.bodySmall,
         ),
@@ -286,18 +279,15 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
             ),
           ),
           const SizedBox(height: 14),
-          Text('Conectá tu Mercado Pago', textAlign: TextAlign.center, style: textos.titleLarge),
+          Text(context.tr('Conectá tu Mercado Pago'), textAlign: TextAlign.center, style: textos.titleLarge),
           const SizedBox(height: 6),
           Text(
-            'Sincronizá tus ingresos y gastos automáticamente sin tener que cargarlos a mano.',
+            context.tr('Sincronizá tus ingresos y gastos automáticamente sin tener que cargarlos a mano.'),
             textAlign: TextAlign.center,
             style: textos.bodySmall,
           ),
           const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _vincular,
-            child: const Text('Vincular cuenta'),
-          ),
+          FilledButton(onPressed: _vincular, child: Text(context.tr('Vincular cuenta'))),
         ],
       ),
     );
@@ -308,8 +298,8 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
     final hoy = DateTime.now();
     final dia = DateTime(fecha.year, fecha.month, fecha.day);
     final diferencia = DateTime(hoy.year, hoy.month, hoy.day).difference(dia).inDays;
-    if (diferencia == 0) return 'Hoy';
-    if (diferencia == 1) return 'Ayer';
+    if (diferencia == 0) return context.tr('Hoy');
+    if (diferencia == 1) return context.tr('Ayer');
     String dos(int n) => n.toString().padLeft(2, '0');
     return '${dos(fecha.day)}/${dos(fecha.month)}/${fecha.year}';
   }
@@ -317,11 +307,11 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
   Widget _filaPendiente(Movimiento m) {
     return FilaMovimiento(
       leading: CirculoCategoria.de(m.categoria),
-      titulo: m.descripcion ?? 'Movimiento Mercado Pago',
+      titulo: m.descripcion ?? context.tr('Movimiento Mercado Pago'),
       subtitulo: '${_textoFecha(m.fecha)} · ${m.categoria.nombre}',
       monto: Monto.texto(m.monto, ingreso: m.esIngreso),
       colorMonto: Monto.color(context, m.esIngreso),
-      chip: const ChipEstado('Por revisar', TonoChip.ambar, chico: true),
+      chip: ChipEstado(context.tr('Por revisar'), TonoChip.ambar, chico: true),
       alTocar: () => _revisarMovimiento(m),
     );
   }

@@ -9,6 +9,7 @@ import 'package:frontend/features/panel/data/datasources/panel_api.dart';
 import 'package:frontend/features/panel/data/models/resumen_mes.dart';
 import 'package:frontend/features/panel/presentation/widgets/error_con_reintento.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // La tarjeta destacada (.dest) de arriba del Inicio: tu plata (en la moneda elegida), tipo billetera, y
 // cómo vas en el período, con los ingresos y los gastos abajo.
@@ -46,7 +47,7 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
         if (error != null) {
           return Tarjeta(
             child: ErrorConReintento(
-              mensaje: error is ApiException ? error.message : 'No se pudo cargar tu saldo',
+              mensaje: error is ApiException ? error.message : context.tr('No se pudo cargar tu saldo'),
               alReintentar: () => setState(() => _resumen = _pedir()),
             ),
           );
@@ -89,7 +90,7 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
                 ),
               ),
               IconButton(
-                tooltip: _oculto ? 'Mostrar montos' : 'Ocultar montos',
+                tooltip: _oculto ? context.tr('Mostrar montos') : context.tr('Ocultar montos'),
                 constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                 style: IconButton.styleFrom(foregroundColor: c.destacadoTexto),
                 icon: Icon(
@@ -139,7 +140,7 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
                 ),
                 Text.rich(
                   TextSpan(
-                    text: 'Período de informe: ',
+                    text: context.tr('Período de informe: '),
                     children: [
                       TextSpan(
                         text: _oculto ? '••••' : '${mes > 0 ? '+' : ''}${importe(mes)}',
@@ -167,14 +168,14 @@ class _TarjetaSaldoState extends State<TarjetaSaldo> {
             children: [
               Expanded(
                 child: _Mini(
-                  etiqueta: 'Ingresos',
+                  etiqueta: context.tr('Ingresos'),
                   valor: _oculto ? '••••' : importe(resumen.totalIngresos.abs()),
                   color: c.destacadoVerde,
                 ),
               ),
               Expanded(
                 child: _Mini(
-                  etiqueta: 'Gastos',
+                  etiqueta: context.tr('Gastos'),
                   valor: _oculto ? '••••' : importe(resumen.totalEgresos.abs()),
                   color: c.destacadoTexto,
                 ),

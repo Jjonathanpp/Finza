@@ -15,28 +15,32 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/configuracion/data/datasources/preferencias_api.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/features/metas_ahorro/presentation/screens/metas_ahorro_screen.dart';
+import 'package:frontend/l10n/idioma.dart';
 
-// Una pestaña de la barra de abajo. Para sumar una (Metas), se agrega un elemento a _pestanas.
+// Una pestaña de la barra de abajo. Para sumar una, se agrega un elemento a _pestanas. El nombre va en
+// español y se traduce al dibujarlo (esta lista se arma una sola vez).
 typedef _Pestana = ({String nombre, IconData icono, Widget Function() pantalla});
 
 final List<_Pestana> _pestanas = [
-  (nombre: 'Inicio', icono: Icons.home_outlined, pantalla: () => const HomeScreen()),
-  (nombre: 'Movimientos', icono: Icons.format_list_bulleted, pantalla: () => const MovimientosScreen()),
+  (nombre: tr('Inicio'), icono: Icons.home_outlined, pantalla: () => const HomeScreen()),
+  (nombre: tr('Movimientos'), icono: Icons.format_list_bulleted, pantalla: () => const MovimientosScreen()),
   (
-    nombre: 'Presupuestos',
+    nombre: tr('Presupuestos'),
     icono: Icons.pie_chart_outline,
     pantalla: () => ChangeNotifierProvider(
       create: (_) => PresupuestosViewModel(PresupuestoApi(ApiClient())),
       child: PresupuestosScreen(),
     ),
   ),
+  (nombre: tr('Metas'), icono: Icons.savings_outlined, pantalla: () => const MetasAhorroScreen(enPestana: true)),
 ];
 
 // Para pedirle a la pantalla principal que cambie de pestaña desde otra pantalla (el "Ver todos" del Inicio
 // pide la 1, Movimientos). La pantalla principal la atiende y la vuelve a dejar en null.
 final ValueNotifier<int?> pestanaPedida = ValueNotifier(null);
 
-// Entre qué pestañas va el +: con tres queda después de la segunda; con Metas, también.
+// Entre qué pestañas va el +: después de la segunda (Inicio, Movimientos | + | Presupuestos, Metas).
 const _lugarDelMas = 2;
 
 // La app con sesión: arriba la pestaña elegida y abajo la barra (Inicio, Movimientos, Presupuestos)
@@ -44,7 +48,7 @@ const _lugarDelMas = 2;
 class PantallaPrincipal extends StatefulWidget {
   const PantallaPrincipal({super.key, this.pestana = 0});
 
-  // 0 Inicio, 1 Movimientos, 2 Presupuestos (el orden de _pestanas).
+  // 0 Inicio, 1 Movimientos, 2 Presupuestos, 3 Metas (el orden de _pestanas).
   final int pestana;
 
   @override
@@ -158,7 +162,7 @@ class _Barra extends StatelessWidget {
                         if (i == _lugarDelMas) const SizedBox(width: _anchoHueco),
                         Expanded(
                           child: _ItemBarra(
-                            nombre: p.nombre,
+                            nombre: context.tr(p.nombre),
                             icono: p.icono,
                             elegida: i == pestana,
                             alTocar: () => alElegir(i),
@@ -182,7 +186,7 @@ class _Barra extends StatelessWidget {
                       top: 0,
                       left: centro - _tamanoMas / 2,
                       child: Tooltip(
-                        message: 'Cargar algo',
+                        message: context.tr('Cargar algo'),
                         child: Material(
                           color: c.primario,
                           shape: const CircleBorder(),
@@ -249,13 +253,16 @@ class _ItemBarra extends StatelessWidget {
                 ),
                 child: Icon(icono, size: 22, color: color),
               ),
-              Text(
-                nombre,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: color,
-                  fontWeight: elegida ? FontWeight.w800 : FontWeight.w700,
+              // Con cuatro pestañas en un celular angosto, "Presupuestos" no entra: se achica en vez de cortarse.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  nombre,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: elegida ? FontWeight.w800 : FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -282,31 +289,34 @@ class _HojaAgregar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: 12,
         children: [
-          Text('¿Qué querés cargar?', style: textos.titleLarge),
+          Text(context.tr('¿Qué querés cargar?'), style: textos.titleLarge),
           if (cuenta != null)
-            Text('Se guarda en ${cuenta['nombre']}.', style: textos.bodyMedium?.copyWith(color: c.suave)),
+            Text(
+              context.tr('Se guarda en {cuenta}.', {'cuenta': '${cuenta['nombre']}'}),
+              style: textos.bodyMedium?.copyWith(color: c.suave),
+            ),
           _OpcionAgregar(
             icono: Icons.edit_outlined,
             colorSerie: 1,
-            titulo: 'Gasto o ingreso',
-            detalle: 'Lo cargás a mano, en segundos',
+            titulo: context.tr('Gasto o ingreso'),
+            detalle: context.tr('Lo cargás a mano, en segundos'),
             alTocar: () => Navigator.pop<Widget>(context, const AltaMovimientoScreen()),
           ),
           _OpcionAgregar(
             icono: Icons.mic_none,
             colorSerie: 3,
-            titulo: 'Por voz',
-            detalle: 'Lo contás y la IA completa el resto',
+            titulo: context.tr('Por voz'),
+            detalle: context.tr('Lo contás y la IA completa el resto'),
             alTocar: () => Navigator.pop<Widget>(context, const VoiceScreen()),
           ),
           _OpcionAgregar(
             icono: Icons.account_balance_wallet_outlined,
             colorSerie: 2,
-            titulo: 'Desde Mercado Pago',
-            detalle: 'Traé tus pagos para revisarlos',
+            titulo: context.tr('Desde Mercado Pago'),
+            detalle: context.tr('Traé tus pagos para revisarlos'),
             alTocar: () => Navigator.pop<Widget>(context, const MercadoPagoScreen()),
           ),
-          OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          OutlinedButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('Cancelar'))),
         ],
       ),
     );

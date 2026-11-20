@@ -13,6 +13,7 @@ import 'package:frontend/core/widgets/titulo_seccion.dart';
 import 'package:frontend/features/lista-invitaciones/data/datasources/invitacion_api.dart';
 import 'package:frontend/features/lista-invitaciones/data/models/invitacion_enviada.dart';
 import 'package:frontend/features/lista-invitaciones/presentation/viewmodels/lista_invitaciones_view_model.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class ListaInvitacionesScreen extends StatefulWidget {
   const ListaInvitacionesScreen({
@@ -74,9 +75,7 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
     );
 
     if (enviado == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invitación enviada')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('Invitación enviada'))));
     }
   }
 
@@ -88,11 +87,7 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(
-        context,
-        'Invitaciones',
-        subtitulo: _nombreCuenta,
-      ),
+      appBar: barraConVolver(context, context.tr('Invitaciones'), subtitulo: _nombreCuenta),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -111,15 +106,8 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   spacing: 12,
                   children: [
-                    Text(
-                      error,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    FilledButton(
-                      onPressed: _vm.cargar,
-                      child: const Text('Reintentar'),
-                    ),
+                    Text(error, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
+                    FilledButton(onPressed: _vm.cargar, child: Text(context.tr('Reintentar'))),
                   ],
                 ),
               ),
@@ -139,16 +127,13 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
                     FilledButton.icon(
                       onPressed: _abrirModalInvitar,
                       icon: const Icon(Icons.mail_outline, size: 18),
-                      label: const Text('Invitar por mail'),
+                      label: Text(context.tr('Invitar por mail')),
                     ),
-                    const TituloSeccion('Enviadas'),
+                    TituloSeccion(context.tr('Enviadas')),
                     if (_vm.invitaciones.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          'Todavía no enviaste invitaciones',
-                          style: textos.bodySmall,
-                        ),
+                        child: Text(context.tr('Todavía no enviaste invitaciones'), style: textos.bodySmall),
                       )
                     else
                       TarjetaLista(
@@ -160,7 +145,7 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
-                        'Las invitaciones vencen a las 24 horas. Si vence, la mandás de nuevo.',
+                        context.tr('Las invitaciones vencen a las 24 horas. Si vence, la mandás de nuevo.'),
                         style: textos.bodySmall,
                       ),
                     ),
@@ -186,9 +171,9 @@ class _ListaInvitacionesScreenState extends State<ListaInvitacionesScreen> {
       EstadoInvitacion.cancelada => (Icons.block, 0),
     };
     final subtitulo = switch (invitacion.estado) {
-      EstadoInvitacion.pendiente => 'Vence el $fecha',
-      EstadoInvitacion.expirada => 'Venció el $fecha',
-      _ => 'Vencimiento: $fecha',
+      EstadoInvitacion.pendiente => context.tr('Vence el {fecha}', {'fecha': fecha}),
+      EstadoInvitacion.expirada => context.tr('Venció el {fecha}', {'fecha': fecha}),
+      _ => context.tr('Vencimiento: {fecha}', {'fecha': fecha}),
     };
     return FilaOpcion(
       leading: CirculoCategoria(
@@ -217,7 +202,7 @@ class _EtiquetaEstado extends StatelessWidget {
       EstadoInvitacion.expirada => ('Vencida', TonoChip.hundido),
       EstadoInvitacion.cancelada => ('Cancelada', TonoChip.hundido),
     };
-    return ChipEstado(texto, tono, chico: true);
+    return ChipEstado(context.tr(texto), tono, chico: true);
   }
 }
 
@@ -270,12 +255,14 @@ class _InvitarDialogState extends State<_InvitarDialog> {
               Semantics(
                 header: true,
                 child: Text(
-                  nombre == null ? 'Invitar a cuenta compartida' : 'Invitar a $nombre',
+                  nombre == null
+                      ? context.tr('Invitar a cuenta compartida')
+                      : context.tr('Invitar a {cuenta}', {'cuenta': nombre}),
                   style: textos.titleLarge,
                 ),
               ),
               Campo(
-                etiqueta: 'Correo electrónico',
+                etiqueta: context.tr('Correo electrónico'),
                 child: TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -285,44 +272,34 @@ class _InvitarDialogState extends State<_InvitarDialog> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Ingresá un correo';
+                      return context.tr('Ingresá un correo');
                     }
-                    if (!RegExp(
-                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                    ).hasMatch(value.trim())) {
-                      return 'Ingresá un correo válido';
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+                      return context.tr('Ingresá un correo válido');
                     }
                     return null;
                   },
                 ),
               ),
               Text(
-                'Le llega un mail con un link que vence en 24 horas. Tiene que tener cuenta en Finza.',
-                style: textos.bodyMedium?.copyWith(
-                  color: context.colores.suave,
-                ),
+                context.tr('Le llega un mail con un link que vence en 24 horas. Tiene que tener cuenta en Finza.'),
+                style: textos.bodyMedium?.copyWith(color: context.colores.suave),
               ),
               Row(
                 spacing: 8,
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _cargando
-                          ? null
-                          : () => Navigator.of(context).pop(false),
-                      child: const Text('Cancelar'),
+                      onPressed: _cargando ? null : () => Navigator.of(context).pop(false),
+                      child: Text(context.tr('Cancelar')),
                     ),
                   ),
                   Expanded(
                     child: FilledButton(
                       onPressed: _cargando ? null : _submit,
                       child: _cargando
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Enviar'),
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : Text(context.tr('Enviar')),
                     ),
                   ),
                 ],

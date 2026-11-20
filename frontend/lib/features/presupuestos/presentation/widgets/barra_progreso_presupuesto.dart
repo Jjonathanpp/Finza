@@ -3,6 +3,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/barra_progreso.dart';
 import 'package:frontend/core/widgets/chip_estado.dart';
 import 'package:frontend/core/widgets/monto.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // Cómo va un presupuesto según cuánto se usó. Los cortes de 80 % y 100 % son los de la alerta del backend:
 // hasta 79,9 % está en regla (barra verde), desde 80 % está cerca del tope (ámbar), al 100 % llegó al
@@ -35,10 +36,10 @@ enum EstadoConsumo {
   };
 
   String get texto => switch (this) {
-    enRegla => 'Vas bien',
-    cerca => 'Cerca del tope',
-    tope => 'Llegaste al tope',
-    excedido => 'Excedido',
+    enRegla => tr('Vas bien'),
+    cerca => tr('Cerca del tope'),
+    tope => tr('Llegaste al tope'),
+    excedido => tr('Excedido'),
   };
 
   // El color del porcentaje y del "Quedan $ X".
@@ -66,7 +67,7 @@ String textoPorcentaje(double porcentaje) {
 // Lo que falta (o sobra) del tope: "Quedan $ 8.000", "Llegaste al tope" o "Te pasaste $ 2.000".
 String textoRestante(double gastado, double tope) {
   final diferencia = tope - gastado;
-  if (diferencia.abs() < 0.005) return 'Llegaste al tope';
-  if (diferencia < 0) return 'Te pasaste ${Monto.texto(-diferencia)}';
-  return 'Quedan ${Monto.texto(diferencia)}';
+  if (diferencia.abs() < 0.005) return tr('Llegaste al tope');
+  if (diferencia < 0) return tr('Te pasaste {monto}', {'monto': Monto.texto(-diferencia)});
+  return tr('Quedan {monto}', {'monto': Monto.texto(diferencia)});
 }

@@ -2,6 +2,7 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/mercadopago/data/models/mercadopago_estado.dart';
 import 'package:frontend/features/mercadopago/data/models/sincronizacion_resumen.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class MercadoPagoApi {
   MercadoPagoApi(this._api);
@@ -18,7 +19,7 @@ class MercadoPagoApi {
         return res['url'] as String;
       }
     }
-    throw Exception('No se pudo obtener la URL de autorización');
+    throw Exception(tr('No se pudo obtener la URL de autorización'));
   }
 
   Future<MercadoPagoEstado> obtenerEstado() async {

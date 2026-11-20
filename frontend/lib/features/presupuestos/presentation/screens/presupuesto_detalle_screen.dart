@@ -21,6 +21,7 @@ import 'package:frontend/features/presupuestos/presentation/widgets/editar_presu
 import 'package:frontend/features/presupuestos/presentation/widgets/categoria_del_presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
 import 'package:provider/provider.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // El detalle de un presupuesto: se abre al tocar su tarjeta en la lista. Muestra el consumo, cada cuánto
 // avisa, cuánto gastó cada integrante (solo en una cuenta compartida) y, si se puede cambiar (sos admin
@@ -44,7 +45,7 @@ class _PresupuestoDetalleScreenState extends State<PresupuestoDetalleScreen> {
     return EditarPresupuestoSheet.mostrar(
       context,
       presupuesto: p,
-      periodo: '${nombresDeMeses[vm.mesActual]} ${vm.anioActual}',
+      periodo: '${context.tr(nombresDeMeses[vm.mesActual])} ${vm.anioActual}',
       cuenta: cuentaActiva.value?['nombre'] as String?,
       alGuardar: (tope, intervalo) => vm.editarTope(p, tope, intervaloAviso: intervalo),
       alDesactivar: () => vm.desactivar(p),
@@ -53,12 +54,18 @@ class _PresupuestoDetalleScreenState extends State<PresupuestoDetalleScreen> {
 
   Future<void> _desactivar(PresupuestosViewModel vm, Presupuesto p) async {
     final cuenta = cuentaActiva.value?['nombre'] as String?;
-    final paraTodos = cuenta == null ? '' : ' para todos los de $cuenta';
+    final datos = {
+      'categoria': context.tr(p.categoriaNombre),
+      'periodo': '${context.tr(nombresDeMeses[vm.mesActual])} ${vm.anioActual}',
+      'cuenta': '$cuenta',
+    };
     final seguro = await confirmar(
       context,
-      titulo: 'Desactivar presupuesto',
-      texto: '¿Desactivar el presupuesto de ${p.categoriaNombre} de ${nombresDeMeses[vm.mesActual]} ${vm.anioActual}$paraTodos?',
-      textoAccion: 'Desactivar',
+      titulo: context.tr('Desactivar presupuesto'),
+      texto: cuenta == null
+          ? context.tr('¿Desactivar el presupuesto de {categoria} de {periodo}?', datos)
+          : context.tr('¿Desactivar el presupuesto de {categoria} de {periodo} para todos los de {cuenta}?', datos),
+      textoAccion: context.tr('Desactivar'),
       peligro: true,
     );
     if (!seguro || !mounted) return;
@@ -82,7 +89,7 @@ class _PresupuestoDetalleScreenState extends State<PresupuestoDetalleScreen> {
           if (mounted) Navigator.of(context).maybePop();
         });
       }
-      return Scaffold(appBar: barraConVolver(context, 'Presupuesto'));
+      return Scaffold(appBar: barraConVolver(context, context.tr('Presupuesto')));
     }
 
     final c = context.colores;
@@ -139,7 +146,10 @@ class _PresupuestoDetalleScreenState extends State<PresupuestoDetalleScreen> {
                     runSpacing: 4,
                     children: [
                       Text(
-                        'Gastado ${Monto.texto(p.montoGastado)} de ${Monto.texto(p.montoTope)}',
+                        context.tr('Gastado {gastado} de {tope}', {
+                          'gastado': Monto.texto(p.montoGastado),
+                          'tope': Monto.texto(p.montoTope),
+                        }),
                         style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       Text(
@@ -158,7 +168,7 @@ class _PresupuestoDetalleScreenState extends State<PresupuestoDetalleScreen> {
               padding: Tarjeta.paddingLista,
               child: FilaOpcion(
                 leading: CirculoCategoria(icono: Icons.notifications_none, color: c.primario, fondo: c.menta),
-                titulo: 'Avisarme cada ${p.intervaloAviso}%',
+                titulo: context.tr('Avisarme cada {porcentaje}%', {'porcentaje': '${p.intervaloAviso}'}),
                 subtitulo: describirAvisos(p.intervaloAviso),
               ),
             ),
@@ -168,15 +178,18 @@ class _PresupuestoDetalleScreenState extends State<PresupuestoDetalleScreen> {
               FilledButton.icon(
                 onPressed: () => _editar(vm, p),
                 icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Editar tope'),
+                label: Text(context.tr('Editar tope')),
               ),
               FilledButton(
                 onPressed: () => _desactivar(vm, p),
                 style: estiloBotonPeligro(context),
-                child: const Text('Desactivar presupuesto'),
+                child: Text(context.tr('Desactivar presupuesto')),
               ),
             ] else
-              const AvisoEnLinea('Solo un administrador puede cambiar este presupuesto.', icono: Icons.lock_outline),
+              AvisoEnLinea(
+                context.tr('Solo un administrador puede cambiar este presupuesto.'),
+                icono: Icons.lock_outline,
+              ),
           ],
         ),
       ),

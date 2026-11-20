@@ -14,6 +14,7 @@ import 'package:frontend/features/presupuestos/data/datasources/presupuesto_api.
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/features/presupuestos/presentation/nombres_de_meses.dart';
 import 'package:frontend/features/presupuestos/presentation/widgets/selector_intervalo_aviso.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class AltaPresupuestoScreen extends StatefulWidget {
   const AltaPresupuestoScreen({super.key});
@@ -58,7 +59,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMensaje = 'No se pudieron cargar las categorías.';
+        _errorMensaje = tr('No se pudieron cargar las categorías.');
         _cargandoCategorias = false;
       });
     }
@@ -67,9 +68,9 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
     if (_categoriaId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, seleccioná una categoría')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('Por favor, seleccioná una categoría'))));
       return;
     }
 
@@ -93,7 +94,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMensaje = e is ApiException ? e.message : 'Error al guardar el presupuesto';
+        _errorMensaje = e is ApiException ? e.message : context.tr('Error al guardar el presupuesto');
         _guardando = false;
       });
     }
@@ -107,14 +108,14 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
     final cuenta = cuentaActiva.value;
 
     return Scaffold(
-      appBar: barraConVolver(context, 'Nuevo presupuesto', subtitulo: nombreDeCuentaActiva()),
+      appBar: barraConVolver(context, context.tr('Nuevo presupuesto'), subtitulo: nombreDeCuentaActiva()),
       body: _cargandoCategorias
           ? Padding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
               child: Semantics(
                 container: true,
                 liveRegion: true,
-                label: 'Cargando',
+                label: context.tr('Cargando'),
                 child: const ExcludeSemantics(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -150,11 +151,11 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                       ),
 
                     Campo(
-                      etiqueta: 'Categoría',
+                      etiqueta: context.tr('Categoría'),
                       child: DropdownButtonFormField<int>(
                         initialValue: _categoriaId,
                         isExpanded: true,
-                        hint: const Text('Seleccionar categoría...'),
+                        hint: Text(context.tr('Seleccionar categoría...')),
                         items: _categorias.map((cat) {
                           return DropdownMenuItem<int>(
                             value: cat['id'] as int,
@@ -174,16 +175,16 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                     ),
 
                     Campo(
-                      etiqueta: 'Tope del mes',
+                      etiqueta: context.tr('Tope del mes'),
                       child: TextFormField(
                         controller: _montoController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: const InputDecoration(prefixText: r'$ ', hintText: '100.000'),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) return 'El monto es obligatorio';
+                          if (value == null || value.trim().isEmpty) return context.tr('El monto es obligatorio');
                           final numValue = double.tryParse(value.replaceAll(',', '.'));
-                          if (numValue == null) return 'Ingresá un número válido';
-                          if (numValue <= 0) return 'El monto debe ser mayor a 0';
+                          if (numValue == null) return context.tr('Ingresá un número válido');
+                          if (numValue <= 0) return context.tr('El monto debe ser mayor a 0');
                           return null;
                         },
                       ),
@@ -195,14 +196,18 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                       children: [
                         Expanded(
                           child: Campo(
-                            etiqueta: 'Mes',
+                            etiqueta: context.tr('Mes'),
                             child: DropdownButtonFormField<int>(
                               initialValue: _mes,
                               isExpanded: true,
                               items: List.generate(12, (i) => i + 1).map((m) {
                                 return DropdownMenuItem(
                                   value: m,
-                                  child: Text(nombresDeMeses[m], maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  child: Text(
+                                    context.tr(nombresDeMeses[m]),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 );
                               }).toList(),
                               onChanged: (val) => setState(() => _mes = val!),
@@ -211,7 +216,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                         ),
                         Expanded(
                           child: Campo(
-                            etiqueta: 'Año',
+                            etiqueta: context.tr('Año'),
                             child: DropdownButtonFormField<int>(
                               initialValue: _anio,
                               isExpanded: true,
@@ -227,7 +232,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
 
                     // Cada cuánto avisar que el presupuesto se está llenando (popup).
                     Campo(
-                      etiqueta: 'Avisarme cada',
+                      etiqueta: context.tr('Avisarme cada'),
                       child: SelectorIntervaloAviso(
                         valor: _intervaloAviso,
                         habilitado: !_guardando,
@@ -238,7 +243,10 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                     if (cuenta != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 14),
-                        child: AvisoEnLinea('Lo ven todos en ${cuenta['nombre']}.', icono: Icons.group_outlined),
+                        child: AvisoEnLinea(
+                          context.tr('Lo ven todos en {cuenta}.', {'cuenta': '${cuenta['nombre']}'}),
+                          icono: Icons.group_outlined,
+                        ),
                       ),
 
                     FilledButton(
@@ -248,7 +256,7 @@ class _AltaPresupuestoScreenState extends State<AltaPresupuestoScreen> {
                               dimension: 22,
                               child: CircularProgressIndicator(color: c.sobrePrimario, strokeWidth: 2.5),
                             )
-                          : const Text('Crear presupuesto'),
+                          : Text(context.tr('Crear presupuesto')),
                     ),
                   ],
                 ),

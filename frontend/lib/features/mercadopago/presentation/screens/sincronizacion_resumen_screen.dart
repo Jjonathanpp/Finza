@@ -5,6 +5,7 @@ import 'package:frontend/core/widgets/circulo_categoria.dart';
 import 'package:frontend/core/widgets/fila_opcion.dart';
 import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/mercadopago/data/models/sincronizacion_resumen.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class SincronizacionResumenScreen extends StatelessWidget {
   final SincronizacionResumen resumen;
@@ -19,7 +20,7 @@ class SincronizacionResumenScreen extends StatelessWidget {
     final c = context.colores;
     final textos = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: barraConVolver(context, 'Resumen de importación'),
+      appBar: barraConVolver(context, context.tr('Resumen de importación')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
         children: [
@@ -38,10 +39,10 @@ class SincronizacionResumenScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                Text('Sincronización completada', textAlign: TextAlign.center, style: textos.titleLarge),
+                Text(context.tr('Sincronización completada'), textAlign: TextAlign.center, style: textos.titleLarge),
                 const SizedBox(height: 6),
                 Text(
-                  'Los nuevos movimientos quedaron registrados como pendientes para tu revisión.',
+                  context.tr('Los nuevos movimientos quedaron registrados como pendientes para tu revisión.'),
                   textAlign: TextAlign.center,
                   style: textos.bodySmall,
                 ),
@@ -56,8 +57,8 @@ class SincronizacionResumenScreen extends StatelessWidget {
                 icono: Icons.sync,
                 color: c.serie[2],
                 fondo: c.serieFondo[2],
-                titulo: 'Procesadas',
-                subtitulo: 'Total consultado en Mercado Pago',
+                titulo: context.tr('Procesadas'),
+                subtitulo: context.tr('Total consultado en Mercado Pago'),
                 valor: resumen.procesadas,
               ),
               _itemMetrica(
@@ -65,8 +66,8 @@ class SincronizacionResumenScreen extends StatelessWidget {
                 icono: Icons.add_circle_outline,
                 color: c.primario,
                 fondo: c.menta,
-                titulo: 'Nuevas creadas',
-                subtitulo: 'Movimientos listos para revisar',
+                titulo: context.tr('Nuevas creadas'),
+                subtitulo: context.tr('Movimientos listos para revisar'),
                 valor: resumen.creadas,
               ),
               _itemMetrica(
@@ -74,8 +75,8 @@ class SincronizacionResumenScreen extends StatelessWidget {
                 icono: Icons.skip_next_outlined,
                 color: c.suave,
                 fondo: c.hundido,
-                titulo: 'Omitidas',
-                subtitulo: 'Transacciones ya existentes',
+                titulo: context.tr('Omitidas'),
+                subtitulo: context.tr('Transacciones ya existentes'),
                 valor: resumen.omitidas,
               ),
               if (resumen.errores > 0)
@@ -84,8 +85,8 @@ class SincronizacionResumenScreen extends StatelessWidget {
                   icono: Icons.error_outline,
                   color: c.coralTexto,
                   fondo: c.coralFondo,
-                  titulo: 'Errores',
-                  subtitulo: 'No se pudieron procesar',
+                  titulo: context.tr('Errores'),
+                  subtitulo: context.tr('No se pudieron procesar'),
                   valor: resumen.errores,
                   colorValor: c.coralTexto,
                 ),
@@ -96,7 +97,7 @@ class SincronizacionResumenScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).pop();
             },
-            child: const Text('Entendido'),
+            child: Text(context.tr('Entendido')),
           ),
         ],
       ),

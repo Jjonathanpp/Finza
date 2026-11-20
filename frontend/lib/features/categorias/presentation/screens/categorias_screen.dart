@@ -19,6 +19,7 @@ import 'package:frontend/features/categorias/data/datasources/categoria_api.dart
 import 'package:frontend/features/categorias/data/models/categoria.dart';
 import 'package:frontend/features/categorias/presentation/viewmodels/categorias_view_model.dart';
 import 'package:frontend/features/categorias/presentation/widgets/formulario_categoria.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class CategoriasScreen extends StatefulWidget {
   const CategoriasScreen({super.key, this.api});
@@ -51,9 +52,9 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     final compartida = cuentaActiva.value?['nombre'] as String?;
     final guardada = await mostrarHoja<Categoria>(
       context,
-      titulo: editando == null ? 'Nueva categoría' : 'Editar categoría',
+      titulo: editando == null ? context.tr('Nueva categoría') : context.tr('Editar categoría'),
       texto: editando == null && compartida != null
-          ? 'La van a ver y usar todos en $compartida.'
+          ? context.tr('La van a ver y usar todos en {cuenta}.', {'cuenta': compartida})
           : null,
       // El tipo es el de la lista que se está viendo; al editar, no se puede cambiar.
       contenido: FormularioCategoria(
@@ -63,10 +64,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       ),
     );
     if (guardada == null || !mounted) return;
-    mostrarExito(
-      context,
-      editando == null ? 'Categoría creada' : 'Categoría actualizada',
-    );
+    mostrarExito(context, editando == null ? context.tr('Categoría creada') : context.tr('Categoría actualizada'));
     _vm.cargar();
   }
 
@@ -74,29 +72,24 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     final confirmado = await confirmar(
       context,
       titulo: '¿Eliminar "${categoria.nombre}"?',
-      texto: 'No se puede deshacer.',
-      textoAccion: 'Eliminar',
+      texto: context.tr('No se puede deshacer.'),
+      textoAccion: context.tr('Eliminar'),
       peligro: true,
     );
     if (!confirmado || !mounted) return;
     final error = await _vm.eliminar(categoria);
     if (!mounted) return;
     if (error == null) {
-      mostrarExito(context, 'Categoría eliminada');
+      mostrarExito(context, context.tr('Categoría eliminada'));
       return;
     }
     // Por ejemplo, si tiene movimientos: el backend no la deja borrar y explica por qué.
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('No se pudo eliminar'),
+        title: Text(context.tr('No se pudo eliminar')),
         content: Text(error),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido'),
-          ),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('Entendido')))],
       ),
     );
   }
@@ -107,14 +100,14 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     return Scaffold(
       appBar: barraConVolver(
         context,
-        'Categorías',
-        subtitulo: cuenta ?? 'Personal',
+        context.tr('Categorías'),
+        subtitulo: cuenta ?? context.tr('Personal'),
         // También en una cuenta compartida, la crea cualquier integrante (t-12.1.6)
         acciones: [
           BotonIcono(
             icono: Icons.add,
             principal: true,
-            ayuda: 'Nueva categoría',
+            ayuda: context.tr('Nueva categoría'),
             alTocar: _abrirFormulario,
           ),
         ],
@@ -150,6 +143,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                       onPressed: _vm.cargar,
                       child: const Text('Reintentar'),
                     ),
+                    OutlinedButton(onPressed: _vm.cargar, child: Text(context.tr('Reintentar'))),
                   ],
                 ),
               ),
@@ -167,41 +161,41 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                 spacing: 12,
                 children: [
                   Segmento<bool>(
-                    opciones: const [(false, 'Gastos'), (true, 'Ingresos')],
+                    opciones: [(false, context.tr('Gastos')), (true, context.tr('Ingresos'))],
                     valor: _verIngresos,
                     alCambiar: (valor) => setState(() => _verIngresos = valor),
                   ),
                   if (cuenta != null)
                     AvisoEnLinea(
-                      'Las categorías de $cuenta las ven y usan todos. Cualquiera puede crear una.',
+                      context.tr('Las categorías de {cuenta} las ven y usan todos. Cualquiera puede crear una.', {
+                        'cuenta': cuenta,
+                      }),
                       icono: Icons.group_outlined,
                     ),
                   if (propias.isNotEmpty)
-                    _seccion(
-                      cuenta == null ? 'Tuyas' : 'De $cuenta',
-                      [for (final c in propias) _fila(c, cuenta)],
-                    ),
+                    _seccion(cuenta == null ? context.tr('Tuyas') : context.tr('De {nombre}', {'nombre': cuenta}), [
+                      for (final c in propias) _fila(c, cuenta),
+                    ]),
                   Tarjeta(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 4,
                     ),
                     child: FilaOpcion.interruptor(
-                      titulo: 'Mostrar predefinidas',
-                      subtitulo: 'Las que trae Finza para empezar',
+                      titulo: context.tr('Mostrar predefinidas'),
+                      subtitulo: context.tr('Las que trae Finza para empezar'),
                       activo: _vm.verPredefinidas,
                       alCambiar: (_) => _vm.alternarPredefinidas(),
                     ),
                   ),
                   if (predefinidas.isNotEmpty)
-                    _seccion(
-                      'Predefinidas',
-                      [for (final c in predefinidas) _fila(c, cuenta)],
-                    ),
+                    _seccion(context.tr('Predefinidas'), [for (final c in predefinidas) _fila(c, cuenta)]),
                   // Vacío solo pasa con las predefinidas ocultas: el catálogo trae de los dos tipos.
                   if (propias.isEmpty && !_vm.verPredefinidas)
                     Text(
-                      'No tenés categorías propias de ${_verIngresos ? 'ingresos' : 'gastos'}.',
+                      _verIngresos
+                          ? context.tr('No tenés categorías propias de ingresos.')
+                          : context.tr('No tenés categorías propias de gastos.'),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                 ],
@@ -233,11 +227,11 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
         spacing: 4,
         children: [
           if (categoria.esPredefinida)
-            const ChipEstado('Predefinida', TonoChip.hundido, chico: true)
+            ChipEstado(context.tr('Predefinida'), TonoChip.hundido, chico: true)
           else
             Flexible(
               child: ChipEstado(
-                cuenta == null ? 'Propia' : 'De $cuenta',
+                cuenta == null ? context.tr('Propia') : context.tr('De {nombre}', {'nombre': cuenta}),
                 TonoChip.menta,
                 chico: true,
               ),
@@ -246,14 +240,10 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           if (!categoria.esPredefinida && cuentaActiva.value == null) ...[
             BotonIcono(
               icono: Icons.edit_outlined,
-              ayuda: 'Editar',
+              ayuda: context.tr('Editar'),
               alTocar: () => _abrirFormulario(editando: categoria),
             ),
-            BotonIcono(
-              icono: Icons.delete_outline,
-              ayuda: 'Eliminar',
-              alTocar: () => _eliminar(categoria),
-            ),
+            BotonIcono(icono: Icons.delete_outline, ayuda: context.tr('Eliminar'), alTocar: () => _eliminar(categoria)),
           ],
         ],
       ),

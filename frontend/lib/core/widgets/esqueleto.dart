@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // .brillo de la maqueta: un bloque gris (hundido) con un destello que lo cruza cada 1,4 s. Es la pieza con
 // la que se arma el estado "cargando". Con ancho null ocupa todo el ancho disponible. Queda quieto, sin
@@ -109,7 +110,7 @@ class EsqueletoLista extends StatelessWidget {
     return Semantics(
       container: true,
       liveRegion: true,
-      label: 'Cargando',
+      label: context.tr('Cargando'),
       child: ExcludeSemantics(
         child: Column(
           mainAxisSize: MainAxisSize.min,

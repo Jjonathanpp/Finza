@@ -8,6 +8,7 @@ import '../../registro/screens/register_screen.dart';
 import '../models/login_request.dart';
 import '../../home/presentation/screens/pantalla_principal.dart';
 import 'package:frontend/core/session/deep_link_service.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -49,11 +50,8 @@ class _LoginFormState extends State<LoginForm> {
       );
 
       if (mounted) {
-        mostrarExito(context, 'Sesión iniciada');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const PantallaPrincipal()),
-        );
+        mostrarExito(context, context.tr('Sesión iniciada'));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PantallaPrincipal()));
         // Si el usuario llegó desde un link de invitación, se abre ahora que ya hay sesión
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => abrirInvitacionPendiente(),
@@ -78,34 +76,32 @@ class _LoginFormState extends State<LoginForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Campo(
-            etiqueta: 'Email',
+            etiqueta: context.tr('Email'),
             child: TextFormField(
               controller: _emailCtrl,
               decoration: const InputDecoration(hintText: 'tu@email.com'),
               keyboardType: TextInputType.emailAddress,
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Ingresá tu email';
+                if (v == null || v.trim().isEmpty) return context.tr('Ingresá tu email');
                 final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
-                if (!regex.hasMatch(v.trim())) return 'Email inválido';
+                if (!regex.hasMatch(v.trim())) return context.tr('Email inválido');
                 return null;
               },
             ),
           ),
           Campo(
-            etiqueta: 'Contraseña',
+            etiqueta: context.tr('Contraseña'),
             child: TextFormField(
               controller: _passwordCtrl,
               decoration: InputDecoration(
-                hintText: 'Tu contraseña',
+                hintText: context.tr('Tu contraseña'),
                 suffixIcon: TextButton(
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                  child: Text(_obscurePassword ? 'Ver' : 'Ocultar'),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  child: Text(_obscurePassword ? context.tr('Ver') : context.tr('Ocultar')),
                 ),
               ),
               obscureText: _obscurePassword,
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Ingresá tu contraseña' : null,
+              validator: (v) => (v == null || v.isEmpty) ? context.tr('Ingresá tu contraseña') : null,
             ),
           ),
           Align(
@@ -119,7 +115,7 @@ class _LoginFormState extends State<LoginForm> {
                   ),
                 );
               },
-              child: const Text('Olvidé mi contraseña'),
+              child: Text(context.tr('Olvidé mi contraseña')),
             ),
           ),
           if (_errorGeneral != null)
@@ -145,17 +141,14 @@ class _LoginFormState extends State<LoginForm> {
                       color: colores.sobrePrimario,
                     ),
                   )
-                : const Text('Ingresar'),
+                : Text(context.tr('Ingresar')),
           ),
           const SizedBox(height: 14),
           Wrap(
             alignment: WrapAlignment.center,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(
-                '¿Primera vez? ',
-                style: textos.bodyMedium?.copyWith(color: colores.suave),
-              ),
+              Text(context.tr('¿Primera vez? '), style: textos.bodyMedium?.copyWith(color: colores.suave)),
               TextButton(
                 onPressed: () {
                   Navigator.push(
@@ -163,7 +156,7 @@ class _LoginFormState extends State<LoginForm> {
                     MaterialPageRoute(builder: (_) => const RegisterScreen()),
                   );
                 },
-                child: const Text('Creá tu cuenta'),
+                child: Text(context.tr('Creá tu cuenta')),
               ),
             ],
           ),

@@ -9,6 +9,7 @@ import 'package:frontend/features/recuperar_password/data/dataresources/recupera
 import 'package:frontend/features/recuperar_password/presentacion/widgets/campo_codigo.dart';
 import 'package:frontend/features/recuperar_password/presentacion/widgets/campo_password.dart';
 import 'package:frontend/features/recuperar_password/presentacion/widgets/contador_expiracion.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class RestablecerPasswordScreen extends StatefulWidget {
   final String email;
@@ -84,7 +85,7 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
       );
 
       if (!mounted) return;
-      mostrarExito(context, 'Contraseña actualizada. Ya podés iniciar sesión');
+      mostrarExito(context, context.tr('Contraseña actualizada. Ya podés iniciar sesión'));
       // Asume que el login es la primera ruta del stack; ajustalo si no lo es
       Navigator.popUntil(context, (route) => route.isFirst);
     } catch (e) {
@@ -105,7 +106,7 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
       if (!mounted) return;
       _codigoCtrl.clear();
       setState(_iniciarTimer);
-      mostrarExito(context, 'Te enviamos un nuevo código');
+      mostrarExito(context, context.tr('Te enviamos un nuevo código'));
     } catch (e) {
       if (mounted) setState(() => _errorGeneral = e.toString());
     } finally {
@@ -118,7 +119,7 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
     final colores = context.colores;
     final textos = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: barraConVolver(context, 'Nueva contraseña'),
+      appBar: barraConVolver(context, context.tr('Nueva contraseña')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -130,7 +131,7 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
                 Text.rich(
                   TextSpan(
                     children: [
-                      const TextSpan(text: 'Ingresá el código que te mandamos a '),
+                      TextSpan(text: context.tr('Ingresá el código que te mandamos a ')),
                       TextSpan(
                         text: widget.email,
                         style: TextStyle(
@@ -138,7 +139,7 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
                           color: colores.texto,
                         ),
                       ),
-                      const TextSpan(text: ' y elegí una contraseña nueva.'),
+                      TextSpan(text: context.tr(' y elegí una contraseña nueva.')),
                     ],
                   ),
                   style: textos.bodyMedium?.copyWith(
@@ -153,23 +154,21 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
                 ),
                 CampoPassword(
                   controller: _passCtrl,
-                  etiqueta: 'Nueva contraseña',
-                  hint: 'Mínimo 8 caracteres',
+                  etiqueta: context.tr('Nueva contraseña'),
+                  hint: context.tr('Mínimo 8 caracteres'),
                   validator: (v) {
                     if (v == null || v.isEmpty) {
-                      return 'Ingresá tu nueva contraseña';
+                      return context.tr('Ingresá tu nueva contraseña');
                     }
-                    if (v.length < 8) return 'Mínimo 8 caracteres';
+                    if (v.length < 8) return context.tr('Mínimo 8 caracteres');
                     return null;
                   },
                 ),
                 CampoPassword(
                   controller: _confirmCtrl,
-                  etiqueta: 'Repetila',
-                  hint: 'La misma de arriba',
-                  validator: (v) => v != _passCtrl.text
-                      ? 'Las contraseñas no coinciden'
-                      : null,
+                  etiqueta: context.tr('Repetila'),
+                  hint: context.tr('La misma de arriba'),
+                  validator: (v) => v != _passCtrl.text ? context.tr('Las contraseñas no coinciden') : null,
                 ),
                 if (_errorGeneral != null)
                   Padding(
@@ -193,7 +192,7 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
                             color: colores.sobrePrimario,
                           ),
                         )
-                      : const Text('Cambiar contraseña'),
+                      : Text(context.tr('Cambiar contraseña')),
                 ),
                 const SizedBox(height: 12),
                 Align(
@@ -203,12 +202,8 @@ class _RestablecerPasswordScreenState extends State<RestablecerPasswordScreen> {
                         ? _reenviar
                         : null,
                     child: _reenviando
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Reenviar el código'),
+                        ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : Text(context.tr('Reenviar el código')),
                   ),
                 ),
               ],

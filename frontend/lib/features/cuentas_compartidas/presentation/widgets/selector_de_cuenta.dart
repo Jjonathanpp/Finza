@@ -9,6 +9,7 @@ import 'package:frontend/core/widgets/circulo_categoria.dart';
 import 'package:frontend/core/widgets/fila_opcion.dart';
 import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/cuentas_compartidas/data/datasources/cuenta_compartida_api.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // El selector de cuenta (t-13.1.2): en cuál está la app y para pasarse a otra, como los perfiles de
 // Netflix. Al elegir, la guarda y arma la pantalla principal de cero con los datos de esa cuenta.
@@ -75,14 +76,14 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
         ];
         final error = respuesta.hasError
             ? Text(
-                'No se pudieron cargar las cuentas compartidas.',
+                context.tr('No se pudieron cargar las cuentas compartidas.'),
                 style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: c.coralTexto),
               )
             : null;
         final crear = OutlinedButton.icon(
           onPressed: _crear,
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('Crear cuenta compartida'),
+          label: Text(context.tr('Crear cuenta compartida')),
         );
 
         // La hoja (maqueta L687-695): título, bajada, las cuentas en una caja hundida y crear.
@@ -94,9 +95,9 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: 12,
               children: [
-                Text('¿Qué cuenta querés ver?', style: textos.titleLarge),
+                Text(context.tr('¿Qué cuenta querés ver?'), style: textos.titleLarge),
                 Text(
-                  'En una cuenta compartida ves y cargás lo de esa cuenta.',
+                  context.tr('En una cuenta compartida ves y cargás lo de esa cuenta.'),
                   style: textos.bodyMedium?.copyWith(color: c.suave),
                 ),
                 Container(
@@ -146,12 +147,12 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
   }) {
     final c = context.colores;
     final textos = Theme.of(context).textTheme;
-    final nombre = cuenta == null ? 'Personal' : cuenta['nombre'] as String;
+    final nombre = cuenta == null ? context.tr('Personal') : cuenta['nombre'] as String;
     final detalle = cuenta == null
-        ? 'Solo vos'
+        ? context.tr('Solo vos')
         : cuenta['rol'] == 'ADMIN'
-            ? 'Compartida · Administrador'
-            : 'Compartida · Miembro';
+        ? context.tr('Compartida · Administrador')
+        : context.tr('Compartida · Miembro');
     // La personal va en menta; las compartidas, cada una con un color de la serie.
     final colorSerie = const [3, 2, 4, 1][(indice - 1) % 4];
     final fondoIcono = cuenta == null ? c.menta : c.serieFondo[colorSerie];
@@ -165,7 +166,7 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
           color: colorIcono,
           fondo: fondoIcono,
         ),
-        trailing: elegida ? Icon(Icons.check, size: 22, color: c.primario, semanticLabel: 'Elegida') : null,
+        trailing: elegida ? Icon(Icons.check, size: 22, color: c.primario, semanticLabel: context.tr('Elegida')) : null,
         alTocar: elegida ? null : () => _elegir(cuenta),
       );
     }
@@ -202,7 +203,7 @@ class _SelectorDeCuentaState extends State<SelectorDeCuenta> {
                 ],
               ),
             ),
-            if (elegida) Icon(Icons.check, size: 22, color: c.primario, semanticLabel: 'Elegida'),
+            if (elegida) Icon(Icons.check, size: 22, color: c.primario, semanticLabel: context.tr('Elegida')),
           ],
         ),
       ),
@@ -259,12 +260,12 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
     return PopScope(
       canPop: !_creando,
       child: AlertDialog(
-        title: const Text('Nueva cuenta compartida'),
+        title: Text(context.tr('Nueva cuenta compartida')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Nombre', style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+            Text(context.tr('Nombre'), style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextField(
               controller: _nombre,
@@ -277,9 +278,9 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
                 if (puedeCrear) _crear();
               },
               decoration: InputDecoration(
-                hintText: 'Por ejemplo, Casa',
+                hintText: context.tr('Por ejemplo, Casa'),
                 counterText: '',
-                helperText: 'Vas a ser el administrador.',
+                helperText: context.tr('Vas a ser el administrador.'),
                 errorText: _error,
               ),
             ),
@@ -290,7 +291,7 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _creando ? null : () => Navigator.of(context).pop(),
-                    child: const Text('Cancelar'),
+                    child: Text(context.tr('Cancelar')),
                   ),
                 ),
                 Expanded(
@@ -313,10 +314,10 @@ class _CuadroNuevaCuentaState extends State<_CuadroNuevaCuenta> {
                                 child: CircularProgressIndicator(strokeWidth: 2, color: c.sobrePrimario),
                               ),
                               const SizedBox(width: 8),
-                              const Text('Creando…'),
+                              Text(context.tr('Creando…')),
                             ],
                           )
-                        : const Text('Crear'),
+                        : Text(context.tr('Crear')),
                   ),
                 ),
               ],

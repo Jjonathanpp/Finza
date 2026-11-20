@@ -10,6 +10,7 @@ import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/core/widgets/encabezado_pestana.dart';
 import 'package:frontend/core/widgets/tocable.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class VoiceScreen extends StatefulWidget {
   const VoiceScreen({super.key});
@@ -129,13 +130,13 @@ class _VoiceScreenState extends State<VoiceScreen> {
       await ApiClient().postMultipart('/api/movimientos/procesar-audio', formData);
 
       if (mounted) {
-        mostrarExito(context, 'Movimiento registrado correctamente');
+        mostrarExito(context, context.tr('Movimiento registrado correctamente'));
         setState(() => _text = _textoInicial);
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _text = 'Error al procesar: $e';
+          _text = tr('Error al procesar: {error}', {'error': '$e'});
           _esError = true;
         });
       }
@@ -154,7 +155,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
     final colores = context.colores;
     final textos = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: barraConVolver(context, 'Registro por voz', subtitulo: nombreDeCuentaActiva()),
+      appBar: barraConVolver(context, context.tr('Registro por voz'), subtitulo: nombreDeCuentaActiva()),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 90),
@@ -165,13 +166,13 @@ class _VoiceScreenState extends State<VoiceScreen> {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 290),
                 child: Text(
-                  'Contá qué gastaste o cobraste, como se lo dirías a alguien.',
+                  context.tr('Contá qué gastaste o cobraste, como se lo dirías a alguien.'),
                   textAlign: TextAlign.center,
                   style: textos.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
               Text(
-                'Por ejemplo: «Gasté 2.500 en el kiosco»',
+                context.tr('Por ejemplo: «Gasté 2.500 en el kiosco»'),
                 textAlign: TextAlign.center,
                 style: textos.bodyMedium?.copyWith(color: colores.suave),
               ),
@@ -186,7 +187,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
                       if (_isRecording) const _Halo(),
                       Tocable(
                         alTocar: _isProcessing ? null : _toggleRecording,
-                        etiqueta: _isRecording ? 'Terminar de grabar' : 'Empezar a grabar',
+                        etiqueta: _isRecording ? context.tr('Terminar de grabar') : context.tr('Empezar a grabar'),
                         child: Opacity(
                           opacity: _isProcessing ? .45 : 1,
                           child: Container(
@@ -211,7 +212,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
               Semantics(
                 liveRegion: true,
                 child: Text(
-                  _isRecording ? 'Te escucho… tocá para terminar' : _text,
+                  _isRecording ? context.tr('Te escucho… tocá para terminar') : context.tr(_text),
                   textAlign: TextAlign.center,
                   style: textos.labelLarge?.copyWith(color: _esError ? colores.coralTexto : colores.texto),
                 ),

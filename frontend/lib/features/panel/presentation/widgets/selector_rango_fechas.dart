@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/widgets/filtro_pastilla.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class SelectorRangoFechas extends StatefulWidget {
   const SelectorRangoFechas({super.key, required this.onCambio});
@@ -82,7 +83,7 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
   }
 
   String _formatoFecha(DateTime? f) {
-    if (f == null) return 'Seleccionar';
+    if (f == null) return context.tr('Seleccionar');
     return '${f.day.toString().padLeft(2, '0')}/${f.month.toString().padLeft(2, '0')}/${f.year}';
   }
 
@@ -98,22 +99,18 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas> with Automati
       spacing: 4,
       children: [
         FilaFiltros(
-          etiqueta: 'Período de informes',
+          etiqueta: context.tr('Período de informes'),
           children: [
             for (final op in _opciones)
-              FiltroPastilla(
-                texto: op,
-                activo: op == _opcionElegida,
-                alTocar: () => _aplicarFiltro(op),
-              ),
+              FiltroPastilla(texto: context.tr(op), activo: op == _opcionElegida, alTocar: () => _aplicarFiltro(op)),
           ],
         ),
         if (_opcionElegida == 'Personalizado')
           Row(
             spacing: 12,
             children: [
-              Expanded(child: _campoFecha(textos, 'Desde', _inicioPersonalizado, true)),
-              Expanded(child: _campoFecha(textos, 'Hasta', _finPersonalizado, false)),
+              Expanded(child: _campoFecha(textos, context.tr('Desde'), _inicioPersonalizado, true)),
+              Expanded(child: _campoFecha(textos, context.tr('Hasta'), _finPersonalizado, false)),
             ],
           ),
       ],

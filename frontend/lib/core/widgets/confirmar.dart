@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/boton_peligro.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 export 'package:frontend/core/widgets/boton_peligro.dart';
 
@@ -46,7 +47,7 @@ Future<bool> confirmar(
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.of(contexto).pop(false),
-                          child: const Text('Cancelar'),
+                          child: Text(context.tr('Cancelar')),
                         ),
                       ),
                       Expanded(
