@@ -87,7 +87,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex) {
-        return Response.response(HttpStatus.FORBIDDEN, ex.getMessage(), null);
+        String mensaje = (ex.getMessage() == null || "Access Denied".equals(ex.getMessage()))
+                ? "Solo el administrador de la cuenta compartida puede hacer esto"
+                : ex.getMessage();
+        return Response.response(HttpStatus.FORBIDDEN, mensaje, null);
     }
 
 @ExceptionHandler(EnvioCorreoException.class)

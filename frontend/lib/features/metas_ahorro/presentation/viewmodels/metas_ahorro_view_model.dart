@@ -9,6 +9,8 @@ class MetasAhorroViewModel extends ChangeNotifier {
 
   final MetasAhorroApi _api;
   List<MetaAhorro> _metas = [];
+  final Map<int, List<AporteMetaAhorro>> _aportesPorMeta = {};
+  final Set<int> _cargandoAportes = {};
   bool _cargando = false;
   String? _error;
   bool _cerrado = false;
@@ -16,6 +18,11 @@ class MetasAhorroViewModel extends ChangeNotifier {
   List<MetaAhorro> get metas => _metas;
   bool get cargando => _cargando;
   String? get error => _error;
+
+  List<AporteMetaAhorro> aportesDe(MetaAhorro meta) =>
+      _aportesPorMeta[meta.id] ?? meta.aportes;
+
+  bool cargandoAportes(int metaId) => _cargandoAportes.contains(metaId);
 
   @override
   void notifyListeners() {
@@ -34,6 +41,7 @@ class MetasAhorroViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       _metas = await _api.listar(cuentaCompartidaId: cuentaCompartidaId);
+      _aportesPorMeta.clear();
     } on ApiException catch (e) {
       _error = e.message;
     } catch (e) {
@@ -42,6 +50,21 @@ class MetasAhorroViewModel extends ChangeNotifier {
       });
     } finally {
       _cargando = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> cargarAportes(int metaId) async {
+    if (_cargandoAportes.contains(metaId)) return;
+    _cargandoAportes.add(metaId);
+    notifyListeners();
+    try {
+      final resumen = await _api.obtenerResumenAportes(metaId);
+      _aportesPorMeta[metaId] = resumen.aportes;
+    } catch (_) {
+      // Si falla el detalle puntual, mantiene los aportes básicos que trajo GET /api/metas
+    } finally {
+      _cargandoAportes.remove(metaId);
       notifyListeners();
     }
   }
@@ -87,7 +110,11 @@ class MetasAhorroViewModel extends ChangeNotifier {
     required double monto,
     int? cuentaCompartidaId,
   }) async {
+    final teniaDetalle = _aportesPorMeta.containsKey(meta.id);
     await _api.abonar(id: meta.id, monto: monto);
     await cargarMetas(cuentaCompartidaId: cuentaCompartidaId);
+    if (teniaDetalle) {
+      await cargarAportes(meta.id);
+    }
   }
 }

@@ -1,19 +1,64 @@
 class AporteMetaAhorro {
   const AporteMetaAhorro({
-    required this.perfilId,
+    this.perfilId,
+    this.usuarioId,
     required this.nombre,
     required this.monto,
+    this.porcentaje,
+    this.activo = true,
   });
 
-  final int perfilId;
+  final int? perfilId;
+  final int? usuarioId;
   final String nombre;
   final double monto;
+  final double? porcentaje;
+  final bool activo;
 
   factory AporteMetaAhorro.fromJson(Map<String, dynamic> json) =>
       AporteMetaAhorro(
-        perfilId: json['perfilId'] as int,
-        nombre: json['nombre'] as String,
-        monto: (json['monto'] as num).toDouble(),
+        perfilId: (json['perfilId'] as num?)?.toInt(),
+        usuarioId: (json['usuarioId'] as num?)?.toInt(),
+        nombre: json['nombre']?.toString() ?? 'Ex integrante',
+        monto: (json['monto'] as num?)?.toDouble() ?? 0,
+        porcentaje: (json['porcentaje'] as num?)?.toDouble(),
+        activo: json['activo'] as bool? ?? true,
+      );
+}
+
+class ResumenAportesMeta {
+  const ResumenAportesMeta({
+    required this.metaId,
+    required this.nombreMeta,
+    this.cuentaCompartidaId,
+    required this.montoObjetivo,
+    required this.montoActual,
+    required this.montoRestante,
+    required this.porcentajeAvance,
+    required this.aportes,
+  });
+
+  final int metaId;
+  final String nombreMeta;
+  final int? cuentaCompartidaId;
+  final double montoObjetivo;
+  final double montoActual;
+  final double montoRestante;
+  final double porcentajeAvance;
+  final List<AporteMetaAhorro> aportes;
+
+  factory ResumenAportesMeta.fromJson(Map<String, dynamic> json) =>
+      ResumenAportesMeta(
+        metaId: (json['metaId'] as num).toInt(),
+        nombreMeta: json['nombreMeta']?.toString() ?? '',
+        cuentaCompartidaId: (json['cuentaCompartidaId'] as num?)?.toInt(),
+        montoObjetivo: (json['montoObjetivo'] as num?)?.toDouble() ?? 0,
+        montoActual: (json['montoActual'] as num?)?.toDouble() ?? 0,
+        montoRestante: (json['montoRestante'] as num?)?.toDouble() ?? 0,
+        porcentajeAvance: (json['porcentajeAvance'] as num?)?.toDouble() ?? 0,
+        aportes: (json['aportes'] as List<dynamic>? ?? [])
+            .map((item) => AporteMetaAhorro.fromJson(item as Map<String, dynamic>))
+            .toList(),
       );
 }
 

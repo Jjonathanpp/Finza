@@ -4,18 +4,25 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.finza.backend.dto.meta_de_ahorro.AporteIntegranteDTO;
 import com.finza.backend.dto.meta_de_ahorro.AporteMetaAhorroResponseDTO;
-import com.finza.backend.model.AporteMetaAhorro;
+import com.finza.backend.dto.meta_de_ahorro.ResumenAportesMetaDTO;
 import com.finza.backend.exception.BadRequestException;
+import com.finza.backend.model.AporteMetaAhorro;
 import com.finza.backend.model.MetaDeAhorro;
 import com.finza.backend.model.Perfil;
 import com.finza.backend.repository.AporteMetaAhorroRepository;
@@ -98,8 +105,7 @@ public class MetaDeAhorroService {
     /**
      * Crea una nueva meta de ahorro.
      * - Si es cuenta compartida: exige que el usuario sea ADMIN.
-     * - Si es personal: toma el perfil activo del usuario (quien ya es dueño/admin
-     * de su perfil).
+     * - Si es personal: toma el perfil activo del usuario.
      */
     @Transactional
     public MetaDeAhorro crearMeta(Long cuentaId, Long cuentaCompartidaId, String nombre, BigDecimal montoObjetivo,
@@ -185,6 +191,9 @@ public class MetaDeAhorroService {
         AporteMetaAhorro aporte = new AporteMetaAhorro();
         aporte.setMeta(meta);
         aporte.setPerfil(perfil);
+        if (perfil.getCuenta() != null) {
+            aporte.setUsuario(perfil.getCuenta().getUsuario());
+        }
         aporte.setMonto(montoAbono);
         aporteRepository.save(aporte);
 
@@ -230,6 +239,118 @@ public class MetaDeAhorroService {
 
     public record ResumenAportes(
             List<AporteMetaAhorroResponseDTO> integrantes) {
+    }
+
+    /**
+     * T-15.3.3: Devuelve el resumen de avance total de una meta junto con el desglose
+     * de aportes por integrante (activos y ex integrantes que hayan aportado).
+     */
+    @Transactional(readOnly = true)
+    public ResumenAportesMetaDTO obtenerResumenAportes(Long cuentaId, Long metaId) {
+        MetaDeAhorro meta = obtenerMetaPorId(metaId);
+        validarPermiso(cuentaId, meta, false);
+
+        BigDecimal montoObjetivo = meta.getMontoObjetivo();
+        BigDecimal montoActual = meta.getMontoActual();
+        BigDecimal montoRestante = montoObjetivo.subtract(montoActual).max(BigDecimal.ZERO);
+        BigDecimal porcentajeAvance = calcularPorcentaje(montoActual, montoObjetivo);
+
+        List<AporteMetaAhorro> aportesGuardados = aporteRepository.findByMetaId(meta.getId());
+        Map<Long, BigDecimal> montosPorPerfil = new LinkedHashMap<>();
+        Map<Long, AporteMetaAhorro> referenciaPorPerfil = new LinkedHashMap<>();
+        BigDecimal montoSinPerfil = BigDecimal.ZERO;
+
+        for (AporteMetaAhorro aporte : aportesGuardados) {
+            if (aporte.getPerfil() != null) {
+                Long perfilId = aporte.getPerfil().getId();
+                montosPorPerfil.merge(perfilId, aporte.getMonto(), BigDecimal::add);
+                referenciaPorPerfil.putIfAbsent(perfilId, aporte);
+            } else {
+                montoSinPerfil = montoSinPerfil.add(aporte.getMonto());
+            }
+        }
+
+        List<AporteIntegranteDTO> desglose = new ArrayList<>();
+        Set<Long> perfilesIncluidos = new HashSet<>();
+
+        if (meta.getCuentaCompartida() == null) {
+            Perfil perfil = meta.getPerfil();
+            Long perfilId = perfil.getId();
+            perfilesIncluidos.add(perfilId);
+            BigDecimal monto = montosPorPerfil.getOrDefault(perfilId, BigDecimal.ZERO.setScale(2));
+            Long usuarioId = (perfil.getCuenta() != null && perfil.getCuenta().getUsuario() != null)
+                    ? perfil.getCuenta().getUsuario().getId()
+                    : extraerUsuarioId(referenciaPorPerfil.get(perfilId));
+            desglose.add(new AporteIntegranteDTO(
+                    perfilId,
+                    usuarioId,
+                    perfil.getNombrePerfil() != null ? perfil.getNombrePerfil() : "Sin nombre",
+                    monto,
+                    calcularPorcentaje(monto, montoObjetivo),
+                    perfil.isEsActivo()));
+        } else {
+            List<Map<String, Object>> activos = perfilService.miembrosActivosDeCuentaCompartida(
+                    cuentaId,
+                    meta.getCuentaCompartida().getId());
+
+            for (Map<String, Object> miembro : activos) {
+                Long perfilId = (Long) miembro.get("perfilId");
+                String nombre = (String) miembro.get("nombre");
+                perfilesIncluidos.add(perfilId);
+
+                BigDecimal monto = montosPorPerfil.getOrDefault(perfilId, BigDecimal.ZERO.setScale(2));
+                desglose.add(new AporteIntegranteDTO(
+                        perfilId,
+                        extraerUsuarioId(referenciaPorPerfil.get(perfilId)),
+                        nombre,
+                        monto,
+                        calcularPorcentaje(monto, montoObjetivo),
+                        true));
+            }
+
+            // Ex integrantes que registraron aportes antes de salir de la cuenta compartida
+            for (Map.Entry<Long, BigDecimal> entry : montosPorPerfil.entrySet()) {
+                Long perfilId = entry.getKey();
+                if (!perfilesIncluidos.contains(perfilId)) {
+                    AporteMetaAhorro ref = referenciaPorPerfil.get(perfilId);
+                    Perfil perfil = ref.getPerfil();
+                    String nombre = (perfil != null && perfil.getNombrePerfil() != null)
+                            ? perfil.getNombrePerfil()
+                            : "Ex integrante";
+                    BigDecimal monto = entry.getValue();
+                    desglose.add(new AporteIntegranteDTO(
+                            perfilId,
+                            extraerUsuarioId(ref),
+                            nombre,
+                            monto,
+                            calcularPorcentaje(monto, montoObjetivo),
+                            false));
+                }
+            }
+        }
+
+        if (montoSinPerfil.signum() > 0) {
+            desglose.add(new AporteIntegranteDTO(
+                    null,
+                    null,
+                    "Ex integrante",
+                    montoSinPerfil,
+                    calcularPorcentaje(montoSinPerfil, montoObjetivo),
+                    false));
+        }
+
+        desglose.sort(Comparator.comparing(AporteIntegranteDTO::monto).reversed()
+                .thenComparing(AporteIntegranteDTO::perfilId, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        return new ResumenAportesMetaDTO(
+                meta.getId(),
+                meta.getNombre(),
+                meta.getCuentaCompartida() != null ? meta.getCuentaCompartida().getId() : null,
+                montoObjetivo,
+                montoActual,
+                montoRestante,
+                porcentajeAvance,
+                desglose);
     }
 
     /**
@@ -288,6 +409,29 @@ public class MetaDeAhorroService {
         } else {
             throw new IllegalStateException("La meta de ahorro no tiene un propietario válido");
         }
+    }
+
+    private Long extraerUsuarioId(AporteMetaAhorro aporte) {
+        if (aporte == null) {
+            return null;
+        }
+        if (aporte.getUsuario() != null) {
+            return aporte.getUsuario().getId();
+        }
+        if (aporte.getPerfil() != null
+                && aporte.getPerfil().getCuenta() != null
+                && aporte.getPerfil().getCuenta().getUsuario() != null) {
+            return aporte.getPerfil().getCuenta().getUsuario().getId();
+        }
+        return null;
+    }
+
+    private BigDecimal calcularPorcentaje(BigDecimal monto, BigDecimal objetivo) {
+        if (objetivo == null || objetivo.signum() <= 0) {
+            return BigDecimal.ZERO.setScale(1, RoundingMode.HALF_UP);
+        }
+        return monto.multiply(BigDecimal.valueOf(100))
+                .divide(objetivo, 1, RoundingMode.HALF_UP);
     }
 
     private void validarDatos(String nombre, BigDecimal montoObjetivo, LocalDate fechaLimite) {
