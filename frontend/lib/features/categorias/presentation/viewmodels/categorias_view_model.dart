@@ -62,9 +62,9 @@ class CategoriasViewModel extends ChangeNotifier {
   }
 
   // Devuelve null si se borró, o el mensaje del backend si no (por ejemplo, si tiene movimientos).
-  Future<String?> eliminar(Categoria categoria) async {
+  Future<String?> eliminar(Categoria categoria, {int? cuentaCompartidaId}) async {
     try {
-      await _api.eliminar(categoria);
+      await _api.eliminar(categoria, cuentaCompartidaId: cuentaCompartidaId);
     } on ApiException catch (e) {
       return e.message;
     }

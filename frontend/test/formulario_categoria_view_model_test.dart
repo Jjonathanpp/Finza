@@ -28,7 +28,12 @@ class CategoriaApiDeMentira extends Fake implements CategoriaApi {
   }
 
   @override
-  Future<void> editar(Categoria categoria, {required String nombre, required String color}) async {
+  Future<void> editar(
+    Categoria categoria, {
+    required String nombre,
+    required String color,
+    int? cuentaCompartidaId,
+  }) async {
     recibido = {'id': categoria.id, 'nombre': nombre, 'color': color};
   }
 }
