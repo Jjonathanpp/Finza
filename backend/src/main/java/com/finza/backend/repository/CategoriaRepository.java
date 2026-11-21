@@ -11,6 +11,7 @@ import com.finza.backend.model.Categoria;
 @Repository
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     Optional<Categoria> findByIdAndCuentaId(Long id, Long cuentaId);
+    Optional<Categoria> findByIdAndCuentaCompartidaId(Long id, Long cuentaCompartidaId);
 
     // Predefinidas (sin cuenta ni cuenta compartida) + propias de la cuenta, para GET /api/categorias.
     // Primero las predefinidas y después las propias, cada grupo en el orden en que se crearon:

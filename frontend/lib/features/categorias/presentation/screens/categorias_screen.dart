@@ -24,6 +24,11 @@ class CategoriasScreen extends StatefulWidget {
 class _CategoriasScreenState extends State<CategoriasScreen> {
   late final _vm = CategoriasViewModel(widget.api ?? CategoriaApi(ApiClient()));
 
+  int? get _cuentaCompartidaId {
+    final id = cuentaActiva.value?['id'];
+    return id is num ? id.toInt() : null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -50,7 +55,12 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           ),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-            children: [FormularioCategoria(editando: editando)],
+            children: [
+              FormularioCategoria(
+                editando: editando,
+                cuentaCompartidaId: _cuentaCompartidaId,
+              ),
+            ],
           ),
         ),
       ),
@@ -89,7 +99,10 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       ),
     );
     if (confirmado != true) return;
-    final error = await _vm.eliminar(categoria);
+    final error = await _vm.eliminar(
+      categoria,
+      cuentaCompartidaId: _cuentaCompartidaId,
+    );
     if (!mounted) return;
     if (error == null) {
       mostrarExito(context, context.tr('Categoría eliminada'));
@@ -265,8 +278,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
               ],
             ),
           ),
-          // Las de una cuenta compartida todavía no se editan ni se borran (el backend no lo deja)
-          if (!categoria.esPredefinida && cuentaActiva.value == null) ...[
+          if (!categoria.esPredefinida && esAdminDeCuentaActiva) ...[
             BotonIcono(
               icono: Icons.edit_outlined,
               tamanio: 28,

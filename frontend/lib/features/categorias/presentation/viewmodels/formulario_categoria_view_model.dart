@@ -9,11 +9,15 @@ class FormularioCategoriaViewModel extends ChangeNotifier {
   // Para crear: desde Categorías arranca en egreso, que es para lo que más se crean categorías
   // propias; desde "Nuevo movimiento" llega el tipo del movimiento.
   // Para editar: llega la categoría, y arranca con su color (el tipo no se puede cambiar).
-  FormularioCategoriaViewModel(this._api, {this._esIngreso = false, this.editando})
-      : _color = editando?.color ?? paletaCategorias.first;
+  FormularioCategoriaViewModel(this._api, {
+    this._esIngreso = false,
+    this.editando,
+    this.cuentaCompartidaId,
+  }) : _color = editando?.color ?? paletaCategorias.first;
 
   final CategoriaApi _api;
   final Categoria? editando;
+  final int? cuentaCompartidaId;
 
   bool _esIngreso;
   String _color;
@@ -67,7 +71,12 @@ class FormularioCategoriaViewModel extends ChangeNotifier {
       if (editando == null) {
         return await _api.crear(nombre: nombre, esIngreso: _esIngreso, color: _color);
       }
-      await _api.editar(editando, nombre: nombre, color: _color);
+      await _api.editar(
+        editando,
+        nombre: nombre,
+        color: _color,
+        cuentaCompartidaId: cuentaCompartidaId,
+      );
       return Categoria(id: editando.id, nombre: nombre, color: _color, tipo: editando.tipo, esPredefinida: false);
     } on ApiException catch (e) {
       // 409 es el nombre repetido: el mensaje va abajo del campo, que es lo que hay que corregir.
