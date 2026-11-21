@@ -60,11 +60,11 @@ public class MercadoPagoSyncController {
     }
 
     @GetMapping("/movimientos/disponibles")
-    public ResponseEntity<BusquedaMPResponseDTO> obtenerDisponibles(@AuthenticationPrincipal Long cuentaId) {
+    public ResponseEntity<Object> obtenerDisponibles(@AuthenticationPrincipal Long cuentaId) {
         Cuenta cuenta = cuentaRepository.findById(cuentaId)
                 .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
         BusquedaMPResponseDTO respuesta = syncService.obtenerDisponiblesParaImportar(cuenta.getUsuario().getId());
-        return ResponseEntity.ok(respuesta);
+        return Response.ok(respuesta, "Movimientos disponibles obtenidos exitosamente");
     }
 
     @PostMapping("/importar-seleccionados")
