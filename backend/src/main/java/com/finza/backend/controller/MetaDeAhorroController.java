@@ -112,6 +112,21 @@ public class MetaDeAhorroController {
     }
 
     /**
+     * Retira dinero de una meta de ahorro sin superar su saldo disponible.
+     */
+    @PostMapping("/{id}/retirar")
+    public ResponseEntity<Object> retirarDinero(
+            @AuthenticationPrincipal Long cuentaId,
+            @PathVariable Long id,
+            @Valid @RequestBody AbonarMetaDTO request) {
+
+        MetaDeAhorro meta = metaService.retirarDinero(cuentaId, id, request.getMonto());
+
+        MetaDeAhorroResponseDTO dto = convertirRespuesta(cuentaId, meta);
+        return Response.ok(dto, "Retiro realizado exitosamente");
+    }
+
+    /**
      * Elimina una meta de ahorro (exige ADMIN si es compartida).
      */
     @DeleteMapping("/{id}")

@@ -21,7 +21,8 @@ class MetasAhorroViewModel extends ChangeNotifier {
   bool get cargando => _cargando;
   String? get error => _error;
 
-  List<AporteMetaAhorro> aportesDe(MetaAhorro meta) => _aportes[meta.id] ?? meta.aportes;
+  List<AporteMetaAhorro> aportesDe(MetaAhorro meta) =>
+      _aportes[meta.id] ?? meta.aportes;
 
   @override
   void notifyListeners() {
@@ -45,7 +46,9 @@ class MetasAhorroViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _error = e.message;
     } catch (e) {
-      _error = tr('Error inesperado al cargar las metas: {error}', {'error': '$e'});
+      _error = tr('Error inesperado al cargar las metas: {error}', {
+        'error': '$e',
+      });
     } finally {
       _cargando = false;
       notifyListeners();
@@ -56,7 +59,10 @@ class MetasAhorroViewModel extends ChangeNotifier {
   Future<void> _cargarAportes() async {
     await Future.wait([
       for (final meta in _metas)
-        _api.aportes(meta.id).then((lista) => _aportes[meta.id] = lista).catchError((_) => const <AporteMetaAhorro>[]),
+        _api
+            .aportes(meta.id)
+            .then((lista) => _aportes[meta.id] = lista)
+            .catchError((_) => const <AporteMetaAhorro>[]),
     ]);
     notifyListeners();
   }
@@ -83,7 +89,12 @@ class MetasAhorroViewModel extends ChangeNotifier {
     DateTime? fechaLimite,
     int? cuentaCompartidaId,
   }) async {
-    await _api.editar(id: meta.id, nombre: nombre, montoObjetivo: montoObjetivo, fechaLimite: fechaLimite);
+    await _api.editar(
+      id: meta.id,
+      nombre: nombre,
+      montoObjetivo: montoObjetivo,
+      fechaLimite: fechaLimite,
+    );
     await cargarMetas(cuentaCompartidaId: cuentaCompartidaId);
   }
 
@@ -92,8 +103,21 @@ class MetasAhorroViewModel extends ChangeNotifier {
     await cargarMetas(cuentaCompartidaId: cuentaCompartidaId);
   }
 
-  Future<void> abonar({required MetaAhorro meta, required double monto, int? cuentaCompartidaId}) async {
+  Future<void> abonar({
+    required MetaAhorro meta,
+    required double monto,
+    int? cuentaCompartidaId,
+  }) async {
     await _api.abonar(id: meta.id, monto: monto);
+    await cargarMetas(cuentaCompartidaId: cuentaCompartidaId);
+  }
+
+  Future<void> retirar({
+    required MetaAhorro meta,
+    required double monto,
+    int? cuentaCompartidaId,
+  }) async {
+    await _api.retirar(id: meta.id, monto: monto);
     await cargarMetas(cuentaCompartidaId: cuentaCompartidaId);
   }
 }

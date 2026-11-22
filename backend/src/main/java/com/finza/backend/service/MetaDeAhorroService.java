@@ -3,6 +3,7 @@ package com.finza.backend.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -23,24 +24,34 @@ import com.finza.backend.dto.meta_de_ahorro.AporteMetaAhorroResponseDTO;
 import com.finza.backend.dto.meta_de_ahorro.ResumenAportesMetaDTO;
 import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.AporteMetaAhorro;
+import com.finza.backend.model.Categoria;
 import com.finza.backend.model.MetaDeAhorro;
+import com.finza.backend.model.Movimiento;
 import com.finza.backend.model.Perfil;
 import com.finza.backend.repository.AporteMetaAhorroRepository;
+import com.finza.backend.repository.CategoriaRepository;
 import com.finza.backend.repository.MetaDeAhorroRepository;
+import com.finza.backend.repository.MovimientoRepository;
 
 @Service
 public class MetaDeAhorroService {
 
     private final MetaDeAhorroRepository metaRepository;
     private final AporteMetaAhorroRepository aporteRepository;
+    private final CategoriaRepository categoriaRepository;
+    private final MovimientoRepository movimientoRepository;
     private final PerfilService perfilService;
 
     public MetaDeAhorroService(
             MetaDeAhorroRepository metaRepository,
             AporteMetaAhorroRepository aporteRepository,
+            CategoriaRepository categoriaRepository,
+            MovimientoRepository movimientoRepository,
             PerfilService perfilService) {
         this.metaRepository = metaRepository;
         this.aporteRepository = aporteRepository;
+        this.categoriaRepository = categoriaRepository;
+        this.movimientoRepository = movimientoRepository;
         this.perfilService = perfilService;
     }
 
@@ -197,7 +208,60 @@ public class MetaDeAhorroService {
         aporte.setMonto(montoAbono);
         aporteRepository.save(aporte);
 
+        registrarMovimientoMeta(meta, perfil, montoAbono, false);
         return metaRepository.save(meta);
+    }
+
+    /**
+     * Retira dinero de una meta. Cualquier miembro de la cuenta compartida puede
+     * retirar, pero nunca más que el saldo actual.
+     */
+    @Transactional
+    public MetaDeAhorro retirarDinero(Long cuentaId, Long metaId, BigDecimal montoRetiro) {
+        if (montoRetiro == null || montoRetiro.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("El monto a retirar debe ser mayor a cero");
+        }
+
+        MetaDeAhorro meta = metaRepository.findByIdForUpdate(metaId)
+                .orElseThrow(() -> new NoSuchElementException("Meta de ahorro no encontrada con ID: " + metaId));
+        Perfil perfil;
+        if (meta.getCuentaCompartida() != null) {
+            Perfil miembro = perfilService.exigirMiembro(cuentaId, meta.getCuentaCompartida().getId());
+            perfil = perfilService.perfilActivo(cuentaId);
+            if (!miembro.getId().equals(perfil.getId())) {
+                throw new AccessDeniedException("Selecciona el perfil de esta cuenta compartida para retirar");
+            }
+        } else {
+            validarPermiso(cuentaId, meta, false);
+            perfil = perfilService.perfilActivo(cuentaId);
+        }
+
+        if (montoRetiro.compareTo(meta.getMontoActual()) > 0) {
+            throw new BadRequestException("El monto a retirar no puede superar el saldo disponible de la meta");
+        }
+
+        meta.setMontoActual(meta.getMontoActual().subtract(montoRetiro));
+        registrarMovimientoMeta(meta, perfil, montoRetiro, true);
+        return metaRepository.save(meta);
+    }
+
+    private void registrarMovimientoMeta(MetaDeAhorro meta, Perfil perfil, BigDecimal monto, boolean esIngreso) {
+        Categoria categoria = categoriaRepository
+                .findFirstByCuentaIsNullAndCuentaCompartidaIsNullAndNombreIgnoreCaseAndTipoCategoriaPredefinida(
+                        "Meta Ahorro", Categoria.TipoCategoria.AMBOS)
+                .orElseThrow(() -> new IllegalStateException("No existe la categoría predefinida Meta Ahorro"));
+
+        Movimiento movimiento = new Movimiento();
+        movimiento.setPerfil(perfil);
+        movimiento.setCategoria(categoria);
+        movimiento.setMonto(monto);
+        movimiento.setEsIngreso(esIngreso);
+        movimiento.setFecha(LocalDate.now());
+        movimiento.setDescripcion((esIngreso ? "Retiro de meta: " : "Aporte a meta: ") + meta.getNombre());
+        movimiento.setEstado(Movimiento.EstadoMovimiento.APROBADO);
+        movimiento.setOrigen(Movimiento.OrigenMovimiento.MANUAL);
+        movimiento.setFechaCreacion(LocalDateTime.now());
+        movimientoRepository.save(movimiento);
     }
 
     @Transactional(readOnly = true)

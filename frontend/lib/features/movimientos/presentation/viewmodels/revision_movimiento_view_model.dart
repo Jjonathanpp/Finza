@@ -7,7 +7,11 @@ import 'package:frontend/features/movimientos/presentation/validaciones_movimien
 import 'package:frontend/l10n/idioma.dart';
 
 class RevisionMovimientoViewModel extends ChangeNotifier {
-  RevisionMovimientoViewModel(this.movimiento, this._categoriaApi, this._movimientoApi) {
+  RevisionMovimientoViewModel(
+    this.movimiento,
+    this._categoriaApi,
+    this._movimientoApi,
+  ) {
     esIngreso = movimiento.esIngreso;
     fecha = movimiento.fecha;
     categoria = movimiento.categoria.nombre;
@@ -27,8 +31,12 @@ class RevisionMovimientoViewModel extends ChangeNotifier {
   String? categoria;
   List<Categoria> categorias = [];
 
-  List<Categoria> get categoriasDelTipo =>
-      categorias.where((c) => c.tipo == (esIngreso ? 'INGRESO' : 'EGRESO')).toList();
+  List<Categoria> get categoriasDelTipo => categorias
+      .where(
+        (c) =>
+            c.tipo == (esIngreso ? 'INGRESO' : 'EGRESO') || c.tipo == 'AMBOS',
+      )
+      .toList();
 
   Future<void> cargarCategorias() async {
     try {
@@ -72,7 +80,10 @@ class RevisionMovimientoViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> confirmar({required String monto, required String descripcion}) async {
+  Future<bool> confirmar({
+    required String monto,
+    required String descripcion,
+  }) async {
     errorMonto = validarMonto(monto);
     errorCategoria = validarCategoria(categoria);
 

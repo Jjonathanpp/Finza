@@ -53,7 +53,8 @@ public class Categoria {
 
     public enum TipoCategoria {
         INGRESO,
-        EGRESO
+        EGRESO,
+        AMBOS
     }
 
 }

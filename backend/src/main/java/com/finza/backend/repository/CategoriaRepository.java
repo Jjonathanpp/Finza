@@ -36,13 +36,17 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     @Query("""
         SELECT c FROM Categoria c
         WHERE LOWER(TRIM(c.nombre)) = LOWER(:nombre)
-          AND c.tipoCategoriaPredefinida = :tipo
+          AND (c.tipoCategoriaPredefinida = :tipo OR c.tipoCategoriaPredefinida = :tipoAmbos)
           AND (c.cuenta.id = :cuentaId OR (c.cuenta IS NULL AND c.cuentaCompartida IS NULL))
         ORDER BY c.id
         """)
     List<Categoria> buscarPropiaOGlobal(@Param("nombre") String nombre,
                                          @Param("tipo") Categoria.TipoCategoria tipo,
+                                         @Param("tipoAmbos") Categoria.TipoCategoria tipoAmbos,
                                          @Param("cuentaId") Long cuentaId);
+
+    Optional<Categoria> findFirstByCuentaIsNullAndCuentaCompartidaIsNullAndNombreIgnoreCaseAndTipoCategoriaPredefinida(
+            String nombre, Categoria.TipoCategoria tipoCategoriaPredefinida);
 
     // Al borrar una cuenta compartida que se quedó sin integrantes (t-11.3.4).
     void deleteByCuentaCompartidaId(Long cuentaCompartidaId);

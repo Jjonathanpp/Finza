@@ -19,6 +19,12 @@ class CategoriaApiDeMentira extends Fake implements CategoriaApi {
     _sueldo,
     Categoria(id: 6, nombre: 'Comida', tipo: 'EGRESO', esPredefinida: true),
     Categoria(id: 9, nombre: 'Mascotas', tipo: 'EGRESO', esPredefinida: false),
+    Categoria(
+      id: 10,
+      nombre: 'Meta Ahorro',
+      tipo: 'AMBOS',
+      esPredefinida: true,
+    ),
   ];
 }
 
@@ -61,11 +67,15 @@ void main() {
     );
     await vm.cargarCategorias();
 
-    expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), ['Sueldo']);
+    expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), [
+      'Sueldo',
+      'Meta Ahorro',
+    ]);
     vm.cambiarTipo(false);
     expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), [
       'Comida',
       'Mascotas',
+      'Meta Ahorro',
     ]);
   });
 
@@ -91,6 +101,7 @@ void main() {
       expect(vm.categoriasDelTipo.map((c) => c.nombre).toList(), [
         'Comida',
         'Mascotas',
+        'Meta Ahorro',
         'Gimnasio',
       ]);
       expect(vm.categoria, 'Gimnasio');

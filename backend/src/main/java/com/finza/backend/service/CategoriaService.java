@@ -63,6 +63,9 @@ public class CategoriaService {
     // cuenta compartida: la ven y la usan todos.
     @Transactional
     public CategoriaResponseDTO crearCategoria(Long cuentaId, CategoriaRequest request) {
+        if (request.getTipo() == Categoria.TipoCategoria.AMBOS) {
+            throw new BadRequestException("Las categorías nuevas deben ser de ingreso o egreso");
+        }
         Cuenta cuenta = cuentaRepository.findById(cuentaId)
                 .orElseThrow(() -> new BadRequestException("La cuenta indicada no existe"));
         Perfil activo = perfilService.perfilActivo(cuentaId);
@@ -101,11 +104,13 @@ public class CategoriaService {
     public Optional<Categoria> buscar(String nombre, Categoria.TipoCategoria tipo, Perfil perfil) {
         CuentaCompartida compartida = perfil.getCuentaCompartida();
         if (compartida == null) {
-            return categoriaRepository.buscarPropiaOGlobal(nombre, tipo, perfil.getCuenta().getId()).stream()
+            return categoriaRepository.buscarPropiaOGlobal(
+                    nombre, tipo, Categoria.TipoCategoria.AMBOS, perfil.getCuenta().getId()).stream()
                     .findFirst();
         }
         return listarDelPerfil(perfil).stream()
-                .filter(otra -> otra.getTipoCategoriaPredefinida() == tipo
+                .filter(otra -> (otra.getTipoCategoriaPredefinida() == tipo
+                        || otra.getTipoCategoriaPredefinida() == Categoria.TipoCategoria.AMBOS)
                         && otra.getNombre().trim().equalsIgnoreCase(nombre))
                 .findFirst();
     }
@@ -193,6 +198,7 @@ public class CategoriaService {
             candidatas = categoriaRepository.buscarPropiaOGlobal(
                     nombre,
                     categoria.getTipoCategoriaPredefinida(),
+                    Categoria.TipoCategoria.AMBOS,
                     cuentaId);
         }
 
