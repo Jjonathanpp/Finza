@@ -1,4 +1,5 @@
 import 'package:frontend/features/categorias/data/models/categoria.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class Movimiento {
   const Movimiento({
@@ -26,6 +27,16 @@ class Movimiento {
   final String origen;
 
   bool get esIngreso => tipo == 'ingreso';
+
+  // Lo que se muestra en la fila. Si la IA falló (ERROR_IA), el backend guarda en la descripción el
+  // error de Gemini tal cual ("429 ... on POST request for https://..."): eso no se le muestra a nadie.
+  String? get descripcionVisible {
+    final texto = descripcion;
+    if (estado != 'ERROR_IA' || texto == null) return texto;
+    final motivo = texto.replaceFirst('❌ Error de IA:', '').trim();
+    final esTecnico = motivo.isEmpty || motivo.contains('request for') || motivo.contains('http') || RegExp(r'^\d{3}\b').hasMatch(motivo);
+    return esTecnico ? tr('La IA no pudo analizar el audio. Tocalo para cargarlo a mano o eliminarlo.') : motivo;
+  }
 
   factory Movimiento.fromJson(Map<String, dynamic> json) => Movimiento(
     id: json['id'],

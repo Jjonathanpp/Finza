@@ -8,8 +8,12 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/encabezado_pestana.dart';
+import 'package:frontend/core/widgets/tocable.dart';
 import 'package:frontend/l10n/idioma.dart';
 
+// Grabar un movimiento por voz. Mientras graba se puede pausar y seguir, descartar o enviar (lo de
+// Tomás en main, #152). El backend contesta al instante y la IA lo analiza en segundo plano.
 class VoiceScreen extends StatefulWidget {
   const VoiceScreen({super.key});
 
@@ -18,12 +22,14 @@ class VoiceScreen extends StatefulWidget {
 }
 
 class _VoiceScreenState extends State<VoiceScreen> {
-  late final AudioRecorder _audioRecorder;
+  static const _textoInicial = 'Tocá para grabar';
 
+  late final AudioRecorder _audioRecorder;
   bool _isRecording = false;
   bool _isPaused = false;
   bool _isProcessing = false;
-  String _text = 'Tocá el micrófono y hablá...';
+  String _text = _textoInicial;
+  bool _esError = false;
 
   Timer? _timer;
   int _recordDuration = 0;
@@ -41,107 +47,81 @@ class _VoiceScreenState extends State<VoiceScreen> {
     super.dispose();
   }
 
-  void _startTimer() {
+  void _arrancarCronometro() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
-      setState(() {
-        _recordDuration++;
-        _actualizarTextoTiempo();
-      });
-    });
-  }
-
-  void _actualizarTextoTiempo() {
-    final minutes = _recordDuration ~/ 60;
-    final seconds = _recordDuration % 60;
-    final tiempoFormateado = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-
-    if (_isPaused) {
-      _text = 'Pausado... $tiempoFormateado';
-    } else {
-      _text = 'Grabando... $tiempoFormateado';
-    }
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() => _recordDuration++));
   }
 
   Future<void> _iniciarGrabacion() async {
-    if (await _audioRecorder.hasPermission()) {
-      if (kIsWeb) {
-        await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.opus),
-          path: '',
-        );
-      } else {
-        final dir = await getApplicationDocumentsDirectory();
-        final filePath = '${dir.path}/finza_movimiento.m4a';
-
-        await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.aacLc),
-          path: filePath,
-        );
-      }
-
+    if (!await _audioRecorder.hasPermission()) {
       setState(() {
-        _isRecording = true;
-        _isPaused = false;
-        _recordDuration = 0;
-        _actualizarTextoTiempo();
+        _text = 'Se necesita permiso de micrófono.';
+        _esError = true;
       });
-
-      _startTimer();
-    } else {
-      setState(() => _text = tr('Se necesita permiso de micrófono.'));
+      return;
     }
-  }
-
-  Future<void> _pausarGrabacion() async {
-    await _audioRecorder.pause();
-    _timer?.cancel();
+    if (kIsWeb) {
+      // En Web se graba en memoria con Opus/WebM
+      await _audioRecorder.start(const RecordConfig(encoder: AudioEncoder.opus), path: '');
+    } else {
+      // En Mobile (Android/iOS) se guarda archivo físico m4a
+      final dir = await getApplicationDocumentsDirectory();
+      await _audioRecorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc),
+        path: '${dir.path}/finza_movimiento.m4a',
+      );
+    }
     setState(() {
-      _isPaused = true;
-      _actualizarTextoTiempo();
-    });
-  }
-
-  Future<void> _reanudarGrabacion() async {
-    await _audioRecorder.resume();
-    setState(() {
+      _isRecording = true;
       _isPaused = false;
-      _actualizarTextoTiempo();
+      _recordDuration = 0;
+      _esError = false;
     });
-    _startTimer();
+    _arrancarCronometro();
   }
 
-  Future<void> _cancelarYBorrarGrabacion() async {
+  Future<void> _pausarOSeguir() async {
+    if (_isPaused) {
+      await _audioRecorder.resume();
+      _arrancarCronometro();
+    } else {
+      await _audioRecorder.pause();
+      _timer?.cancel();
+    }
+    setState(() => _isPaused = !_isPaused);
+  }
+
+  Future<void> _descartar() async {
     await _audioRecorder.stop();
     _timer?.cancel();
-
     setState(() {
       _isRecording = false;
       _isPaused = false;
       _recordDuration = 0;
-      _text = 'Tocá el micrófono y hablá...';
+      _text = _textoInicial;
+      _esError = false;
     });
   }
 
-  Future<void> _finalizarYEnviarAudio() async {
+  Future<void> _enviar() async {
     final path = await _audioRecorder.stop();
     _timer?.cancel();
-
     setState(() {
       _isRecording = false;
       _isPaused = false;
       _isProcessing = true;
-      _text = 'Procesando con la IA...';
+      _text = 'Enviando el audio...';
+      _esError = false;
     });
-
-    if (path != null) {
-      await _enviarAudioABackend(path);
-    } else {
+    if (path == null) {
       setState(() {
         _isProcessing = false;
-        _text = 'Error: No se pudo guardar el audio localmente.';
+        _text = 'No se pudo guardar el audio. Probá grabarlo de nuevo.';
+        _esError = true;
       });
+      return;
     }
+    await _enviarAudioABackend(path);
   }
 
   Future<void> _enviarAudioABackend(String path) async {
@@ -149,115 +129,242 @@ class _VoiceScreenState extends State<VoiceScreen> {
       final MultipartFile audioFile;
 
       if (kIsWeb) {
+        // En Web descargamos los bytes del Blob generado en Chrome
         final response = await Dio().get<List<int>>(
           path,
           options: Options(responseType: ResponseType.bytes),
         );
-        audioFile = MultipartFile.fromBytes(
-          response.data!,
-          filename: "movimiento.webm",
-        );
+        audioFile = MultipartFile.fromBytes(response.data!, filename: "movimiento.webm");
       } else {
-        audioFile = await MultipartFile.fromFile(
-          path,
-          filename: "movimiento.m4a",
-        );
+        // En Mobile enviamos directamente el archivo local
+        audioFile = await MultipartFile.fromFile(path, filename: "movimiento.m4a");
       }
 
-      final formData = FormData.fromMap({
-        "audio": audioFile,
-      });
-
-      await ApiClient().postMultipart('/api/movimientos/procesar-audio', formData);
+      await ApiClient().postMultipart('/api/movimientos/procesar-audio', FormData.fromMap({"audio": audioFile}));
 
       if (mounted) {
-        mostrarExito(context, 'Audio enviado. Procesando en segundo plano.');
-        setState(() => _text = 'Tocá el micrófono y hablá...');
+        // El movimiento aparece en Movimientos como "Analizando" y después queda por revisar.
+        mostrarExito(context, context.tr('Audio enviado. En unos segundos aparece en Movimientos para revisar.'));
+        setState(() => _text = _textoInicial);
       }
     } catch (_) {
+      // Sin el detalle técnico (antes salía el texto crudo del error): un mensaje que se entienda.
       if (mounted) {
-        setState(() => _text = 'Error en el servidor de la IA');
+        setState(() {
+          _text = 'Error en el servidor de la IA';
+          _esError = true;
+        });
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
+  String get _contador {
+    final segundos = (_recordDuration % 60).toString().padLeft(2, '0');
+    return '${_recordDuration ~/ 60}:$segundos';
+  }
+
+  String get _estado {
+    if (_isRecording) return _isPaused ? 'En pausa' : 'Te escucho…';
+    return _text;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colores = context.colores;
+    final textos = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: barraConVolver(context, context.tr('Registro por voz')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: _isProcessing
-                    ? const CircularProgressIndicator(color: AppColors.accent)
-                    : Text(
-                        _text,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: _isRecording ? FontWeight.bold : FontWeight.normal,
-                          color: (_isRecording && !_isPaused) ? AppColors.danger : AppColors.text,
-                        ),
+      appBar: barraConVolver(context, context.tr('Registro por voz'), subtitulo: nombreDeCuentaActiva()),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 90),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 14,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 290),
+                child: Text(
+                  context.tr('Contá qué gastaste o cobraste, como se lo dirías a alguien.'),
+                  textAlign: TextAlign.center,
+                  style: textos.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text(
+                context.tr('Por ejemplo: «Gasté 2.500 en el kiosco»'),
+                textAlign: TextAlign.center,
+                style: textos.bodyMedium?.copyWith(color: colores.suave),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 22, bottom: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  spacing: 20,
+                  children: [
+                    // Descartar y enviar aparecen solo mientras graba, a los costados del botón grande.
+                    if (_isRecording)
+                      _BotonChico(
+                        icono: Icons.delete_outline,
+                        etiqueta: context.tr('Descartar la grabación'),
+                        fondo: colores.coralFondo,
+                        color: colores.coralTexto,
+                        alTocar: _descartar,
                       ),
+                    SizedBox(
+                      width: 136,
+                      height: 136,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (_isRecording && !_isPaused) const _Halo(),
+                          Tocable(
+                            alTocar: _isProcessing ? null : (_isRecording ? _pausarOSeguir : _iniciarGrabacion),
+                            etiqueta: !_isRecording
+                                ? context.tr('Empezar a grabar')
+                                : _isPaused
+                                    ? context.tr('Seguir grabando')
+                                    : context.tr('Pausar la grabación'),
+                            child: Opacity(
+                              opacity: _isProcessing ? .45 : 1,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: colores.primario,
+                                  shape: BoxShape.circle,
+                                  boxShadow: colores.sombraBoton,
+                                ),
+                                child: Icon(
+                                  _isRecording && !_isPaused ? Icons.pause : Icons.mic_none,
+                                  size: 48,
+                                  color: colores.sobrePrimario,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_isRecording)
+                      _BotonChico(
+                        icono: Icons.send,
+                        etiqueta: context.tr('Enviar la grabación'),
+                        fondo: colores.primario,
+                        color: colores.sobrePrimario,
+                        alTocar: _enviar,
+                      ),
+                  ],
+                ),
               ),
-            ),
-            if (!_isRecording && !_isProcessing)
-              FloatingActionButton.large(
-                onPressed: _iniciarGrabacion,
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                elevation: 4,
-                child: const Icon(Icons.mic, size: 36),
-              )
-            else if (_isRecording)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FloatingActionButton(
-                    heroTag: 'btn_cancelar',
-                    onPressed: _cancelarYBorrarGrabacion,
-                    backgroundColor: AppColors.surface2,
-                    foregroundColor: AppColors.danger,
-                    elevation: 1,
-                    child: const Icon(Icons.delete_outline, size: 28),
-                  ),
-                  const SizedBox(width: 24),
-                  FloatingActionButton.large(
-                    heroTag: 'btn_pausa',
-                    onPressed: _isPaused ? _reanudarGrabacion : _pausarGrabacion,
-                    backgroundColor: _isPaused ? AppColors.accent : AppColors.surface3,
-                    foregroundColor: _isPaused ? Colors.white : AppColors.text,
-                    elevation: _isPaused ? 4 : 2,
-                    child: Icon(_isPaused ? Icons.mic : Icons.pause, size: 36),
-                  ),
-                  const SizedBox(width: 24),
-                  FloatingActionButton(
-                    heroTag: 'btn_enviar',
-                    onPressed: _finalizarYEnviarAudio,
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: Colors.white,
-                    elevation: 1,
-                    child: const Icon(Icons.send, size: 24),
-                  ),
-                ],
+              if (_isProcessing)
+                const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5)),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  context.tr(_estado),
+                  textAlign: TextAlign.center,
+                  style: textos.labelLarge?.copyWith(color: _esError ? colores.coralTexto : colores.texto),
+                ),
               ),
-            const SizedBox(height: 16),
-            Text(
-              _isProcessing
-                  ? 'Aguardá un momento...'
-                  : _isRecording
-                      ? (_isPaused ? 'Grabación pausada' : 'Grabando ahora...')
-                      : 'Tocá para grabar',
-              style: const TextStyle(color: AppColors.faint),
-            ),
-            const SizedBox(height: 24),
-          ],
+              if (_isRecording) Text(_contador, style: textos.bodySmall?.copyWith(color: colores.suave)),
+              if (_isRecording)
+                Text(
+                  context.tr('Tocá el botón grande para pausar y la flecha para enviar.'),
+                  textAlign: TextAlign.center,
+                  style: textos.bodySmall?.copyWith(color: colores.suave),
+                ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+// Los botones redondos de 56 a los costados del micrófono: descartar (coral) y enviar (verde).
+class _BotonChico extends StatelessWidget {
+  const _BotonChico({
+    required this.icono,
+    required this.etiqueta,
+    required this.fondo,
+    required this.color,
+    required this.alTocar,
+  });
+
+  final IconData icono;
+  final String etiqueta;
+  final Color fondo;
+  final Color color;
+  final VoidCallback alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tocable(
+      alTocar: alTocar,
+      etiqueta: etiqueta,
+      child: Container(
+        width: 56,
+        height: 56,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
+        child: Icon(icono, size: 26, color: color),
+      ),
+    );
+  }
+}
+
+// .latido de la maqueta: un círculo de 136 en verde que crece a 1,35 y se desvanece (de .45 a 0), en
+// Duraciones.brillo, sin parar. Con "reducir animaciones" queda quieto y suave.
+class _Halo extends StatefulWidget {
+  const _Halo();
+
+  @override
+  State<_Halo> createState() => _HaloState();
+}
+
+class _HaloState extends State<_Halo> with SingleTickerProviderStateMixin {
+  late final _controlador = AnimationController(vsync: this, duration: Duraciones.brillo);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controlador.stop();
+    } else if (!_controlador.isAnimating) {
+      _controlador.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controlador.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.colores.primario;
+    final circulo = DecoratedBox(
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      child: const SizedBox(width: 136, height: 136),
+    );
+    return ExcludeSemantics(
+      child: IgnorePointer(
+        child: MediaQuery.disableAnimationsOf(context)
+            ? Opacity(opacity: .2, child: circulo)
+            : AnimatedBuilder(
+                animation: _controlador,
+                builder: (context, hijo) {
+                  final t = Curves.easeOut.transform(_controlador.value);
+                  return Opacity(
+                    opacity: .45 * (1 - t),
+                    child: Transform.scale(scale: 1 + .35 * t, child: hijo),
+                  );
+                },
+                child: circulo,
+              ),
       ),
     );
   }

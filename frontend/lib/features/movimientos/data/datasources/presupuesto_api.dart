@@ -1,3 +1,4 @@
+import 'package:frontend/l10n/idioma.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
@@ -14,7 +15,7 @@ class PresupuestoApi {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(null, 'Error al obtener los presupuestos: $e');
+      throw ApiException(null, tr('Error al obtener los presupuestos: {error}', {'error': '$e'}));
     }
   }
 }

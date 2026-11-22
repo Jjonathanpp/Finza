@@ -1,18 +1,33 @@
 // features/configuracion/presentation/screens/configuracion_screen.dart
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/config/theme/apariencia.dart';
+import 'package:frontend/core/actualizacion/aviso_de_version.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/storage/token_storage.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/core/widgets/circulo_categoria.dart';
 import 'package:frontend/core/widgets/cuenta_usuario.dart';
+import 'package:frontend/core/widgets/eliminar_cuenta_dialog.dart';
+import 'package:frontend/core/widgets/fila_opcion.dart';
+import 'package:frontend/core/widgets/segmento.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
+import 'package:frontend/core/widgets/titulo_seccion.dart';
 import 'package:frontend/features/configuracion/data/datasources/preferencias_api.dart';
 import 'package:frontend/features/configuracion/presentation/screens/cambiar_password_screen.dart';
 import 'package:frontend/features/configuracion/presentation/viewmodels/configuracion_view_model.dart';
+import 'package:frontend/features/cuentas_compartidas/presentation/screens/miembros_screen.dart';
 import 'package:frontend/features/cuentas_compartidas/presentation/widgets/selector_de_cuenta.dart';
-import 'package:frontend/l10n/idioma.dart';
+import 'package:frontend/features/lista-invitaciones/presentation/screens/lista_invitaciones_screen.dart';
+import 'package:frontend/features/login/screens/login_screen.dart';
+import 'package:frontend/features/mercadopago/presentation/screens/mercadopago_screen.dart';
 import 'package:frontend/shared/utils/importe.dart';
+import 'package:frontend/l10n/idioma.dart';
 
-// Se abre tocando el usuario, abajo del menú lateral. Tiene la cuenta (personal o compartida, t-13.1.2),
-// la moneda (US-8.2), el idioma (US-8.3) y el cambio de contraseña.
+// Se abre desde el menú J. Tiene la cuenta (personal o compartida, t-13.1.2), la moneda (US-8.2),
+// la apariencia, Mercado Pago, la seguridad (contraseña y borrar la cuenta) y cerrar sesión.
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({super.key, this.api});
 
@@ -33,106 +48,222 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     super.dispose();
   }
 
-  Widget _titulo(String texto) => Padding(
-    padding: const EdgeInsets.fromLTRB(18, 12, 18, 4),
-    child: Text(
-      texto,
-      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
-    ),
-  );
+  Future<void> _cerrarSesion() async {
+    await TokenStorage().limpiar();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  void _ir(Widget pantalla) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => pantalla));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
     return Scaffold(
       appBar: barraConVolver(context, context.tr('Configuración')),
       body: ListenableBuilder(
-        listenable: Listenable.merge([_vm, monedaVista]),
+        listenable: Listenable.merge([
+          _vm,
+          monedaVista,
+          apariencia,
+          cuentaActiva,
+        ]),
         builder: (context, _) {
           final elegida = monedaVista.value.moneda;
           // Eligió dólares o euros, pero el backend no consiguió la cotización: se ve en pesos.
           final sinCotizacion = elegida != 'PESO' && !convierte;
-          final error = _vm.error;
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 24),
-            children: [
-              const CuentaUsuario(),
-              const Divider(color: AppColors.line),
-              const SelectorDeCuenta(),
-              const Divider(color: AppColors.line),
-              _titulo(context.tr('Moneda')),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: Text(
-                  context.tr(
-                    'Los montos se cargan siempre en pesos. Con otra moneda, se muestran convertidos con la cotización del día.',
-                  ),
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12.5,
+          final nota = sinCotizacion
+              ? context.tr('No se pudo conseguir la cotización: por ahora se ve en pesos.')
+              : aclaracionCotizacion;
+          final explicacion = context.tr(
+            'Los montos se cargan en pesos. En otra moneda se ven con la cotización del día.',
+          );
+          final cuenta = cuentaActiva.value;
+          final admin = cuenta?['rol'] == 'ADMIN';
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                // El perfil (.yo de 56).
+                Tarjeta(
+                  padding: const EdgeInsets.all(16),
+                  child: UsuarioActual(
+                    builder: (context, email) {
+                      final nombre = nombreDeUsuario(email);
+                      return Row(
+                        spacing: 14,
+                        children: [
+                          const AvatarUsuario(tamano: 56),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: 2,
+                              children: [
+                                // Si del mail no sale un nombre, va el mail solo.
+                                Text(
+                                  nombre.isEmpty ? email : nombre,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: textos.bodyMedium?.copyWith(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                if (nombre.isNotEmpty)
+                                  Text(
+                                    email,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: textos.bodySmall,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-              ),
-              RadioGroup<String>(
-                groupValue: elegida,
-                onChanged: (moneda) {
-                  if (moneda != null) _vm.elegirMoneda(moneda);
-                },
-                child: Column(
-                  children: [
-                    for (final (valor, nombre) in [
-                      ('PESO', context.tr('Pesos')),
-                      ('DOLAR', context.tr('Dólares')),
-                      ('EURO', context.tr('Euros')),
-                    ])
-                      RadioListTile<String>(
-                        value: valor,
-                        title: Text(nombre),
-                        enabled: !_vm.guardando,
+                TituloSeccion(context.tr('Cuenta que estás usando')),
+                const SelectorDeCuenta(),
+                if (cuenta != null) ...[
+                  TituloSeccion(cuenta['nombre'] as String),
+                  TarjetaLista(
+                    children: [
+                      FilaOpcion(
+                        titulo: admin ? context.tr('Miembros y roles') : context.tr('Ver miembros'),
+                        leading: CirculoCategoria(
+                          icono: Icons.group_outlined,
+                          color: c.serie[3],
+                          fondo: c.serieFondo[3],
+                        ),
+                        flecha: true,
+                        alTocar: () => _ir(
+                          MiembrosScreen(nombreCuenta: cuenta['nombre'] as String),
+                        ),
                       ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: Text(
-                  error ??
-                      (sinCotizacion
-                          ? context.tr(
-                              'No se pudo conseguir la cotización: por ahora se ve en pesos.',
-                            )
-                          : aclaracionCotizacion ?? ''),
-                  style: TextStyle(
-                    color: error != null ? AppColors.danger : AppColors.muted,
-                    fontSize: 12.5,
+                      if (admin)
+                        FilaOpcion(
+                          titulo: context.tr('Invitaciones'),
+                          leading: CirculoCategoria(
+                            icono: Icons.mail_outline,
+                            color: c.serie[2],
+                            fondo: c.serieFondo[2],
+                          ),
+                          flecha: true,
+                          alTocar: () => _ir(
+                            ListaInvitacionesScreen(
+                              cuentaCompartidaId: cuenta['id'] as int,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+                TituloSeccion(context.tr('Preferencias')),
+                Tarjeta(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Campo(
+                        etiqueta: context.tr('Moneda'),
+                        error: _vm.error,
+                        ayuda: nota == null ? explicacion : '$explicacion $nota',
+                        child: Segmento<String>(
+                          opciones: [
+                            ('PESO', context.tr('Pesos')),
+                            ('DOLAR', context.tr('Dólares')),
+                            ('EURO', context.tr('Euros')),
+                          ],
+                          valor: elegida,
+                          deshabilitadas: _vm.guardando
+                              ? const {'PESO', 'DOLAR', 'EURO'}
+                              : const {},
+                          alCambiar: _vm.elegirMoneda,
+                        ),
+                      ),
+                      Campo(
+                        etiqueta: context.tr('Apariencia'),
+                        child: Segmento<ThemeMode>(
+                          opciones: [(ThemeMode.light, context.tr('Claro')), (ThemeMode.dark, context.tr('Oscuro'))],
+                          valor: apariencia.value,
+                          alCambiar: guardarApariencia,
+                        ),
+                      ),
+                      // Un botón por cada archivo de assets/idiomas, más el español (US-8.3). Se guarda en el celular.
+                      Campo(
+                        etiqueta: context.tr('Idioma'),
+                        child: Segmento<String>(
+                          opciones: [for (final e in idiomas.entries) (e.key, e.value)],
+                          valor: idioma.value.languageCode,
+                          alCambiar: cambiarIdioma,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const Divider(color: AppColors.line),
-              _titulo(context.tr('Idioma')),
-              // Los idiomas salen de los archivos de assets/idiomas/, cada uno con su nombre en su idioma
-              RadioGroup<String>(
-                groupValue: idioma.value.languageCode,
-                onChanged: (codigo) => cambiarIdioma(codigo!),
-                child: Column(
+                TituloSeccion(context.tr('Conexiones')),
+                TarjetaLista(
                   children: [
-                    for (final MapEntry(key: codigo, value: nombre)
-                        in idiomas.entries)
-                      RadioListTile<String>(value: codigo, title: Text(nombre)),
+                    FilaOpcion(
+                      titulo: 'Mercado Pago',
+                      leading: CirculoCategoria(
+                        icono: Icons.account_balance_wallet_outlined,
+                        color: c.serie[2],
+                        fondo: c.serieFondo[2],
+                      ),
+                      flecha: true,
+                      alTocar: () => _ir(const MercadoPagoScreen()),
+                    ),
                   ],
                 ),
-              ),
-              const Divider(color: AppColors.line),
-              ListTile(
-                leading: const Icon(Icons.lock_outline),
-                title: Text(context.tr('Cambiar contraseña')),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const CambiarPasswordScreen(),
+                TituloSeccion(context.tr('Seguridad')),
+                TarjetaLista(
+                  children: [
+                    FilaOpcion(
+                      titulo: context.tr('Cambiar contraseña'),
+                      leading: CirculoCategoria(icono: Icons.lock_outline, color: c.serie[0], fondo: c.serieFondo[0]),
+                      flecha: true,
+                      alTocar: () => _ir(const CambiarPasswordScreen()),
+                    ),
+                    FilaOpcion(
+                      titulo: context.tr('Eliminar cuenta'),
+                      subtitulo: context.tr('Borra todos tus datos'),
+                      colorTitulo: c.coralTexto,
+                      leading: CirculoCategoria(
+                        icono: Icons.delete_outline_rounded,
+                        color: c.coralTexto,
+                        fondo: c.coralFondo,
+                      ),
+                      alTocar: () => EliminarCuentaDialog.mostrar(context),
+                    ),
+                  ],
+                ),
+                OutlinedButton.icon(
+                  onPressed: _cerrarSesion,
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: Text(context.tr('Cerrar sesión')),
+                ),
+                Center(
+                  child: Text(
+                    versionInstalada.isEmpty
+                        ? 'Finza'
+                        : 'Finza $versionInstalada',
+                    style: textos.bodySmall,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

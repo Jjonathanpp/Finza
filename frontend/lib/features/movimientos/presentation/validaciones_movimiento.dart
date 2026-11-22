@@ -1,5 +1,4 @@
 import 'package:frontend/l10n/idioma.dart';
-
 // Cada validación devuelve el error para mostrar debajo del campo, o null si está bien.
 
 // La columna del monto es numeric(12,2): más grande que esto, el backend da 500.

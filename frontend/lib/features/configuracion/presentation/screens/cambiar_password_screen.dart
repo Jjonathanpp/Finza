@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/campo.dart';
 import 'package:frontend/features/configuracion/data/datasources/preferencias_api.dart';
 import 'package:frontend/features/configuracion/presentation/viewmodels/cambiar_password_view_model.dart';
 import 'package:frontend/l10n/idioma.dart';
@@ -42,14 +43,14 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
     final ok = await _vm.cambiarPassword(_actualCtrl.text, _nuevaCtrl.text);
     if (!ok || !mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr('Contraseña cambiada exitosamente'))),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('Contraseña cambiada exitosamente'))));
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
     return Scaffold(
       appBar: barraConVolver(context, context.tr('Cambiar contraseña')),
       body: ListenableBuilder(
@@ -57,86 +58,91 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
         builder: (context, _) {
           final error = _vm.error;
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextFormField(
-                    controller: _actualCtrl,
-                    obscureText: _ocultar,
-                    enabled: !_vm.guardando,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Contraseña actual'),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _ocultar ? Icons.visibility : Icons.visibility_off,
+                  Campo(
+                    etiqueta: context.tr('Contraseña actual'),
+                    child: TextFormField(
+                      controller: _actualCtrl,
+                      obscureText: _ocultar,
+                      enabled: !_vm.guardando,
+                      decoration: InputDecoration(
+                        hintText: context.tr('La que usás hoy'),
+                        suffixIcon: IconButton(
+                          tooltip: _ocultar ? context.tr('Mostrar contraseñas') : context.tr('Ocultar contraseñas'),
+                          icon: Icon(_ocultar ? Icons.visibility : Icons.visibility_off),
+                          onPressed: () => setState(() => _ocultar = !_ocultar),
                         ),
-                        onPressed: () => setState(() => _ocultar = !_ocultar),
+                      ),
+                      validator: (v) => (v == null || v.isEmpty) ? context.tr('Ingresá tu contraseña actual') : null,
+                    ),
+                  ),
+                  Campo(
+                    etiqueta: context.tr('Nueva contraseña'),
+                    child: TextFormField(
+                      controller: _nuevaCtrl,
+                      obscureText: _ocultar,
+                      enabled: !_vm.guardando,
+                      decoration: InputDecoration(hintText: context.tr('Mínimo 8 caracteres')),
+                      validator: (v) {
+                        if (v == null || v.length < 8) {
+                          return context.tr('La contraseña debe tener al menos 8 caracteres');
+                        }
+                        if (v == _actualCtrl.text) {
+                          return context.tr('La nueva contraseña debe ser distinta a la actual');
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  Campo(
+                    etiqueta: context.tr('Repetí la nueva'),
+                    child: TextFormField(
+                      controller: _confirmarCtrl,
+                      obscureText: _ocultar,
+                      enabled: !_vm.guardando,
+                      decoration: InputDecoration(hintText: context.tr('La misma de arriba')),
+                      validator: (v) => v != _nuevaCtrl.text ? context.tr('Las contraseñas no coinciden') : null,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Text(context.tr('Tiene que ser distinta a la actual.'), style: textos.bodySmall),
+                  ),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Text(
+                        error,
+                        style: textos.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: c.coralTexto,
+                        ),
                       ),
                     ),
-                    validator: (v) => (v == null || v.isEmpty)
-                        ? context.tr('Ingresá tu contraseña actual')
+                  FilledButton(
+                    onPressed: _vm.guardando ? null : _guardar,
+                    // Mientras guarda sigue verde, con la ruedita: no está apagado, está esperando.
+                    style: _vm.guardando
+                        ? FilledButton.styleFrom(
+                            disabledBackgroundColor: c.primario,
+                            disabledForegroundColor: c.sobrePrimario,
+                          )
                         : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _nuevaCtrl,
-                    obscureText: _ocultar,
-                    enabled: !_vm.guardando,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Nueva contraseña'),
-                    ),
-                    validator: (v) {
-                      if (v == null || v.length < 8) {
-                        return context.tr(
-                          'La contraseña debe tener al menos 8 caracteres',
-                        );
-                      }
-                      if (v == _actualCtrl.text) {
-                        return context.tr(
-                          'La nueva contraseña debe ser distinta a la actual',
-                        );
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _confirmarCtrl,
-                    obscureText: _ocultar,
-                    enabled: !_vm.guardando,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Confirmar nueva contraseña'),
-                    ),
-                    validator: (v) => v != _nuevaCtrl.text
-                        ? context.tr('Las contraseñas no coinciden')
-                        : null,
-                  ),
-                  if (error != null) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      error,
-                      style: const TextStyle(
-                        color: AppColors.danger,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _vm.guardando ? null : _guardar,
-                      child: _vm.guardando
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(context.tr('Cambiar contraseña')),
-                    ),
+                    child: _vm.guardando
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: c.sobrePrimario,
+                            ),
+                          )
+                        : Text(context.tr('Cambiar contraseña')),
                   ),
                 ],
               ),

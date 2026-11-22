@@ -1,7 +1,15 @@
+import 'package:frontend/core/errors/api_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/core/widgets/chip_estado.dart';
+import 'package:frontend/core/widgets/hoja.dart';
+import 'package:frontend/core/widgets/segmento.dart';
+import 'package:frontend/core/widgets/tocable.dart';
 import 'package:frontend/l10n/idioma.dart';
 
+// La hoja "Exportar reporte" (maqueta L718-727): desde y hasta, qué incluye, el formato y los botones.
 class ExportarReporteDialog extends StatefulWidget {
   const ExportarReporteDialog({
     super.key,
@@ -14,25 +22,19 @@ class ExportarReporteDialog extends StatefulWidget {
   final DateTime? fechaInicial;
   final DateTime? fechaFinal;
   final bool cuentaCompartidaActiva;
-  final Future<void> Function(String alcance, DateTime desde, DateTime hasta)
-  onExportar;
+  final Future<void> Function(String alcance, DateTime desde, DateTime hasta) onExportar;
 
   static Future<void> mostrar(
     BuildContext context, {
     required DateTime? fechaInicial,
     required DateTime? fechaFinal,
     required bool cuentaCompartidaActiva,
-    required Future<void> Function(
-      String alcance,
-      DateTime desde,
-      DateTime hasta,
-    )
-    onExportar,
+    required Future<void> Function(String alcance, DateTime desde, DateTime hasta) onExportar,
   }) {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => ExportarReporteDialog(
+    return mostrarHoja<void>(
+      context,
+      titulo: context.tr('Exportar reporte'),
+      contenido: ExportarReporteDialog(
         fechaInicial: fechaInicial,
         fechaFinal: fechaFinal,
         cuentaCompartidaActiva: cuentaCompartidaActiva,
@@ -53,7 +55,6 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
   String? _error;
 
   bool get _fechasValidas => !_desde.isAfter(_hasta);
-  bool get _mostrarAlcance => widget.cuentaCompartidaActiva;
 
   Future<void> _exportar() async {
     if (_cargando || !_fechasValidas) return;
@@ -69,18 +70,21 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
       if (!mounted) return;
       setState(() {
         _cargando = false;
-        _error = e.toString().replaceFirst('Exception: ', '');
+        // Si el backend dice por qué (p. ej. no hay movimientos en ese período), se muestra eso.
+        _error = e is ApiException ? e.message : context.tr('No se pudo generar el reporte. Intentá de nuevo.');
       });
     }
   }
 
   Future<void> _elegirFecha(bool esDesde) async {
+    // Sin fechas futuras (Eze en main): un reporte de lo que todavía no pasó sale vacío.
+    final hoy = DateTime.now();
     final inicial = esDesde ? _desde : _hasta;
     final elegida = await showDatePicker(
       context: context,
-      initialDate: inicial,
+      initialDate: inicial.isAfter(hoy) ? hoy : inicial,
       firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      lastDate: hoy,
     );
     if (elegida == null) return;
     setState(() {
@@ -92,130 +96,140 @@ class _ExportarReporteDialogState extends State<ExportarReporteDialog> {
     });
   }
 
+  String _fecha(DateTime f) => '${f.day}/${f.month}/${f.year}';
+
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      title: Text(
-        context.tr('Exportar reporte'),
-        style: TextStyle(color: AppColors.text),
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.tr('Formato'),
-              style: TextStyle(
-                color: AppColors.text,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text('PDF', style: TextStyle(color: AppColors.muted)),
-            const SizedBox(height: 16),
-
-            if (_mostrarAlcance) ...[
-              Text(
-                context.tr('Alcance'),
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontWeight: FontWeight.w600,
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
+    final compartida = widget.cuentaCompartidaActiva;
+    final nombreCuenta = cuentaActiva.value?['nombre'] as String?;
+    return PopScope(
+      canPop: !_cargando,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 10,
+            children: [
+              Expanded(
+                child: Campo(
+                  etiqueta: context.tr('Desde'),
+                  child: _Caja(
+                    texto: _fecha(_desde),
+                    etiqueta: context.tr('Desde {fecha}', {'fecha': _fecha(_desde)}),
+                    alTocar: _cargando ? null : () => _elegirFecha(true),
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
-              RadioGroup<String>(
-                groupValue: _alcance,
-                onChanged: (v) => setState(() => _alcance = v!),
-                child: Column(
-                  children: [
-                    RadioListTile<String>(
-                      value: 'solo_propios',
-                      enabled: !_cargando,
-                      title: Text(
-                        context.tr('Mis registros'),
-                        style: TextStyle(color: AppColors.text),
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    RadioListTile<String>(
-                      value: 'cuenta_completa',
-                      enabled: !_cargando,
-                      title: Text(
-                        context.tr('Consolidado grupal'),
-                        style: TextStyle(color: AppColors.text),
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ],
+              Expanded(
+                child: Campo(
+                  etiqueta: context.tr('Hasta'),
+                  child: _Caja(
+                    texto: _fecha(_hasta),
+                    etiqueta: context.tr('Hasta {fecha}', {'fecha': _fecha(_hasta)}),
+                    alTocar: _cargando ? null : () => _elegirFecha(false),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
             ],
-
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                OutlinedButton(
-                  onPressed: _cargando ? null : () => _elegirFecha(true),
-                  child: Text(
-                    context.tr('Desde: {fecha}', {
-                      'fecha':
-                          '${_desde.day.toString().padLeft(2, '0')}/${_desde.month.toString().padLeft(2, '0')}/${_desde.year}',
-                    }),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: _cargando ? null : () => _elegirFecha(false),
-                  child: Text(
-                    context.tr('Hasta: {fecha}', {
-                      'fecha':
-                          '${_hasta.day.toString().padLeft(2, '0')}/${_hasta.month.toString().padLeft(2, '0')}/${_hasta.year}',
-                    }),
-                  ),
-                ),
-              ],
+          ),
+          if (!_fechasValidas)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Text(
+                'La fecha "desde" no puede ser posterior a "hasta".',
+                style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: c.coralTexto),
+              ),
             ),
-            if (!_fechasValidas)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text(
-                  'La fecha "desde" no puede ser posterior a "hasta".',
-                  style: TextStyle(color: AppColors.danger, fontSize: 12),
-                ),
-              ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(color: AppColors.danger, fontSize: 12),
-                ),
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _cargando ? null : () => Navigator.of(context).pop(),
-          child: Text(context.tr('Cancelar')),
-        ),
-        FilledButton(
-          onPressed: (_cargando || !_fechasValidas) ? null : _exportar,
-          child: _cargando
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+          // Elegir qué incluye solo tiene sentido en una compartida (Eze en main); en la personal no se muestra.
+          if (compartida)
+            Campo(
+              etiqueta: context.tr('Qué incluye'),
+              child: Segmento<String>(
+                opciones: [
+                  ('solo_propios', context.tr('Mis registros')),
+                  (
+                    'cuenta_completa',
+                    compartida && nombreCuenta != null
+                        ? context.tr('Todo {cuenta}', {'cuenta': nombreCuenta})
+                        : context.tr('Consolidado'),
                   ),
-                )
-              : Text(context.tr('Exportar')),
-        ),
-      ],
+                ],
+                valor: _alcance,
+                deshabilitadas: {if (_cargando) 'cuenta_completa', if (_cargando) 'solo_propios'},
+                alCambiar: (v) => setState(() => _alcance = v),
+              ),
+            ),
+          Campo(
+            etiqueta: context.tr('Formato'),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ChipEstado('PDF', TonoChip.menta, icono: Icons.picture_as_pdf_outlined),
+            ),
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Text(
+                _error!,
+                style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: c.coralTexto),
+              ),
+            ),
+          Row(
+            spacing: 10,
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _cargando ? null : () => Navigator.of(context).pop(),
+                  child: Text(context.tr('Cancelar')),
+                ),
+              ),
+              Expanded(
+                child: FilledButton(
+                  onPressed: (_cargando || !_fechasValidas) ? null : _exportar,
+                  child: _cargando
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: c.sobrePrimario),
+                        )
+                      : Text(context.tr('Exportar')),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
+  }
+}
+
+// .caja de la maqueta: el botón con la fecha, de 48 px de alto, fondo hundido y radio de control.
+class _Caja extends StatelessWidget {
+  const _Caja({required this.texto, required this.etiqueta, required this.alTocar});
+
+  final String texto;
+  final String etiqueta;
+  final VoidCallback? alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colores;
+    final caja = Container(
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(color: c.hundido, borderRadius: BorderRadius.circular(Radios.control)),
+      child: Text(
+        texto,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: c.texto),
+      ),
+    );
+    if (alTocar == null) return Opacity(opacity: .45, child: caja);
+    return Tocable(alTocar: alTocar, etiqueta: etiqueta, child: caja);
   }
 }

@@ -114,24 +114,31 @@ public class MercadoPagoSyncService {
         List<Movimiento> nuevosMovimientos = new ArrayList<>();
         int duplicadosOmitidos = 0;
 
+        int errores = 0;
         for (TransaccionMPResponseDTO dto : busqueda.getResultados()) {
-            if (dto.getId() == null) {
-                continue;
+            try {
+                if (dto.getId() == null) {
+                    continue;
+                }
+
+                String externalId = String.valueOf(dto.getId());
+
+                if (movimientoRepository.existsByExternalIdAndPerfilId(externalId, perfil.getId())) {
+                    duplicadosOmitidos++;
+                    continue;
+                }
+
+                boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
+                Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO
+                        : Categoria.TipoCategoria.EGRESO;
+                Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
+
+                Movimiento nuevo = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
+                nuevosMovimientos.add(nuevo);
+            } catch (Exception e) {
+                log.error("Error al procesar movimiento individual de MP (id={}): {}", dto.getId(), e.getMessage());
+                errores++;
             }
-
-            String externalId = String.valueOf(dto.getId());
-
-            if (movimientoRepository.existsByExternalIdAndPerfilId(externalId, perfil.getId())) {
-                duplicadosOmitidos++;
-                continue;
-            }
-
-            boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
-            Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
-            Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
-
-            Movimiento nuevo = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
-            nuevosMovimientos.add(nuevo);
         }
 
         List<Movimiento> guardados = nuevosMovimientos.isEmpty() ? List.of()
@@ -141,7 +148,7 @@ public class MercadoPagoSyncService {
                 .procesadas(busqueda.getResultados().size())
                 .creadas(guardados.size())
                 .omitidas(duplicadosOmitidos)
-                .errores(0)
+                .errores(errores)
                 .movimientos(guardados)
                 .build();
     }
@@ -175,31 +182,38 @@ public class MercadoPagoSyncService {
         int duplicadosOmitidos = 0;
         int procesadas = 0;
 
+        int errores = 0;
         for (TransaccionMPResponseDTO dto : busqueda.getResultados()) {
-            if (dto.getId() == null) {
-                continue;
+            try {
+                if (dto.getId() == null) {
+                    continue;
+                }
+
+                String externalId = String.valueOf(dto.getId());
+
+                if (!externalIds.contains(externalId)) {
+                    continue;
+                }
+
+                procesadas++;
+
+                if (movimientoRepository.existsByExternalIdAndPerfilId(externalId, perfil.getId())) {
+                    duplicadosOmitidos++;
+                    continue;
+                }
+
+                boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
+                Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO
+                        : Categoria.TipoCategoria.EGRESO;
+                Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
+
+                Movimiento nuevo = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
+                nuevo.setImportadoPor(usuarioId);
+                nuevosMovimientos.add(nuevo);
+            } catch (Exception e) {
+                log.error("Error al importar movimiento seleccionado de MP (id={}): {}", dto.getId(), e.getMessage());
+                errores++;
             }
-
-            String externalId = String.valueOf(dto.getId());
-
-            if (!externalIds.contains(externalId)) {
-                continue;
-            }
-
-            procesadas++;
-
-            if (movimientoRepository.existsByExternalIdAndPerfilId(externalId, perfil.getId())) {
-                duplicadosOmitidos++;
-                continue;
-            }
-
-            boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
-            Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
-            Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
-
-            Movimiento nuevo = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
-            nuevo.setImportadoPor(usuarioId); // SETEAR importadoPor
-            nuevosMovimientos.add(nuevo);
         }
 
         List<Movimiento> guardados = nuevosMovimientos.isEmpty() ? List.of()
@@ -209,7 +223,7 @@ public class MercadoPagoSyncService {
                 .procesadas(procesadas)
                 .creadas(guardados.size())
                 .omitidas(duplicadosOmitidos)
-                .errores(0)
+                .errores(errores)
                 .movimientos(guardados)
                 .build();
     }

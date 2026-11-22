@@ -32,7 +32,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MovimientoServiceImpl implements MovimientoService {
@@ -351,8 +353,13 @@ public class MovimientoServiceImpl implements MovimientoService {
 
             } catch (Exception e) {
                 try {
+                    // En la descripción va solo un mensaje nuestro (IAService.ErrorDeIA): el error técnico
+                    // (p. ej. un 4xx de Gemini) trae la dirección del pedido y va solo al registro.
+                    log.warn("La IA no pudo procesar el audio del movimiento {}: {}", idMovimiento, e.toString());
+                    String msg = e instanceof IAService.ErrorDeIA
+                            ? e.getMessage()
+                            : "No pudimos entender el audio. Cargalo a mano o probá grabarlo de nuevo.";
                     movimientoRepository.findById(idMovimiento).ifPresent(aActualizar -> {
-                        String msg = e.getMessage() != null ? e.getMessage() : "Error desconocido";
                         aActualizar.setDescripcion(truncar("❌ Error de IA: " + msg, 250));
                         aActualizar.setEstado(Movimiento.EstadoMovimiento.ERROR_IA);
                         movimientoRepository.save(aActualizar);

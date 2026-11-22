@@ -7,6 +7,7 @@ import 'package:frontend/features/home/presentation/screens/home_screen.dart';
 import 'package:frontend/features/home/presentation/screens/pantalla_principal.dart';
 import 'package:frontend/features/movimientos/presentation/screens/alta_movimiento_screen.dart';
 import 'package:frontend/features/movimientos/presentation/screens/movimientos_screen.dart';
+import 'package:frontend/features/presupuestos/presentation/screens/presupuestos_screen.dart';
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
@@ -16,55 +17,80 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('la barra cambia de pestaña: Inicio, Historial y Categorías', (tester) async {
+  testWidgets('la barra cambia de pestaña: Inicio, Movimientos y Presupuestos', (tester) async {
     await abrir(tester);
     expect(find.byType(HomeScreen), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Historial'));
+    await tester.tap(find.bySemanticsLabel('Movimientos'));
     await tester.pumpAndSettle();
     expect(find.byType(MovimientosScreen), findsOneWidget);
     expect(find.byType(HomeScreen), findsNothing);
 
-    await tester.tap(find.byTooltip('Categorías'));
+    await tester.tap(find.bySemanticsLabel('Presupuestos'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PresupuestosScreen), findsOneWidget);
+    expect(find.byType(MovimientosScreen), findsNothing);
+  });
+
+  testWidgets('Categorías ya no es una pestaña: se abre desde el menú', (tester) async {
+    await abrir(tester);
+    expect(find.bySemanticsLabel('Categorías'), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Abrir el menú'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Categorías'));
     await tester.pumpAndSettle();
     expect(find.byType(CategoriasScreen), findsOneWidget);
   });
 
-  testWidgets('el + despliega las opciones y tocando afuera se cierran', (tester) async {
+  testWidgets('el + abre la hoja con las formas de cargar, y Cancelar la cierra', (tester) async {
     await abrir(tester);
-    final manual = find.text('Movimiento manual').hitTestable();
+    final manual = find.text('Gasto o ingreso').hitTestable();
     expect(manual, findsNothing);
 
-    await tester.tap(find.byTooltip('Agregar'));
+    await tester.tap(find.byTooltip('Cargar algo'));
     await tester.pumpAndSettle();
     expect(manual, findsOneWidget);
-    expect(find.text('Registrar por voz').hitTestable(), findsOneWidget);
-    expect(find.text('Mercado Pago').hitTestable(), findsOneWidget);
+    expect(find.text('Por voz').hitTestable(), findsOneWidget);
+    expect(find.text('Desde Mercado Pago').hitTestable(), findsOneWidget);
+    expect(find.text('Cancelar').hitTestable(), findsOneWidget);
 
-    await tester.tapAt(const Offset(20, 200));
+    await tester.tap(find.text('Cancelar'));
     await tester.pumpAndSettle();
     expect(manual, findsNothing);
   });
 
-  testWidgets('"Movimiento manual" abre el alta', (tester) async {
+  testWidgets('tocando afuera de la hoja del + se cierra', (tester) async {
     await abrir(tester);
-    await tester.tap(find.byTooltip('Agregar'));
+    await tester.tap(find.byTooltip('Cargar algo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Gasto o ingreso').hitTestable(), findsOneWidget);
+
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+    expect(find.text('Gasto o ingreso').hitTestable(), findsNothing);
+  });
+
+  testWidgets('"Gasto o ingreso" abre el alta', (tester) async {
+    await abrir(tester);
+    await tester.tap(find.byTooltip('Cargar algo'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Movimiento manual'));
+    await tester.tap(find.text('Gasto o ingreso'));
     await tester.pumpAndSettle();
     expect(find.byType(AltaMovimientoScreen), findsOneWidget);
   });
 
-  testWidgets('abajo del menú está el mail del usuario, y tocándolo se abre Configuración', (tester) async {
+  testWidgets('el avatar abre el menú con el mail del usuario, y Configuración se abre desde ahí', (tester) async {
     FlutterSecureStorage.setMockInitialValues({'auth_email': 'demo@finza.local'});
     await abrir(tester);
 
-    await tester.tap(find.byIcon(Icons.menu));
+    await tester.tap(find.bySemanticsLabel('Abrir el menú'));
     await tester.pumpAndSettle();
+    expect(find.text('demo@finza.local'), findsOneWidget);
     expect(find.text('Cerrar sesión'), findsOneWidget); // estaba repetido
 
-    await tester.tap(find.text('demo@finza.local'));
+    await tester.tap(find.text('Configuración'));
     await tester.pumpAndSettle();
     expect(find.byType(ConfiguracionScreen), findsOneWidget);
     expect(find.text('Dólares'), findsOneWidget);

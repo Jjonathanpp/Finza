@@ -3,6 +3,7 @@ import 'package:frontend/config/theme/app_theme.dart';
 import '../network/cuenta_service.dart';
 import '../storage/token_storage.dart';
 import 'package:frontend/core/session/portero.dart';
+import 'package:frontend/core/widgets/campo.dart';
 import 'package:frontend/l10n/idioma.dart';
 
 class EliminarCuentaDialog extends StatefulWidget {
@@ -60,7 +61,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
       case EliminarCuentaResultado.passwordIncorrecta:
         setState(() {
           _cargando = false;
-          _error = tr('La contraseña es incorrecta');
+          _error = context.tr('La contraseña es incorrecta');
         });
         break;
       case EliminarCuentaResultado.sesionInvalida:
@@ -73,7 +74,7 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
       case EliminarCuentaResultado.error:
         setState(() {
           _cargando = false;
-          _error = tr('No se pudo eliminar la cuenta. Intentá de nuevo.');
+          _error = context.tr('No se pudo eliminar la cuenta. Intentá de nuevo.');
         });
         break;
     }
@@ -81,113 +82,105 @@ class _EliminarCuentaDialogState extends State<EliminarCuentaDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      title: Text(
-        context.tr('Eliminar cuenta'),
-        style: TextStyle(color: AppColors.text),
-      ),
-      content: SingleChildScrollView(
+    final colores = context.colores;
+    final textos = Theme.of(context).textTheme;
+
+    return Dialog(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Banner de advertencia visual con contenedor y fondo sutil
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.warning_amber_rounded,
-                    color: Color.fromARGB(255, 214, 23, 23),
-                    size: 22,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      context.tr(
-                        'Esta acción es definitiva: se eliminarán tu cuenta, tus perfiles, movimientos, presupuestos y categorías. No se puede deshacer.',
-                      ),
-                      style: TextStyle(
-                        color: Color.fromARGB(255, 214, 23, 23),
-                        fontSize: 13,
-                        height: 1.3,
-                      ),
-                    ),
-                  ),
-                ],
+            // El círculo coral con el tacho (.cat.cc de 52)
+            DecoratedBox(
+              decoration: BoxDecoration(color: colores.coralFondo, shape: BoxShape.circle),
+              child: SizedBox(
+                width: 52,
+                height: 52,
+                child: Icon(Icons.delete_outline_rounded, size: 24, color: colores.coralTexto),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+            Text(context.tr('Eliminar tu cuenta'), style: textos.titleLarge),
+            const SizedBox(height: 14),
+            Text(
+              context.tr('Se borran tu cuenta, tus perfiles y todos tus datos. No se puede deshacer.'),
+              style: textos.bodyMedium?.copyWith(color: colores.suave),
+            ),
+            const SizedBox(height: 14),
 
-            // 2. Campo de contraseña
-            TextField(
-              controller: _passwordController,
-              obscureText: _ocultarPassword,
-              enabled: !_cargando,
-              autofocus: true,
-              style: const TextStyle(color: AppColors.text),
-              onChanged: (_) => setState(() => _error = null),
-              decoration: InputDecoration(
-                labelText: context.tr('Contraseña actual'),
-                errorText: _error,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _ocultarPassword ? Icons.visibility : Icons.visibility_off,
-                    color: AppColors.muted,
+            // Campo de contraseña
+            Campo(
+              etiqueta: context.tr('Tu contraseña'),
+              child: TextField(
+                controller: _passwordController,
+                obscureText: _ocultarPassword,
+                enabled: !_cargando,
+                autofocus: true,
+                style: textos.bodyLarge,
+                onChanged: (_) => setState(() => _error = null),
+                decoration: InputDecoration(
+                  hintText: context.tr('Para confirmar que sos vos'),
+                  errorText: _error,
+                  suffixIcon: IconButton(
+                    tooltip: _ocultarPassword ? context.tr('Mostrar contraseña') : context.tr('Ocultar contraseña'),
+                    icon: Icon(_ocultarPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setState(() => _ocultarPassword = !_ocultarPassword),
                   ),
-                  onPressed: () =>
-                      setState(() => _ocultarPassword = !_ocultarPassword),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
 
-            // 3. Casilla de verificación (Checkbox) para aceptar el riesgo
+            // Casilla para aceptar el riesgo
             CheckboxListTile(
               value: _aceptoTerminos,
-              onChanged: _cargando
-                  ? null
-                  : (valor) => setState(() => _aceptoTerminos = valor ?? false),
+              onChanged: _cargando ? null : (valor) => setState(() => _aceptoTerminos = valor ?? false),
               title: Text(
-                context.tr(
-                  'Entiendo que perderé todos mis datos y no podré recuperar la cuenta.',
-                ),
-                style: TextStyle(color: AppColors.text, fontSize: 13),
+                context.tr('Entiendo que pierdo todos mis datos y que no se pueden recuperar.'),
+                style: textos.bodyMedium,
               ),
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
-              activeColor: AppColors.danger,
+              activeColor: colores.coral,
+              checkColor: colores.sobrePrimario,
+            ),
+            const SizedBox(height: 14),
+
+            // .acciones: dos botones iguales
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _cargando ? null : () => Navigator.of(context).pop(),
+                    child: Text(context.tr('Cancelar')),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  // .btn.bpel
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colores.coralFondo,
+                      foregroundColor: colores.coralTexto,
+                      disabledBackgroundColor: colores.coralFondo.withValues(alpha: .45),
+                      disabledForegroundColor: colores.coralTexto.withValues(alpha: .45),
+                    ),
+                    onPressed: _puedeEliminar ? _eliminar : null,
+                    child: _cargando
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: colores.coralTexto),
+                          )
+                        : Text(context.tr('Eliminar')),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _cargando ? null : () => Navigator.of(context).pop(),
-          child: Text(context.tr('Cancelar')),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-          onPressed: _puedeEliminar ? _eliminar : null,
-          child: _cargando
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(context.tr('Eliminar definitivamente')),
-        ),
-      ],
     );
   }
 }

@@ -2,7 +2,7 @@ import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/presupuestos/data/models/presupuesto.dart';
 import 'package:frontend/l10n/idioma.dart';
- 
+
 class PresupuestoApi {
   PresupuestoApi(this._client);
   final ApiClient _client;

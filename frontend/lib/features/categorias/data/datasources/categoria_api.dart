@@ -25,8 +25,14 @@ class CategoriaApi {
   }
 
   // La respuesta no se lee: el PUT devuelve la entidad entera, con otros nombres de campos.
-  Future<void> editar(Categoria categoria, {required String nombre, required String color}) async {
-    await _api.put('/api/categorias/${categoria.id}', {
+  // En una cuenta compartida va su id: el backend deja editar y borrar solo a los admins.
+  Future<void> editar(
+    Categoria categoria, {
+    required String nombre,
+    required String color,
+    int? cuentaCompartidaId,
+  }) async {
+    await _api.put(_ruta(categoria.id, cuentaCompartidaId), {
       'nombre': nombre,
       'color': color,
       // Hoy el PUT no lo usa, pero es el mismo pedido del alta, donde es obligatorio.
@@ -34,7 +40,11 @@ class CategoriaApi {
     });
   }
 
-  Future<void> eliminar(Categoria categoria) async {
-    await _api.delete('/api/categorias/${categoria.id}');
+  Future<void> eliminar(Categoria categoria, {int? cuentaCompartidaId}) async {
+    await _api.delete(_ruta(categoria.id, cuentaCompartidaId));
   }
+
+  String _ruta(int id, int? cuentaCompartidaId) => cuentaCompartidaId == null
+      ? '/api/categorias/$id'
+      : '/api/categorias/$id?cuentaCompartidaId=$cuentaCompartidaId';
 }

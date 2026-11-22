@@ -31,6 +31,8 @@ class GastoCategoria {
         nombre: json['nombre'],
         color: json['color'],
         total: (json['total'] as num).toDouble(),
-        porcentaje: (json['porcentaje'] as num).toDouble(),
+        // En la comparación de una cuenta compartida el backend manda las categorías de cada
+        // período sin porcentaje (null); sin este ?? 0, Informes no cargaba en la compartida.
+        porcentaje: (json['porcentaje'] as num?)?.toDouble() ?? 0,
       );
 }

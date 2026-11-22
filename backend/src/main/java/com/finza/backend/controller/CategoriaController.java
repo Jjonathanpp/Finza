@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.finza.backend.dto.CategoriaRequest;
@@ -46,12 +47,14 @@ public class CategoriaController {
     public ResponseEntity<Object> editarCategoria(
             @PathVariable Long id,
             @AuthenticationPrincipal Long cuentaId,
+            @RequestParam(required = false) Long cuentaCompartidaId,
             @Valid @RequestBody CategoriaRequest request) {
         CategoriaResponseDTO categoria = categoriaService.editarCategoria(
                 id,
                 cuentaId,
                 request.getNombre(),
-                request.getColor()
+                request.getColor(),
+                cuentaCompartidaId
         );
         return Response.ok(categoria, "Categoría actualizada correctamente");
     }
@@ -59,8 +62,9 @@ public class CategoriaController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> eliminarCategoria(
             @PathVariable Long id,
-            @AuthenticationPrincipal Long cuentaId) {
-        categoriaService.eliminarCategoria(id, cuentaId);
+            @AuthenticationPrincipal Long cuentaId,
+            @RequestParam(required = false) Long cuentaCompartidaId) {
+        categoriaService.eliminarCategoria(id, cuentaId, cuentaCompartidaId);
         return Response.ok(null, "Categoría eliminada correctamente");
     }
 }

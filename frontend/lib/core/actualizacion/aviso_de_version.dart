@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/session/portero.dart';
+import 'package:frontend/core/widgets/logo_finza.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:frontend/l10n/idioma.dart';
 
@@ -58,14 +60,46 @@ Future<void> avisarSiHayVersionNueva({
 
   final actualizar = await showDialog<bool>(
     context: contexto,
-    builder: (contexto) => AlertDialog(
-      title: Text(contexto.tr('Hay una versión nueva de Finza')),
-      content: Text(contexto.tr('Tenés la {instalada} y ya salió la {nueva}. Se instala encima, sin perder nada.', {'instalada': instalada, 'nueva': version})),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(contexto, false), child: Text(contexto.tr('Más tarde'))),
-        FilledButton(onPressed: () => Navigator.pop(contexto, true), child: Text(contexto.tr('Actualizar'))),
-      ],
-    ),
+    builder: (contexto) {
+      final textos = Theme.of(contexto).textTheme;
+      return Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const LogoFinza(tamano: 56),
+              const SizedBox(height: 14),
+              Text(tr('Hay una versión nueva de Finza'), style: textos.titleLarge),
+              const SizedBox(height: 14),
+              Text(
+                tr('Tenés la {instalada} y ya salió la {version}. Se instala encima, sin perder nada.', {
+                  'instalada': instalada,
+                  'version': version,
+                }),
+                style: textos.bodyMedium?.copyWith(color: contexto.colores.suave),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(contexto, false),
+                      child: Text(tr('Más tarde')),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton(onPressed: () => Navigator.pop(contexto, true), child: Text(tr('Actualizar'))),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
   );
   if (actualizar == true) await abrir(Uri.parse(apk));
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:frontend/core/errors/api_exception.dart';
 import 'package:frontend/features/metas_ahorro/data/datasources/metas_ahorro_api.dart';
@@ -9,8 +11,8 @@ class MetasAhorroViewModel extends ChangeNotifier {
 
   final MetasAhorroApi _api;
   List<MetaAhorro> _metas = [];
-  final Map<int, List<AporteMetaAhorro>> _aportesPorMeta = {};
-  final Set<int> _cargandoAportes = {};
+  // El desglose de cada meta de una compartida, por id. Si no llegó, se usan los aportes de la lista.
+  final Map<int, List<AporteMetaAhorro>> _aportes = {};
   bool _cargando = false;
   String? _error;
   bool _cerrado = false;
@@ -20,9 +22,7 @@ class MetasAhorroViewModel extends ChangeNotifier {
   String? get error => _error;
 
   List<AporteMetaAhorro> aportesDe(MetaAhorro meta) =>
-      _aportesPorMeta[meta.id] ?? meta.aportes;
-
-  bool cargandoAportes(int metaId) => _cargandoAportes.contains(metaId);
+      _aportes[meta.id] ?? meta.aportes;
 
   @override
   void notifyListeners() {
@@ -41,7 +41,8 @@ class MetasAhorroViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       _metas = await _api.listar(cuentaCompartidaId: cuentaCompartidaId);
-      _aportesPorMeta.clear();
+      _aportes.clear();
+      if (cuentaCompartidaId != null) unawaited(_cargarAportes());
     } on ApiException catch (e) {
       _error = e.message;
     } catch (e) {
@@ -54,19 +55,16 @@ class MetasAhorroViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> cargarAportes(int metaId) async {
-    if (_cargandoAportes.contains(metaId)) return;
-    _cargandoAportes.add(metaId);
+  // Pide el desglose de todas las metas a la vez; si alguno falla, esa meta se queda con lo básico.
+  Future<void> _cargarAportes() async {
+    await Future.wait([
+      for (final meta in _metas)
+        _api
+            .aportes(meta.id)
+            .then((lista) => _aportes[meta.id] = lista)
+            .catchError((_) => const <AporteMetaAhorro>[]),
+    ]);
     notifyListeners();
-    try {
-      final resumen = await _api.obtenerResumenAportes(metaId);
-      _aportesPorMeta[metaId] = resumen.aportes;
-    } catch (_) {
-      // Si falla el detalle puntual, mantiene los aportes básicos que trajo GET /api/metas
-    } finally {
-      _cargandoAportes.remove(metaId);
-      notifyListeners();
-    }
   }
 
   Future<void> crear({
@@ -110,11 +108,16 @@ class MetasAhorroViewModel extends ChangeNotifier {
     required double monto,
     int? cuentaCompartidaId,
   }) async {
-    final teniaDetalle = _aportesPorMeta.containsKey(meta.id);
     await _api.abonar(id: meta.id, monto: monto);
     await cargarMetas(cuentaCompartidaId: cuentaCompartidaId);
-    if (teniaDetalle) {
-      await cargarAportes(meta.id);
-    }
+  }
+
+  Future<void> retirar({
+    required MetaAhorro meta,
+    required double monto,
+    int? cuentaCompartidaId,
+  }) async {
+    await _api.retirar(id: meta.id, monto: monto);
+    await cargarMetas(cuentaCompartidaId: cuentaCompartidaId);
   }
 }

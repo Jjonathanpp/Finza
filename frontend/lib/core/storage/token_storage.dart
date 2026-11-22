@@ -1,3 +1,4 @@
+import 'package:frontend/features/mercadopago/sincronizacion_al_entrar.dart';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -44,6 +45,7 @@ class TokenStorage {
   Future<String?> obtenerEmail() => _storage.read(key: _keyEmail);
 
   Future<void> limpiar() async {
+    reiniciarSincronizacionAlEntrar(); // la próxima sesión vuelve a sincronizar Mercado Pago
     await _storage.delete(key: _keyToken);
     await _storage.delete(key: _keyRefreshToken);
     await _storage.delete(key: _keyEmail);

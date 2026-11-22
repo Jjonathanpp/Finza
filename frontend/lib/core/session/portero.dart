@@ -5,6 +5,7 @@ import '../../features/home/presentation/screens/pantalla_principal.dart';
 import '../avisos/aviso_de_presupuestos.dart';
 import '../storage/token_storage.dart';
 import 'sesion.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 // La llave del navegador de la app (va en app.dart): deja cambiar de pantalla desde lugares
 // que no son pantallas, como el interceptor del ApiClient.
@@ -59,8 +60,15 @@ class _PorteroState extends State<Portero> {
       future: _haySesion,
       builder: (context, respuesta) {
         if (respuesta.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          // Mientras se revisa la sesión: el fondo del tema y un indicador chico, sin textos.
+          return Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(strokeWidth: 3, semanticsLabel: context.tr('Cargando')),
+              ),
+            ),
           );
         }
         // Si no se pudo leer el token (error), data queda vacío y va al login.
