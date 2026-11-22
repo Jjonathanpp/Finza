@@ -143,25 +143,43 @@ Comandos que se usan seguido:
 
 ## La base de datos y las migraciones
 
-La estructura de la base la maneja Flyway. Cada cambio es un archivo SQL numerado en `backend/src/main/resources/db/migration`, y cada base guarda en la tabla `flyway_schema_history` cuáles ya corrieron. Al arrancar, el backend compara esa tabla con la carpeta y corre en orden los archivos que faltan. Hibernate está en `ddl-auto=validate`: no toca la base, solo controla que coincida con las entidades. Si falta una tabla o una columna, el backend no arranca.
+La estructura de la base la maneja Flyway. Cada cambio es un archivo SQL numerado en `backend/src/main/resources/db/migration`, y cada base guarda en la tabla `flyway_schema_history` cuáles ya corrieron. Al arrancar, el backend compara esa tabla con la carpeta y corre en orden los archivos que faltan. Hibernate está en `ddl-auto=validate`: no toca la base, solo controla que coincida con las entidades. Si falta una tabla o una columna, el backend no arranca y el CI deja el PR en rojo.
 
 | Archivo | Qué hace |
 |---|---|
 | `V1__esquema_inicial.sql` | Todas las tablas, como estaban cuando se pasó a Flyway |
 | `V2__add_importado_por_to_movimientos.sql` | La columna `importado_por` en `movimiento` |
 | `V3__catalogo_de_categorias.sql` | Las 13 categorías predefinidas |
+| `V4__esquema_inicial.sql` | Tabla `metas_ahorro` |
+| `V5__aportes_por_integrante_en_metas_ahorro.sql` | Tabla `metas_ahorro_aportes` para registrar aportes por perfil |
+| `V6__remove_unattributed_savings_goal_amount.sql` | Limpia la columna temporal `monto_aportes_sin_detalle` |
+| `V7__add_usuario_id_to_metas_ahorro_aportes.sql` | Agrega `usuario_id` en `metas_ahorro_aportes` |
 | `db/datos-prueba/R__datos_de_prueba.sql` | Datos de prueba. Solo en el Docker local |
 
-Reglas para trabajar con migraciones:
+### Cómo cambiar la base (guía para el equipo)
 
-- Un cambio de estructura (tabla, columna, tipo, índice) lleva una migración nueva con el número siguiente: `V4__descripcion.sql`, `V5__...`. Una entidad o columna sin su migración hace que el backend no arranque.
-- Una migración que ya está en `main` no se edita. Flyway guarda una huella (checksum) de cada archivo y, si cambia, no arranca. Un error se corrige con una migración nueva.
-- Dos migraciones con el mismo número rompen el arranque. Antes de crear una, hacé pull de `main` para ver el último número y avisá en el grupo cuál tomás. Si dos ramas chocan, quien mergea segundo renombra la suya al siguiente libre.
-- Para agregar o cambiar una categoría del catálogo también se hace una migración nueva.
+Cada vez que agregues o modifiques una entidad JPA (nueva tabla, nueva columna, cambio de tipo, restricción o índice) o cambies el catálogo de categorías:
 
-Los datos de prueba son una migración repetible (`R__`). No llevan número, corren después de todas las versiones y vuelven a correr solo cuando cambia el archivo. Como están en una carpeta aparte que solo lee el perfil `docker`, nunca llegan a producción. Si los cambiás, cuidá que sigan sin duplicar filas (`ON CONFLICT DO NOTHING`).
+1. **Hacé pull de `main`** para ver cuál es el último número en `backend/src/main/resources/db/migration` y avisá en el grupo qué número vas a tomar.
+2. **Creá una migración nueva con el número siguiente**, respetando el formato con **doble guion bajo**: `V8__descripcion_corta.sql` (siempre `V` mayúscula + número + `__` + nombre en minúsculas).
+3. **Escribí el SQL del cambio** (por ejemplo `ALTER TABLE ... ADD COLUMN ...;` o `CREATE TABLE ...;`).
+4. **Probalo en tu compu** levantando Docker (`docker compose up --build`) o corriendo el test de migraciones contra un Postgres vacío antes de abrir el PR.
 
-En producción la base ya existía antes de Flyway, así que está marcada como que ya tiene la V1 (`baseline-on-migrate`). Ahí corren solo la V2 y las siguientes.
+### Reglas de oro
+
+- **Nunca edites una migración que ya está en `main`.** Flyway guarda un checksum (huella) de cada archivo ejecutado. Si alguien modifica una migración vieja, el backend no arranca ni en local ni en producción (`Migration checksum mismatch`). Si hubo un error o falta un ajuste, se arregla creando una migración nueva (`V<siguiente>__...`).
+- **Toda entidad cambiada lleva su migración en el mismo PR.** Como Hibernate valida el esquema y el CI corre todas las migraciones desde cero sobre un Postgres vacío, cualquier columna o tabla sin migración frena el merge.
+
+### ¿Qué hago si dos personas usamos el mismo número?
+
+Si dos ramas crearon, por ejemplo, `V8__...`, el primero que mergea a `main` se queda con el `V8`. Quien mergea segundo tiene que:
+
+1. Traer `main` a su rama (`git pull origin main`).
+2. Renombrar su archivo al siguiente número libre (por ejemplo de `V8__...` a `V9__...`).
+3. Si ya habías corrido tu `V8` viejo en tu base de Docker local, recreá la base local una vez para limpiar el historial de Flyway:
+   ```bash
+   docker compose down -v
+   docker compose up --build
 
 ## Del cambio a producción (CI/CD)
 

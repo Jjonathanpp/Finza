@@ -151,7 +151,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
       // Sin el detalle técnico (antes salía el texto crudo del error): un mensaje que se entienda.
       if (mounted) {
         setState(() {
-          _text = 'No pudimos enviar el audio. Probá de nuevo o cargalo a mano.';
+          _text = 'Error en el servidor de la IA';
           _esError = true;
         });
       }
