@@ -439,7 +439,7 @@ void main() {
       expect(find.byTooltip('Eliminar'), findsOneWidget);
     });
 
-    testWidgets('miembro de Casa: crea, pero las de Casa no se editan ni se borran', (tester) async {
+    testWidgets('miembro de Casa: crea, pero solo los admins editan o borran las de Casa', (tester) async {
       cuentaActiva.value = _casaMiembro;
       await _abrirCategorias(tester);
 
@@ -451,12 +451,12 @@ void main() {
       expect(find.byTooltip('Eliminar'), findsNothing);
     });
 
-    testWidgets('admin de Casa: crea, pero las de Casa no se editan ni se borran', (tester) async {
+    testWidgets('admin de Casa: crea, edita y borra las de Casa (las predefinidas no)', (tester) async {
       cuentaActiva.value = _casaAdmin;
       await _abrirCategorias(tester);
 
       expect(find.byTooltip('Nueva categoría'), findsOneWidget);
-      expect(find.byTooltip('Editar'), findsNothing);
+      expect(find.byTooltip('Editar'), findsOneWidget, reason: 'solo Expensas: Comida es predefinida');
     });
   });
 }

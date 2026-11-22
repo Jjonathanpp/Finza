@@ -21,7 +21,7 @@ class CategoriaApiDeMentira extends Fake implements CategoriaApi {
   }
 
   @override
-  Future<void> eliminar(Categoria categoria) async {
+  Future<void> eliminar(Categoria categoria, {int? cuentaCompartidaId}) async {
     if (fallaAlEliminar != null) throw fallaAlEliminar!;
   }
 }

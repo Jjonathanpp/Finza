@@ -16,11 +16,18 @@ import 'package:frontend/l10n/idioma.dart';
 // "Editar categoría" (con editando), y el panel de "Nuevo movimiento".
 // Al guardar, cierra y devuelve la categoría.
 class FormularioCategoria extends StatefulWidget {
-  const FormularioCategoria({super.key, this.esIngreso = false, this.tipoFijo = false, this.editando});
+  const FormularioCategoria({
+    super.key,
+    this.esIngreso = false,
+    this.tipoFijo = false,
+    this.editando,
+    this.cuentaCompartidaId,
+  });
 
   final bool esIngreso;
   final bool tipoFijo;
   final Categoria? editando;
+  final int? cuentaCompartidaId;
 
   @override
   State<FormularioCategoria> createState() => _FormularioCategoriaState();
@@ -31,6 +38,7 @@ class _FormularioCategoriaState extends State<FormularioCategoria> {
     CategoriaApi(ApiClient()),
     esIngreso: widget.esIngreso,
     editando: widget.editando,
+    cuentaCompartidaId: widget.cuentaCompartidaId,
   );
   late final _nombre = TextEditingController(text: widget.editando?.nombre);
   // Al editar, el tipo no se puede cambiar (el backend no lo deja).

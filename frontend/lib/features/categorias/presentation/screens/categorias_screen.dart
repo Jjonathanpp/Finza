@@ -47,6 +47,11 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     super.dispose();
   }
 
+  int? get _cuentaCompartidaId {
+    final id = cuentaActiva.value?['id'];
+    return id is num ? id.toInt() : null;
+  }
+
   // "Nueva categoría" o "Editar categoría": el mismo formulario en una hoja.
   Future<void> _abrirFormulario({Categoria? editando}) async {
     final compartida = cuentaActiva.value?['nombre'] as String?;
@@ -61,6 +66,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
         esIngreso: _verIngresos,
         tipoFijo: true,
         editando: editando,
+        cuentaCompartidaId: _cuentaCompartidaId,
       ),
     );
     if (guardada == null || !mounted) return;
@@ -77,7 +83,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       peligro: true,
     );
     if (!confirmado || !mounted) return;
-    final error = await _vm.eliminar(categoria);
+    final error = await _vm.eliminar(categoria, cuentaCompartidaId: _cuentaCompartidaId);
     if (!mounted) return;
     if (error == null) {
       mostrarExito(context, context.tr('Categoría eliminada'));
@@ -236,8 +242,8 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                 chico: true,
               ),
             ),
-          // Las de una cuenta compartida todavía no se editan ni se borran (el backend no lo deja)
-          if (!categoria.esPredefinida && cuentaActiva.value == null) ...[
+          // En una cuenta compartida solo los admins las editan o las borran (Axel en main, d115eb3)
+          if (!categoria.esPredefinida && esAdminDeCuentaActiva) ...[
             BotonIcono(
               icono: Icons.edit_outlined,
               ayuda: context.tr('Editar'),

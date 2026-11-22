@@ -773,6 +773,5 @@
   "No hay movimientos nuevos en tu Mercado Pago.": "There are no new transactions in your Mercado Pago.",
   "Marcá los que quieras traer. Después los revisás antes de que cuenten.": "Check the ones you want to bring in. You review them before they count.",
   "Elegí movimientos": "Choose transactions",
-  "Importar {n} elegidos": "Import {n} selected",
-  "{n} movimientos importados. Quedan por revisar.": "{n} transactions imported. They are waiting for review."
+  "Importar {n} elegidos": "Import {n} selected"
 }
