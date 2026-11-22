@@ -97,7 +97,7 @@ class _HojaFiltrosMovimientosState extends State<HojaFiltrosMovimientos> {
                 (c) => DropdownMenuItem(
                   value: c,
                   child: Text(
-                    '${c.emoji ?? ''} ${c.nombre}'.trim(),
+                    '${c.emoji ?? ''} ${context.tr(c.nombre)}'.trim(),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

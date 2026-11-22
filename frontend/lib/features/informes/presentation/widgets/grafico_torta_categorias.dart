@@ -218,7 +218,7 @@ class _Leyenda extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      categorias[i].nombre,
+                      context.tr(categorias[i].nombre),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textos.bodyMedium?.copyWith(fontSize: 13.5, fontWeight: FontWeight.w700),

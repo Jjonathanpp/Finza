@@ -90,8 +90,11 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
       context,
       titulo: context.tr('Eliminar meta'),
       texto: cuenta == null
-          ? '¿Eliminar "${meta.nombre}"? No se puede deshacer.'
-          : '¿Eliminar "${meta.nombre}" para todos los de $cuenta? No se puede deshacer.',
+          ? context.tr('¿Eliminar "{nombre}"? No se puede deshacer.', {'nombre': meta.nombre})
+          : context.tr('¿Eliminar "{nombre}" para todos los de {cuenta}? No se puede deshacer.', {
+              'nombre': meta.nombre,
+              'cuenta': cuenta,
+            }),
       textoAccion: context.tr('Eliminar'),
       peligro: true,
     );

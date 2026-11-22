@@ -773,5 +773,7 @@
   "No hay movimientos nuevos en tu Mercado Pago.": "There are no new transactions in your Mercado Pago.",
   "Marcá los que quieras traer. Después los revisás antes de que cuenten.": "Check the ones you want to bring in. You review them before they count.",
   "Elegí movimientos": "Choose transactions",
-  "Importar {n} elegidos": "Import {n} selected"
+  "Importar {n} elegidos": "Import {n} selected",
+  "¿Eliminar \"{nombre}\"? No se puede deshacer.": "Delete \"{nombre}\"? This can't be undone.",
+  "¿Eliminar \"{nombre}\" para todos los de {cuenta}? No se puede deshacer.": "Delete \"{nombre}\" for everyone in {cuenta}? This can't be undone."
 }

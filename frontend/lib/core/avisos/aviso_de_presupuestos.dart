@@ -214,7 +214,7 @@ class _FilaAviso extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                p.categoriaNombre,
+                context.tr(p.categoriaNombre),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: textos.labelLarge,

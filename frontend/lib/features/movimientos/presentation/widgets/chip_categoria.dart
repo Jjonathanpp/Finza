@@ -20,9 +20,9 @@ class ChipCategoria extends StatelessWidget {
     return _Pastilla(
       elegida: elegida,
       alTocar: alTocar,
-      etiqueta: categoria.nombre,
+      etiqueta: context.tr(categoria.nombre),
       adelante: CirculoCategoria.de(categoria, tamano: 30),
-      texto: categoria.nombre,
+      texto: context.tr(categoria.nombre),
     );
   }
 }
