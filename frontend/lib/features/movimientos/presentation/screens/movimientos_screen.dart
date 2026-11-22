@@ -734,6 +734,7 @@ class _FilaMovimiento extends StatelessWidget {
     final signo = movimiento.esIngreso ? '+' : '-';
  
     final bool estaPendiente = movimiento.estado == 'PENDIENTE';
+    final bool tieneErrorIa = movimiento.estado == 'ERROR_IA';
  
     return Row(
       children: [
@@ -787,24 +788,28 @@ class _FilaMovimiento extends StatelessWidget {
               const SizedBox(height: 2),
               Row(
                 children: [
-                  if (estaPendiente) ...[
-                    const Icon(
+                  if (estaPendiente || tieneErrorIa) ...[
+                    Icon(
                       Icons.error_outline,
                       size: 14,
-                      color: Colors.orange,
+                      color: tieneErrorIa ? AppColors.danger : Colors.orange,
                     ),
                     const SizedBox(width: 4),
                   ],
                   Expanded(
                     child: Text(
-                      movimiento.descripcion?.isNotEmpty == true
-                          ? movimiento.descripcion!
-                          : _formatearFecha(movimiento.fecha),
+                      tieneErrorIa
+                          ? 'Error en el servidor de la IA'
+                          : (movimiento.descripcion?.isNotEmpty == true
+                              ? movimiento.descripcion!
+                              : _formatearFecha(movimiento.fecha)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13,
-                        color: estaPendiente ? Colors.orange : AppColors.faint,
+                        color: tieneErrorIa
+                            ? AppColors.danger
+                            : (estaPendiente ? Colors.orange : AppColors.faint),
                       ),
                     ),
                   ),

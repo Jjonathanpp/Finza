@@ -174,9 +174,9 @@ class _VoiceScreenState extends State<VoiceScreen> {
         mostrarExito(context, 'Audio enviado. Procesando en segundo plano.');
         setState(() => _text = 'Tocá el micrófono y hablá...');
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        setState(() => _text = tr('Error al procesar: {error}', {'error': '$e'}));
+        setState(() => _text = 'Error en el servidor de la IA');
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
