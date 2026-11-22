@@ -103,7 +103,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
     if (!ok || !mounted) return;
     setState(() => _saliendo = true);
     try {
-      eliminar ? await _api.eliminar(id) : await _api.abandonar(id);
+      eliminar ? await _api.eliminarCuenta(id) : await _api.abandonarCuenta(id);
       await TokenStorage().guardarCuentaActiva(null);
       irAlInicio();
     } catch (e) {
