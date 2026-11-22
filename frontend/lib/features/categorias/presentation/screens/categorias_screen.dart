@@ -77,7 +77,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
   Future<void> _eliminar(Categoria categoria) async {
     final confirmado = await confirmar(
       context,
-      titulo: '¿Eliminar "${categoria.nombre}"?',
+      titulo: context.tr('¿Eliminar "{nombre}"?', {'nombre': context.tr(categoria.nombre)}),
       texto: context.tr('No se puede deshacer.'),
       textoAccion: context.tr('Eliminar'),
       peligro: true,
@@ -227,7 +227,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
   Widget _fila(Categoria categoria, String? cuenta) {
     return FilaOpcion(
       leading: CirculoCategoria.de(categoria),
-      titulo: categoria.nombre,
+      titulo: context.tr(categoria.nombre),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         spacing: 4,

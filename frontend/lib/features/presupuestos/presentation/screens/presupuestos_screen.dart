@@ -325,7 +325,7 @@ class _TarjetaPresupuesto extends StatelessWidget {
     return Tarjeta(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       alTocar: alTocar,
-      etiqueta: '${p.categoriaNombre}, $porcentaje usado. $gastado. $restante',
+      etiqueta: '${context.tr(p.categoriaNombre)}, $porcentaje usado. $gastado. $restante',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: 8,
@@ -336,7 +336,7 @@ class _TarjetaPresupuesto extends StatelessWidget {
               CirculoCategoria.de(categoriaDelPresupuesto(p), tamano: 36),
               Expanded(
                 child: Text(
-                  p.categoriaNombre,
+                  context.tr(p.categoriaNombre),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w700),

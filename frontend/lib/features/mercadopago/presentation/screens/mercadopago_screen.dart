@@ -323,7 +323,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen> with WidgetsBindi
     return FilaMovimiento(
       leading: CirculoCategoria.de(m.categoria),
       titulo: m.descripcion ?? context.tr('Movimiento Mercado Pago'),
-      subtitulo: '${_textoFecha(m.fecha)} · ${m.categoria.nombre}',
+      subtitulo: '${_textoFecha(m.fecha)} · ${context.tr(m.categoria.nombre)}',
       monto: Monto.texto(m.monto, ingreso: m.esIngreso),
       colorMonto: Monto.color(context, m.esIngreso),
       chip: ChipEstado(context.tr('Por revisar'), TonoChip.ambar, chico: true),

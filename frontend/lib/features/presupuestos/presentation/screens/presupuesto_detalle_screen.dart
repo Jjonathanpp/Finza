@@ -102,7 +102,7 @@ class _PresupuestoDetalleScreenState extends State<PresupuestoDetalleScreen> {
     return Scaffold(
       appBar: barraConVolver(
         context,
-        p.categoriaNombre,
+        context.tr(p.categoriaNombre),
         subtitulo: '${nombreDeCuentaActiva()} · ${nombresDeMeses[vm.mesActual].toLowerCase()} ${vm.anioActual}',
       ),
       body: SingleChildScrollView(
@@ -138,7 +138,7 @@ class _PresupuestoDetalleScreenState extends State<PresupuestoDetalleScreen> {
                     grande: true,
                     valor: p.porcentajeConsumo / 100,
                     tono: estado.tonoBarra,
-                    etiqueta: p.categoriaNombre,
+                    etiqueta: context.tr(p.categoriaNombre),
                   ),
                   Wrap(
                     alignment: WrapAlignment.spaceBetween,

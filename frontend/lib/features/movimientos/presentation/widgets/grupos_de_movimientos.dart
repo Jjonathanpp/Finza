@@ -105,7 +105,7 @@ class _FilaDeMovimiento extends StatelessWidget {
     final descripcion = m.descripcionVisible;
     return FilaMovimiento(
       leading: CirculoCategoria.de(m.categoria),
-      titulo: m.categoria.nombre,
+      titulo: context.tr(m.categoria.nombre),
       subtitulo: descripcion != null && descripcion.isNotEmpty ? descripcion : context.tr('Sin descripción'),
       monto: Monto.texto(m.monto, ingreso: m.esIngreso),
       colorMonto: Monto.color(context, m.esIngreso),

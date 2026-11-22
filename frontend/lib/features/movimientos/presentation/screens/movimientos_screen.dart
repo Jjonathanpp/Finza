@@ -95,7 +95,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     final c = context.colores;
     final accion = await mostrarHoja<_Accion>(
       context,
-      titulo: m.categoria.nombre,
+      titulo: context.tr(m.categoria.nombre),
       texto: Monto.texto(m.monto, ingreso: m.esIngreso),
       contenido: Builder(
         builder: (contexto) => Column(

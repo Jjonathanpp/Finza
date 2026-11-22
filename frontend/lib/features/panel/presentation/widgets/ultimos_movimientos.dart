@@ -102,7 +102,7 @@ class _Fila extends StatelessWidget {
 
     return FilaMovimiento(
       leading: CirculoCategoria.de(movimiento.categoria),
-      titulo: movimiento.categoria.nombre,
+      titulo: context.tr(movimiento.categoria.nombre),
       subtitulo: movimiento.descripcionVisible?.isNotEmpty == true
           ? movimiento.descripcionVisible!
           : _formatearFecha(movimiento.fecha),
