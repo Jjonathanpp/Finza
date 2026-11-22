@@ -19,9 +19,10 @@ import 'package:frontend/features/metas_ahorro/data/models/meta_ahorro.dart';
 import 'package:frontend/features/metas_ahorro/presentation/viewmodels/metas_ahorro_view_model.dart';
 import 'package:frontend/features/metas_ahorro/presentation/widgets/abonar_meta_sheet.dart';
 import 'package:frontend/features/metas_ahorro/presentation/widgets/formulario_meta_sheet.dart';
+import 'package:frontend/features/metas_ahorro/presentation/widgets/retirar_meta_sheet.dart';
 import 'package:frontend/l10n/idioma.dart';
 
-// Metas de ahorro de la cuenta activa (la personal o una compartida). Cualquiera puede ingresar dinero;
+// Metas de ahorro de la cuenta activa (la personal o una compartida). Cualquiera puede ingresar o retirar saldo;
 // crear, editar y borrar, solo el admin en una compartida. En una compartida cada tarjeta muestra
 // cuánto puso cada integrante.
 class MetasAhorroScreen extends StatefulWidget {
@@ -38,7 +39,8 @@ class MetasAhorroScreen extends StatefulWidget {
 }
 
 class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
-  late final _vm = widget.viewModel ?? MetasAhorroViewModel(MetasAhorroApi(ApiClient()));
+  late final _vm =
+      widget.viewModel ?? MetasAhorroViewModel(MetasAhorroApi(ApiClient()));
 
   int? get _cuentaId => (cuentaActiva.value?['id'] as num?)?.toInt();
 
@@ -61,7 +63,12 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
       context,
       meta: meta,
       alGuardar: (nombre, monto, fecha) => meta == null
-          ? _vm.crear(nombre: nombre, montoObjetivo: monto, fechaLimite: fecha, cuentaCompartidaId: _cuentaId)
+          ? _vm.crear(
+              nombre: nombre,
+              montoObjetivo: monto,
+              fechaLimite: fecha,
+              cuentaCompartidaId: _cuentaId,
+            )
           : _vm.editar(
               meta: meta,
               nombre: nombre,
@@ -71,7 +78,12 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
             ),
     );
     if (guardado == true && mounted) {
-      mostrarExito(context, meta == null ? context.tr('Meta creada') : context.tr('Meta actualizada'));
+      mostrarExito(
+        context,
+        meta == null
+            ? context.tr('Meta creada')
+            : context.tr('Meta actualizada'),
+      );
     }
   }
 
@@ -79,9 +91,24 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
     final abonado = await AbonarMetaSheet.mostrar(
       context,
       meta: meta,
-      alAbonar: (monto) => _vm.abonar(meta: meta, monto: monto, cuentaCompartidaId: _cuentaId),
+      alAbonar: (monto) =>
+          _vm.abonar(meta: meta, monto: monto, cuentaCompartidaId: _cuentaId),
     );
-    if (abonado == true && mounted) mostrarExito(context, context.tr('Dinero ingresado'));
+    if (abonado == true && mounted) {
+      mostrarExito(context, context.tr('Dinero ingresado'));
+    }
+  }
+
+  Future<void> _retirar(MetaAhorro meta) async {
+    final retirado = await RetirarMetaSheet.mostrar(
+      context,
+      meta: meta,
+      alRetirar: (monto) =>
+          _vm.retirar(meta: meta, monto: monto, cuentaCompartidaId: _cuentaId),
+    );
+    if (retirado == true && mounted) {
+      mostrarExito(context, context.tr('Dinero retirado'));
+    }
   }
 
   Future<void> _eliminar(MetaAhorro meta) async {
@@ -90,11 +117,13 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
       context,
       titulo: context.tr('Eliminar meta'),
       texto: cuenta == null
-          ? context.tr('¿Eliminar "{nombre}"? No se puede deshacer.', {'nombre': meta.nombre})
-          : context.tr('¿Eliminar "{nombre}" para todos los de {cuenta}? No se puede deshacer.', {
+          ? context.tr('¿Eliminar "{nombre}"? No se puede deshacer.', {
               'nombre': meta.nombre,
-              'cuenta': cuenta,
-            }),
+            })
+          : context.tr(
+              '¿Eliminar "{nombre}" para todos los de {cuenta}? No se puede deshacer.',
+              {'nombre': meta.nombre, 'cuenta': cuenta},
+            ),
       textoAccion: context.tr('Eliminar'),
       peligro: true,
     );
@@ -103,7 +132,11 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
       await _vm.eliminar(meta, cuentaCompartidaId: _cuentaId);
       if (mounted) mostrarExito(context, context.tr('Meta eliminada'));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
+      }
     }
   }
 
@@ -112,7 +145,13 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
     final cuenta = cuentaActiva.value?['nombre'] as String?;
     final admin = esAdminDeCuentaActiva;
     final nueva = [
-      if (admin) BotonIcono(icono: Icons.add, principal: true, ayuda: context.tr('Nueva meta'), alTocar: _formulario),
+      if (admin)
+        BotonIcono(
+          icono: Icons.add,
+          principal: true,
+          ayuda: context.tr('Nueva meta'),
+          alTocar: _formulario,
+        ),
     ];
     final lista = ListenableBuilder(
       listenable: _vm,
@@ -126,9 +165,10 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: AvisoEnLinea(
-                  context.tr('Solo un administrador de {cuenta} puede crear, editar o eliminar metas.', {
-                    'cuenta': cuenta,
-                  }),
+                  context.tr(
+                    'Solo un administrador de {cuenta} puede crear, editar o eliminar metas.',
+                    {'cuenta': cuenta},
+                  ),
                   icono: Icons.lock_outline,
                 ),
               ),
@@ -141,7 +181,10 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
       return Scaffold(
         body: Column(
           children: [
-            EncabezadoPestana(titulo: context.tr('Metas de ahorro'), acciones: nueva),
+            EncabezadoPestana(
+              titulo: context.tr('Metas de ahorro'),
+              acciones: nueva,
+            ),
             Expanded(child: lista),
           ],
         ),
@@ -161,7 +204,9 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
   List<Widget> _contenido(BuildContext context, String? cuenta, bool admin) {
     final c = context.colores;
     final textos = Theme.of(context).textTheme;
-    if (_vm.cargando && _vm.metas.isEmpty) return const [EsqueletoLista(cantidad: 3, conBloques: true)];
+    if (_vm.cargando && _vm.metas.isEmpty) {
+      return const [EsqueletoLista(cantidad: 3, conBloques: true)];
+    }
     if (_vm.error != null && _vm.metas.isEmpty) {
       return [
         const SizedBox(height: 24),
@@ -172,7 +217,10 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
         ),
         const SizedBox(height: 12),
         Center(
-          child: OutlinedButton(onPressed: _cargar, child: Text(context.tr('Reintentar'))),
+          child: OutlinedButton(
+            onPressed: _cargar,
+            child: Text(context.tr('Reintentar')),
+          ),
         ),
       ];
     }
@@ -189,7 +237,10 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
                     ? context.tr('Todavía no tenés metas de ahorro')
                     : '$cuenta todavía no tiene metas de ahorro',
                 textAlign: TextAlign.center,
-                style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w800),
+                style: textos.bodyMedium?.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               Text(
                 context.tr(
@@ -200,7 +251,10 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
               ),
               if (admin) ...[
                 const SizedBox(height: 4),
-                FilledButton(onPressed: _formulario, child: Text(context.tr('Crear una meta'))),
+                FilledButton(
+                  onPressed: _formulario,
+                  child: Text(context.tr('Crear una meta')),
+                ),
               ],
             ],
           ),
@@ -223,6 +277,7 @@ class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
             admin: admin,
             compartida: cuenta != null,
             alAbonar: () => _abonar(meta),
+            alRetirar: () => _retirar(meta),
             alEditar: () => _formulario(meta: meta),
             alEliminar: () => _eliminar(meta),
           ),
@@ -239,6 +294,7 @@ class _TarjetaMeta extends StatelessWidget {
     required this.admin,
     required this.compartida,
     required this.alAbonar,
+    required this.alRetirar,
     required this.alEditar,
     required this.alEliminar,
   });
@@ -249,10 +305,15 @@ class _TarjetaMeta extends StatelessWidget {
   final bool admin;
   final bool compartida;
   final VoidCallback alAbonar;
+  final VoidCallback alRetirar;
   final VoidCallback alEditar;
   final VoidCallback alEliminar;
 
-  static const _porPeriodo = {'diaria': 'por día', 'semanal': 'por semana', 'mensual': 'por mes'};
+  static const _porPeriodo = {
+    'diaria': 'por día',
+    'semanal': 'por semana',
+    'mensual': 'por mes',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -276,11 +337,19 @@ class _TarjetaMeta extends StatelessWidget {
                   meta.nombre,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: textos.bodyMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w800),
+                  style: textos.bodyMedium?.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               completa
-                  ? ChipEstado(context.tr('Completada'), TonoChip.menta, chico: true, icono: Icons.check)
+                  ? ChipEstado(
+                      context.tr('Completada'),
+                      TonoChip.menta,
+                      chico: true,
+                      icono: Icons.check,
+                    )
                   : ChipEstado('$porcentaje%', TonoChip.hundido, chico: true),
             ],
           ),
@@ -299,14 +368,20 @@ class _TarjetaMeta extends StatelessWidget {
               ),
             ],
           ),
-          BarraProgreso(valor: meta.progreso, grande: true, etiqueta: meta.nombre),
+          BarraProgreso(
+            valor: meta.progreso,
+            grande: true,
+            etiqueta: meta.nombre,
+          ),
           Row(
             children: [
               Expanded(
                 child: Text(
                   completa
                       ? context.tr('¡Llegaste al objetivo!')
-                      : context.tr('Faltan {monto}', {'monto': Monto.texto(meta.montoRestante)}),
+                      : context.tr('Faltan {monto}', {
+                          'monto': Monto.texto(meta.montoRestante),
+                        }),
                   style: textos.bodySmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: completa ? c.primario : c.texto,
@@ -319,7 +394,9 @@ class _TarjetaMeta extends StatelessWidget {
                   children: [
                     Icon(Icons.event_outlined, size: 15, color: c.suave),
                     Text(
-                      context.tr('Hasta el {fecha}', {'fecha': '${limite.day}/${limite.month}/${limite.year}'}),
+                      context.tr('Hasta el {fecha}', {
+                        'fecha': '${limite.day}/${limite.month}/${limite.year}',
+                      }),
                       style: textos.bodySmall?.copyWith(color: c.suave),
                     ),
                   ],
@@ -330,12 +407,18 @@ class _TarjetaMeta extends StatelessWidget {
           if (cuotas.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: c.hundido, borderRadius: BorderRadius.circular(Radios.control)),
+              decoration: BoxDecoration(
+                color: c.hundido,
+                borderRadius: BorderRadius.circular(Radios.control),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: 6,
                 children: [
-                  Text(context.tr('Para llegar a tiempo, separá'), style: textos.bodySmall?.copyWith(color: c.suave)),
+                  Text(
+                    context.tr('Para llegar a tiempo, separá'),
+                    style: textos.bodySmall?.copyWith(color: c.suave),
+                  ),
                   Wrap(
                     spacing: 16,
                     runSpacing: 4,
@@ -346,10 +429,13 @@ class _TarjetaMeta extends StatelessWidget {
                             children: [
                               TextSpan(
                                 text: Monto.texto(cuota.monto),
-                                style: const TextStyle(fontWeight: FontWeight.w800),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                               TextSpan(
-                                text: ' ${context.tr(_porPeriodo[cuota.periodo] ?? '')}',
+                                text:
+                                    ' ${context.tr(_porPeriodo[cuota.periodo] ?? '')}',
                                 style: TextStyle(color: c.suave),
                               ),
                             ],
@@ -366,10 +452,16 @@ class _TarjetaMeta extends StatelessWidget {
             Divider(height: 1, color: c.linea),
             Text(
               context.tr('Aportes'),
-              style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: c.suave),
+              style: textos.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: c.suave,
+              ),
             ),
             if (aportes.isEmpty)
-              Text(context.tr('Todavía nadie ingresó dinero.'), style: textos.bodySmall?.copyWith(color: c.suave))
+              Text(
+                context.tr('Todavía nadie ingresó dinero.'),
+                style: textos.bodySmall?.copyWith(color: c.suave),
+              )
             else
               // Cada integrante con lo que puso y qué parte del objetivo es; "Vos" para el propio y
               // "Ya no está" para quien salió de la cuenta (el desglose de Tomás en main).
@@ -377,17 +469,34 @@ class _TarjetaMeta extends StatelessWidget {
                 Row(
                   spacing: 10,
                   children: [
-                    AvatarInicial(aporte.nombre.isEmpty ? '?' : aporte.nombre[0].toUpperCase(), serie: i, tamano: 28),
+                    AvatarInicial(
+                      aporte.nombre.isEmpty
+                          ? '?'
+                          : aporte.nombre[0].toUpperCase(),
+                      serie: i,
+                      tamano: 28,
+                    ),
                     Flexible(
                       child: Text(
                         aporte.nombre,
                         overflow: TextOverflow.ellipsis,
-                        style: textos.bodyMedium?.copyWith(color: aporte.activo ? null : c.suave),
+                        style: textos.bodyMedium?.copyWith(
+                          color: aporte.activo ? null : c.suave,
+                        ),
                       ),
                     ),
                     if (miPerfilId != null && aporte.perfilId == miPerfilId)
-                      ChipEstado(context.tr('Vos'), TonoChip.menta, chico: true),
-                    if (!aporte.activo) ChipEstado(context.tr('Ya no está'), TonoChip.hundido, chico: true),
+                      ChipEstado(
+                        context.tr('Vos'),
+                        TonoChip.menta,
+                        chico: true,
+                      ),
+                    if (!aporte.activo)
+                      ChipEstado(
+                        context.tr('Ya no está'),
+                        TonoChip.hundido,
+                        chico: true,
+                      ),
                     const Spacer(),
                     Monto(aporte.monto, estilo: const TextStyle(fontSize: 14)),
                     if (aporte.porcentaje != null)
@@ -402,24 +511,35 @@ class _TarjetaMeta extends StatelessWidget {
                   ],
                 ),
           ],
-          // Acciones: ingresar dinero (si falta) y, para el admin, editar y eliminar
-          if (!completa || admin)
-            Row(
+          // Acciones: ingresar dinero si falta, retirar el saldo disponible y, para el admin, editar y eliminar.
+          if (!completa || meta.montoActual > 0 || admin)
+            Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: [
                 if (!completa)
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: alAbonar,
-                      icon: const Icon(Icons.add),
-                      label: Text(context.tr('Ingresar dinero')),
-                    ),
-                  )
-                else
-                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: alAbonar,
+                    icon: const Icon(Icons.add),
+                    label: Text(context.tr('Ingresar dinero')),
+                  ),
+                if (meta.montoActual > 0)
+                  OutlinedButton.icon(
+                    onPressed: alRetirar,
+                    icon: const Icon(Icons.remove),
+                    label: Text(context.tr('Retirar dinero')),
+                  ),
                 if (admin) ...[
-                  BotonIcono(icono: Icons.edit_outlined, ayuda: context.tr('Editar meta'), alTocar: alEditar),
-                  BotonIcono(icono: Icons.delete_outline, ayuda: context.tr('Eliminar meta'), alTocar: alEliminar),
+                  BotonIcono(
+                    icono: Icons.edit_outlined,
+                    ayuda: context.tr('Editar meta'),
+                    alTocar: alEditar,
+                  ),
+                  BotonIcono(
+                    icono: Icons.delete_outline,
+                    ayuda: context.tr('Eliminar meta'),
+                    alTocar: alEliminar,
+                  ),
                 ],
               ],
             ),

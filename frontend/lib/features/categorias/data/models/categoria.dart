@@ -17,12 +17,12 @@ class Categoria {
   String? get emoji => esPredefinida ? _emojis[nombre.toLowerCase()] : null;
 
   factory Categoria.fromJson(Map<String, dynamic> json) => Categoria(
-        id: json['id'],
-        nombre: json['nombre'],
-        color: json['color'],
-        tipo: json['tipo'],
-        esPredefinida: json['esPredefinida'],
-      );
+    id: json['id'],
+    nombre: json['nombre'],
+    color: json['color'],
+    tipo: json['tipo'],
+    esPredefinida: json['esPredefinida'],
+  );
 }
 
 // Las del catálogo de V3__catalogo_de_categorias.sql (t-4.1.3). "Otros" hay de ingreso y de egreso: comparten el emoji.
@@ -39,4 +39,5 @@ const _emojis = {
   'educación': '📚',
   'entretenimiento': '🎬',
   'ropa': '👕',
+  'meta ahorro': '🎯',
 };

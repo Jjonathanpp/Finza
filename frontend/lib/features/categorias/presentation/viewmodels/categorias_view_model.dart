@@ -33,14 +33,15 @@ class CategoriasViewModel extends ChangeNotifier {
   bool get verPredefinidas => _verPredefinidas;
 
   // Las que se muestran: todas, o solo las propias si se ocultaron las predefinidas.
-  Iterable<Categoria> get _visibles =>
-      _verPredefinidas ? _categorias : _categorias.where((c) => !c.esPredefinida);
+  Iterable<Categoria> get _visibles => _verPredefinidas
+      ? _categorias
+      : _categorias.where((c) => !c.esPredefinida);
 
   List<Categoria> get deIngreso =>
-      _visibles.where((c) => c.tipo == 'INGRESO').toList();
+      _visibles.where((c) => c.tipo == 'INGRESO' || c.tipo == 'AMBOS').toList();
 
   List<Categoria> get deEgreso =>
-      _visibles.where((c) => c.tipo == 'EGRESO').toList();
+      _visibles.where((c) => c.tipo == 'EGRESO' || c.tipo == 'AMBOS').toList();
 
   void alternarPredefinidas() {
     _verPredefinidas = !_verPredefinidas;
@@ -62,7 +63,10 @@ class CategoriasViewModel extends ChangeNotifier {
   }
 
   // Devuelve null si se borró, o el mensaje del backend si no (por ejemplo, si tiene movimientos).
-  Future<String?> eliminar(Categoria categoria, {int? cuentaCompartidaId}) async {
+  Future<String?> eliminar(
+    Categoria categoria, {
+    int? cuentaCompartidaId,
+  }) async {
     try {
       await _api.eliminar(categoria, cuentaCompartidaId: cuentaCompartidaId);
     } on ApiException catch (e) {

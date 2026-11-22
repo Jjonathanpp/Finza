@@ -42,8 +42,12 @@ class AltaMovimientoViewModel extends ChangeNotifier {
     super.dispose();
   }
 
-  List<Categoria> get categoriasDelTipo =>
-      _categorias.where((c) => c.tipo == (_esIngreso ? 'INGRESO' : 'EGRESO')).toList();
+  List<Categoria> get categoriasDelTipo => _categorias
+      .where(
+        (c) =>
+            c.tipo == (_esIngreso ? 'INGRESO' : 'EGRESO') || c.tipo == 'AMBOS',
+      )
+      .toList();
 
   Future<void> cargarCategorias() async {
     try {
@@ -88,7 +92,10 @@ class AltaMovimientoViewModel extends ChangeNotifier {
   }
 
   // Valida y guarda. Devuelve el movimiento creado, o null si algo falló.
-  Future<Movimiento?> guardar({required String monto, String? descripcion}) async {
+  Future<Movimiento?> guardar({
+    required String monto,
+    String? descripcion,
+  }) async {
     _errorMonto = validarMonto(monto);
     _errorCategoria = validarCategoria(_categoria);
     _error = null;

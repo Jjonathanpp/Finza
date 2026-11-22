@@ -16,7 +16,18 @@ class CategoriaApiDeMentira extends Fake implements CategoriaApi {
     return const [
       Categoria(id: 1, nombre: 'Comida', tipo: 'EGRESO', esPredefinida: true),
       Categoria(id: 2, nombre: 'Sueldo', tipo: 'INGRESO', esPredefinida: true),
-      Categoria(id: 3, nombre: 'Mascotas', tipo: 'EGRESO', esPredefinida: false),
+      Categoria(
+        id: 3,
+        nombre: 'Mascotas',
+        tipo: 'EGRESO',
+        esPredefinida: false,
+      ),
+      Categoria(
+        id: 4,
+        nombre: 'Meta Ahorro',
+        tipo: 'AMBOS',
+        esPredefinida: true,
+      ),
     ];
   }
 
@@ -34,26 +45,43 @@ void main() {
 
     expect(vm.cargando, isFalse);
     expect(vm.error, isNull);
-    expect(vm.deIngreso.map((c) => c.nombre).toList(), ['Sueldo']);
-    expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Comida', 'Mascotas']);
+    expect(vm.deIngreso.map((c) => c.nombre).toList(), [
+      'Sueldo',
+      'Meta Ahorro',
+    ]);
+    expect(vm.deEgreso.map((c) => c.nombre).toList(), [
+      'Comida',
+      'Mascotas',
+      'Meta Ahorro',
+    ]);
   });
 
-  test('ocultar las predefinidas deja solo las propias, y otro toque las vuelve a mostrar', () async {
-    final vm = CategoriasViewModel(CategoriaApiDeMentira());
-    await vm.cargar();
-    expect(vm.verPredefinidas, isTrue); // por defecto se ven
+  test(
+    'ocultar las predefinidas deja solo las propias, y otro toque las vuelve a mostrar',
+    () async {
+      final vm = CategoriasViewModel(CategoriaApiDeMentira());
+      await vm.cargar();
+      expect(vm.verPredefinidas, isTrue); // por defecto se ven
 
-    vm.alternarPredefinidas();
+      vm.alternarPredefinidas();
 
-    expect(vm.verPredefinidas, isFalse);
-    expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Mascotas']);
-    expect(vm.deIngreso, isEmpty);
+      expect(vm.verPredefinidas, isFalse);
+      expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Mascotas']);
+      expect(vm.deIngreso, isEmpty);
 
-    vm.alternarPredefinidas();
+      vm.alternarPredefinidas();
 
-    expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Comida', 'Mascotas']);
-    expect(vm.deIngreso.map((c) => c.nombre).toList(), ['Sueldo']);
-  });
+      expect(vm.deEgreso.map((c) => c.nombre).toList(), [
+        'Comida',
+        'Mascotas',
+        'Meta Ahorro',
+      ]);
+      expect(vm.deIngreso.map((c) => c.nombre).toList(), [
+        'Sueldo',
+        'Meta Ahorro',
+      ]);
+    },
+  );
 
   test('si la pantalla se cierra mientras carga, no se rompe', () async {
     final vm = CategoriasViewModel(CategoriaApiDeMentira());
@@ -79,17 +107,27 @@ void main() {
     final error = await vm.eliminar(vm.deEgreso.last);
 
     expect(error, isNull);
-    expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Comida']);
-  });
-
-  test('si tiene movimientos, devuelve el mensaje y la deja en la lista', () async {
-    const mensaje = 'No se puede eliminar la categoría porque tiene movimientos asociados';
-    final vm = CategoriasViewModel(CategoriaApiDeMentira(fallaAlEliminar: ApiException(409, mensaje)));
-    await vm.cargar();
-
-    final error = await vm.eliminar(vm.deEgreso.last);
-
-    expect(error, mensaje);
     expect(vm.deEgreso.map((c) => c.nombre).toList(), ['Comida', 'Mascotas']);
   });
+
+  test(
+    'si tiene movimientos, devuelve el mensaje y la deja en la lista',
+    () async {
+      const mensaje =
+          'No se puede eliminar la categoría porque tiene movimientos asociados';
+      final vm = CategoriasViewModel(
+        CategoriaApiDeMentira(fallaAlEliminar: ApiException(409, mensaje)),
+      );
+      await vm.cargar();
+
+      final error = await vm.eliminar(vm.deEgreso.last);
+
+      expect(error, mensaje);
+      expect(vm.deEgreso.map((c) => c.nombre).toList(), [
+        'Comida',
+        'Mascotas',
+        'Meta Ahorro',
+      ]);
+    },
+  );
 }
