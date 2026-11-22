@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -76,6 +77,8 @@ class MetaDeAhorroServiceTest {
         perfil.setCuentaCompartida(compartida);
         meta.setCuentaCompartida(compartida);
         when(perfilService.exigirMiembro(3L, 19L)).thenReturn(perfil);
+        AporteMetaAhorro aporte = crearAporte("100.00", perfil);
+        when(aporteRepository.findByMetaIdOrderByIdAsc(11L)).thenReturn(List.of(aporte));
 
         service.retirarDinero(3L, 11L, new BigDecimal("100.00"));
 
@@ -85,6 +88,18 @@ class MetaDeAhorroServiceTest {
         assertEquals(perfil, movimiento.getValue().getPerfil());
         assertEquals(categoria, movimiento.getValue().getCategoria());
         assertEquals(new BigDecimal("0.00"), meta.getMontoActual());
+        verify(aporteRepository).delete(aporte);
+    }
+
+    @Test
+    void retirarReduceElAporteGuardadoDelIntegrante() {
+        AporteMetaAhorro aporte = crearAporte("100.00", perfil);
+        when(aporteRepository.findByMetaIdOrderByIdAsc(11L)).thenReturn(List.of(aporte));
+
+        service.retirarDinero(3L, 11L, new BigDecimal("40.00"));
+
+        assertEquals(new BigDecimal("60.00"), aporte.getMonto());
+        assertEquals(new BigDecimal("60.00"), meta.getMontoActual());
     }
 
     @Test
@@ -92,5 +107,13 @@ class MetaDeAhorroServiceTest {
         assertThrows(
                 BadRequestException.class,
                 () -> service.retirarDinero(3L, 11L, new BigDecimal("100.01")));
+    }
+
+    private AporteMetaAhorro crearAporte(String monto, Perfil perfil) {
+        AporteMetaAhorro aporte = new AporteMetaAhorro();
+        aporte.setMeta(meta);
+        aporte.setPerfil(perfil);
+        aporte.setMonto(new BigDecimal(monto));
+        return aporte;
     }
 }

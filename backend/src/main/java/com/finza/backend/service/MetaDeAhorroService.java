@@ -241,8 +241,53 @@ public class MetaDeAhorroService {
         }
 
         meta.setMontoActual(meta.getMontoActual().subtract(montoRetiro));
+        actualizarAportesDisponibles(meta, perfil);
         registrarMovimientoMeta(meta, perfil, montoRetiro, true);
         return metaRepository.save(meta);
+    }
+
+    private void actualizarAportesDisponibles(MetaDeAhorro meta, Perfil perfilQueRetira) {
+        List<AporteMetaAhorro> aportes = new ArrayList<>(
+                aporteRepository.findByMetaIdOrderByIdAsc(meta.getId()));
+        BigDecimal totalAportes = aportes.stream()
+                .map(AporteMetaAhorro::getMonto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (totalAportes.compareTo(meta.getMontoActual()) < 0) {
+            AporteMetaAhorro aporteSinAtribuir = new AporteMetaAhorro();
+            aporteSinAtribuir.setMeta(meta);
+            aporteSinAtribuir.setMonto(meta.getMontoActual().subtract(totalAportes));
+            aporteRepository.save(aporteSinAtribuir);
+            aportes.add(aporteSinAtribuir);
+            totalAportes = meta.getMontoActual();
+        }
+
+        BigDecimal montoAReducir = totalAportes.subtract(meta.getMontoActual());
+        if (montoAReducir.signum() <= 0) {
+            return;
+        }
+
+        aportes.sort(Comparator
+                .comparing((AporteMetaAhorro aporte) -> !esAporteDePerfil(aporte, perfilQueRetira))
+                .thenComparing(AporteMetaAhorro::getId, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        for (AporteMetaAhorro aporte : aportes) {
+            if (montoAReducir.signum() == 0) {
+                break;
+            }
+            BigDecimal reduccion = aporte.getMonto().min(montoAReducir);
+            BigDecimal montoActualizado = aporte.getMonto().subtract(reduccion);
+            if (montoActualizado.signum() == 0) {
+                aporteRepository.delete(aporte);
+            } else {
+                aporte.setMonto(montoActualizado);
+            }
+            montoAReducir = montoAReducir.subtract(reduccion);
+        }
+    }
+
+    private boolean esAporteDePerfil(AporteMetaAhorro aporte, Perfil perfil) {
+        return aporte.getPerfil() != null && aporte.getPerfil().getId().equals(perfil.getId());
     }
 
     private void registrarMovimientoMeta(MetaDeAhorro meta, Perfil perfil, BigDecimal monto, boolean esIngreso) {

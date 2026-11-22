@@ -9,4 +9,6 @@ import com.finza.backend.model.AporteMetaAhorro;
 public interface AporteMetaAhorroRepository extends JpaRepository<AporteMetaAhorro, Long> {
 
     List<AporteMetaAhorro> findByMetaId(Long metaId);
+
+    List<AporteMetaAhorro> findByMetaIdOrderByIdAsc(Long metaId);
 }
