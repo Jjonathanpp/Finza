@@ -62,7 +62,11 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
       boolean existsByExternalId(String externalId);
 
+      boolean existsByExternalIdAndPerfilId(String externalId, Long perfilId);
+
       Optional<Movimiento> findByExternalId(String externalId);
+
+      Optional<Movimiento> findByExternalIdAndPerfilId(String externalId, Long perfilId);
 
       @Query("SELECT new com.finza.backend.dto.panel.GastoPorCategoriaDTO(c.id, c.nombre, c.color, SUM(m.monto)) " +
                   "FROM Movimiento m JOIN m.categoria c " +
@@ -172,9 +176,15 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
                   @Param("cuentaCompartidaId") Long cuentaCompartidaId,
                   Pageable pageable);
 
-      @Query("SELECT m FROM Movimiento m WHERE m.perfil.id = :perfilId AND m.origen = :origen AND m.estado = :estado ORDER BY m.fecha DESC, m.fechaCreacion DESC")
+      @Query("SELECT m FROM Movimiento m WHERE m.perfil.id = :perfilId " +
+                  "AND m.origen = :origen " +
+                  "AND m.estado = :estado " +
+                  "AND (:importadoPor IS NULL OR m.importadoPor = :importadoPor) " +
+                  "ORDER BY m.fecha DESC, m.fechaCreacion DESC")
       List<Movimiento> findPendientesMercadoPago(
                   @Param("perfilId") Long perfilId,
                   @Param("origen") Movimiento.OrigenMovimiento origen,
-                  @Param("estado") Movimiento.EstadoMovimiento estado);
+                  @Param("estado") Movimiento.EstadoMovimiento estado,
+                  @Param("importadoPor") Long importadoPor);
+
 }

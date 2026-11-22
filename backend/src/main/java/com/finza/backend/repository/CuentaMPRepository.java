@@ -15,7 +15,10 @@ public interface CuentaMPRepository extends JpaRepository<CuentaMP, Long> {
 
     Optional<CuentaMP> findByUsuarioId(Long usuarioId);
 
+    Optional<CuentaMP> findByMpIdUser(String mpIdUser);
+
     @Modifying
+
     @Query("DELETE FROM CuentaMP c WHERE c.usuario.id = :usuarioId")
     void deleteByUsuarioId(@Param("usuarioId") Long usuarioId);
 }

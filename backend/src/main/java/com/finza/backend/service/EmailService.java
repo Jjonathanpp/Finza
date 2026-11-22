@@ -2,6 +2,7 @@ package com.finza.backend.service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -10,8 +11,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-import java.util.HashMap;
-
 import org.springframework.web.util.HtmlUtils;
 
 import com.finza.backend.exception.EnvioCorreoException;
@@ -52,6 +51,7 @@ public class EmailService {
         String textoPlano = nombreInvitador + " te invitó a unirte a su cuenta compartida en Finza."
                 + "\n\nPara aceptar o rechazar la invitación, ingresá a este enlace:\n"
                 + link
+                + "\n\n* Para que el botón te redirija a la APP, es necesario tener la aplicación Finza instalada en tu dispositivo."
                 + "\n\nLa invitación vence el " + vence
                 + " (24 horas desde que fue enviada). Si no la esperabas, ignora este correo.";
 
@@ -62,20 +62,20 @@ public class EmailService {
                   <p style="margin: 28px 0;">
                     <a href="%s"
                        style="background-color: #2e7d32; color: #ffffff; padding: 12px 24px;
-                              text-decoration: none; border-radius: 6px; display: inline-block;">
+                              text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                       Abrir invitación en Finza
                     </a>
+                  </p>
+                  <p style="color: #666; font-size: 13px; line-height: 1.4;">
+                    * Para que el botón te redirija a la APP, es necesario tener la aplicación <b>Finza</b> instalada en tu dispositivo.
                   </p>
                   <p style="color: #666; font-size: 13px;">
                     La invitación vence el %s (24 horas desde que fue enviada).
                     Si no la esperabas, ignora este correo.
                   </p>
-                  <p style="color: #666; font-size: 13px;">
-                    Si el botón no abre la app, copiá y pegá este enlace en el navegador del celular:<br>
-                    %s
-                  </p>
                 </div>
-                """.formatted(nombreSeguro, linkSeguro, vence, linkSeguro);
+                """
+                .formatted(nombreSeguro, linkSeguro, vence);
 
         enviar(destino, nombreInvitador + " te invitó a unirte a una cuenta compartida", textoPlano, html);
     }

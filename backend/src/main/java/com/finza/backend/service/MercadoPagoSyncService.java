@@ -9,7 +9,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import com.finza.backend.dto.mercadopago.BusquedaMPResponseDTO;
 import com.finza.backend.dto.mercadopago.TransaccionMPResponseDTO;
@@ -42,7 +41,8 @@ public class MercadoPagoSyncService {
 
     public BusquedaMPResponseDTO obtenerMovimientosDesdeMP(Long usuarioId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(cuentaMP.getAccessToken());
@@ -54,8 +54,7 @@ public class MercadoPagoSyncService {
                     MP_URL_PAGOS,
                     HttpMethod.GET,
                     peticion,
-                    BusquedaMPResponseDTO.class
-            );
+                    BusquedaMPResponseDTO.class);
 
             return respuesta.getBody();
         } catch (Exception e) {
@@ -66,7 +65,8 @@ public class MercadoPagoSyncService {
 
     public List<Movimiento> obtenerMovimientosMapeados(Long usuarioId, Long perfilId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
 
         Perfil perfil = perfilRepository.findById(perfilId)
                 .orElseThrow(() -> new BadRequestException("El perfil indicado no existe"));
@@ -93,7 +93,8 @@ public class MercadoPagoSyncService {
 
     public SincronizacionResumenDTO sincronizarMovimientos(Long usuarioId, Long perfilId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
 
         Perfil perfil = perfilRepository.findById(perfilId)
                 .orElseThrow(() -> new BadRequestException("El perfil indicado no existe"));
@@ -113,64 +114,117 @@ public class MercadoPagoSyncService {
         List<Movimiento> nuevosMovimientos = new ArrayList<>();
         int duplicadosOmitidos = 0;
 
+        int errores = 0;
         for (TransaccionMPResponseDTO dto : busqueda.getResultados()) {
-            if (dto.getId() == null) {
-                continue;
+            try {
+                if (dto.getId() == null) {
+                    continue;
+                }
+
+                String externalId = String.valueOf(dto.getId());
+
+                if (movimientoRepository.existsByExternalIdAndPerfilId(externalId, perfil.getId())) {
+                    duplicadosOmitidos++;
+                    continue;
+                }
+
+                boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
+                Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO
+                        : Categoria.TipoCategoria.EGRESO;
+                Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
+
+                Movimiento nuevo = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
+                nuevosMovimientos.add(nuevo);
+            } catch (Exception e) {
+                log.error("Error al procesar movimiento individual de MP (id={}): {}", dto.getId(), e.getMessage());
+                errores++;
             }
-
-            String externalId = String.valueOf(dto.getId());
-
-            if (movimientoRepository.existsByExternalId(externalId)) {
-                duplicadosOmitidos++;
-                continue;
-            }
-
-            boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
-            Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO : Categoria.TipoCategoria.EGRESO;
-            Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
-
-            Movimiento nuevo = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
-            nuevosMovimientos.add(nuevo);
         }
 
-        List<Movimiento> guardados = nuevosMovimientos.isEmpty() ? List.of() : movimientoRepository.saveAll(nuevosMovimientos);
+        List<Movimiento> guardados = nuevosMovimientos.isEmpty() ? List.of()
+                : movimientoRepository.saveAll(nuevosMovimientos);
 
         return SincronizacionResumenDTO.builder()
                 .procesadas(busqueda.getResultados().size())
                 .creadas(guardados.size())
                 .omitidas(duplicadosOmitidos)
-                .errores(0)
+                .errores(errores)
                 .movimientos(guardados)
                 .build();
     }
 
-    @Scheduled(cron = "0 0 */4 * * *")
-    public void sincronizarAutomaticamenteTodasLasCuentas() {
-        log.info("Iniciando tarea programada: sincronización periódica de Mercado Pago...");
-        List<CuentaMP> cuentasConectadas = cuentaMPRepository.findAll();
+    public BusquedaMPResponseDTO obtenerDisponiblesParaImportar(Long usuarioId) {
+        return obtenerMovimientosDesdeMP(usuarioId);
+    }
 
-        for (CuentaMP cuentaMP : cuentasConectadas) {
-            if (cuentaMP.getUsuario() == null) {
-                continue;
-            }
+    public SincronizacionResumenDTO importarSeleccionados(Long usuarioId, List<String> externalIds,
+            Long perfilIdDestino) {
+        CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
 
-            Long usuarioId = cuentaMP.getUsuario().getId();
+        Perfil perfil = perfilRepository.findById(perfilIdDestino)
+                .orElseThrow(() -> new BadRequestException("El perfil indicado no existe"));
 
+        BusquedaMPResponseDTO busqueda = obtenerMovimientosDesdeMP(usuarioId);
+        if (busqueda == null || busqueda.getResultados() == null || busqueda.getResultados().isEmpty()) {
+            return SincronizacionResumenDTO.builder()
+                    .procesadas(0)
+                    .creadas(0)
+                    .omitidas(0)
+                    .errores(0)
+                    .movimientos(List.of())
+                    .build();
+        }
+
+        Long miMpUserId = cuentaMP.getMpIdUser() != null ? Long.valueOf(cuentaMP.getMpIdUser()) : null;
+        List<Movimiento> nuevosMovimientos = new ArrayList<>();
+        int duplicadosOmitidos = 0;
+        int procesadas = 0;
+
+        int errores = 0;
+        for (TransaccionMPResponseDTO dto : busqueda.getResultados()) {
             try {
-                Perfil perfilPrincipal = perfilRepository.findPrincipalByUsuarioId(usuarioId)
-                        .orElse(null);
-
-                if (perfilPrincipal == null) {
-                    log.warn("Usuario {} tiene Mercado Pago conectado pero no tiene un perfil principal asignado.", usuarioId);
+                if (dto.getId() == null) {
                     continue;
                 }
 
-                sincronizarMovimientos(usuarioId, perfilPrincipal.getId());
+                String externalId = String.valueOf(dto.getId());
+
+                if (!externalIds.contains(externalId)) {
+                    continue;
+                }
+
+                procesadas++;
+
+                if (movimientoRepository.existsByExternalIdAndPerfilId(externalId, perfil.getId())) {
+                    duplicadosOmitidos++;
+                    continue;
+                }
+
+                boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
+                Categoria.TipoCategoria tipo = esIngreso ? Categoria.TipoCategoria.INGRESO
+                        : Categoria.TipoCategoria.EGRESO;
+                Categoria categoria = categoriaService.buscarOCrearCategoria("Otros", tipo, perfil);
+
+                Movimiento nuevo = mercadoPagoMapper.mapearAMovimiento(dto, miMpUserId, perfil, categoria);
+                nuevo.setImportadoPor(usuarioId);
+                nuevosMovimientos.add(nuevo);
             } catch (Exception e) {
-                log.error("Falló la sincronización automática para el usuario {}: {}", usuarioId, e.getMessage());
+                log.error("Error al importar movimiento seleccionado de MP (id={}): {}", dto.getId(), e.getMessage());
+                errores++;
             }
         }
 
-        log.info("Tarea programada de Mercado Pago finalizada.");
+        List<Movimiento> guardados = nuevosMovimientos.isEmpty() ? List.of()
+                : movimientoRepository.saveAll(nuevosMovimientos);
+
+        return SincronizacionResumenDTO.builder()
+                .procesadas(procesadas)
+                .creadas(guardados.size())
+                .omitidas(duplicadosOmitidos)
+                .errores(errores)
+                .movimientos(guardados)
+                .build();
     }
 }

@@ -2,6 +2,7 @@ package com.finza.backend.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -70,8 +71,10 @@ public class CuentaCompartidaController {
         CuentaCompartida compartida = perfilActivo.getCuentaCompartida();
         Long creadorId = compartida.getCreador() != null ? compartida.getCreador().getId() : null;
 
-        // Solo los que siguen, en el orden en que entraron. Los que se fueron (baja de cuenta o
-        // abandono, t-11.3.4 / t-12.1.7) quedan con cuenta null: con ellos getCuenta() daba 500.
+        // Solo los que siguen, en el orden en que entraron. Los que se fueron (baja de
+        // cuenta o
+        // abandono, t-11.3.4 / t-12.1.7) quedan con cuenta null: con ellos getCuenta()
+        // daba 500.
         List<Perfil> miembros = perfilRepository
                 .findByCuentaCompartidaIdAndEsActivoTrueOrderByIdAsc(compartida.getId());
         List<MiembroDTO> response = miembros.stream()
@@ -93,4 +96,10 @@ public class CuentaCompartidaController {
         return Response.ok(null, "Abandonaste la cuenta compartida");
     }
 
+    @DeleteMapping("/{id}/eliminar")
+    public ResponseEntity<Object> eliminarCuentaCompartida(@PathVariable Long id,
+            @AuthenticationPrincipal Long cuentaId) {
+        perfilService.eliminarCuentaCompartida(cuentaId, id);
+        return Response.ok(null, "Cuenta compartida eliminada");
+    }
 }

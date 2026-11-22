@@ -158,6 +158,15 @@ public class PerfilService {
                 .toList();
     }
 
+    public List<Map<String, Object>> miembrosActivosDeCuentaCompartida(Long cuentaId, Long cuentaCompartidaId) {
+        exigirMiembro(cuentaId, cuentaCompartidaId);
+        return perfilRepository.findByCuentaCompartidaIdAndEsActivoTrueOrderByIdAsc(cuentaCompartidaId).stream()
+                .map(perfil -> Map.<String, Object>of(
+                        "perfilId", perfil.getId(),
+                        "nombre", perfil.getNombrePerfil() != null ? perfil.getNombrePerfil() : "Sin nombre"))
+                .toList();
+    }
+
     // Al borrar una cuenta (t-11.3.4), en cada cuenta compartida en la que está: si
     // no queda ningún otro
     // integrante activo, la cuenta compartida se borra con todo. Si quedan, su
@@ -235,5 +244,12 @@ public class PerfilService {
 
         saliente.setCuenta(null);
         saliente.setEsActivo(false);
+    }
+
+
+    @Transactional 
+    public void eliminarCuentaCompartida(Long cuentaId, Long cuentaCompartidaId) {
+        Perfil admin = exigirAdmin(cuentaId, cuentaCompartidaId);
+        borrarCuentaCompartida(admin.getCuentaCompartida());
     }
 }

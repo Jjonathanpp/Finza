@@ -1,8 +1,9 @@
 -- ============================================================
--- import.sql - Datos de prueba Finza (t-1.1.3)
--- Se ejecuta en cada arranque del backend (spring.sql.init).
--- Idempotente: reemplaza a spring.sql.init default y NO duplica
--- datos si las filas ya existen (ON CONFLICT (id) DO NOTHING).
+-- Datos de prueba Finza (t-1.1.3). Antes era import.sql (T-1.10.2).
+-- Migracion repetible de Flyway (R__): corre despues de las versionadas
+-- (V1, V2...) y vuelve a correr solo si este archivo cambia.
+-- Solo la carga el perfil docker (spring.flyway.locations): nunca produccion.
+-- Idempotente: NO duplica datos si las filas ya existen (ON CONFLICT (id) DO NOTHING).
 -- ============================================================
 
 -- 1) USUARIOS de prueba
@@ -29,8 +30,8 @@ VALUES
   (3, 3, 'Perfil Principal', 'ADMIN',   NULL, TRUE, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
--- 4) El catalogo de categorias predefinidas esta en catalogo.sql, que se carga antes
--- que este archivo. Desde t-4.1.3 solo Sueldo (1), Inversiones (4), Otros de ingreso (5),
+-- 4) El catalogo de categorias predefinidas esta en db/migration/V3__catalogo_de_categorias.sql,
+-- que corre antes que este archivo. Desde t-4.1.3 solo Sueldo (1), Inversiones (4), Otros de ingreso (5),
 -- Comida (6), Transporte (7) y Servicios (8) tienen id fijo; las nuevas, no.
 
 -- 4.1) CATEGORIAS propias (cuenta_id no nulo) - creadas via POST /api/categorias (t-4.2.1),

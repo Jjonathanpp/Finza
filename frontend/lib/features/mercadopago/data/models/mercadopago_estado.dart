@@ -1,8 +1,5 @@
 class MercadoPagoEstado {
-  const MercadoPagoEstado({
-    required this.conectado,
-    this.mpUserId,
-  });
+  const MercadoPagoEstado({required this.conectado, this.mpUserId});
 
   final bool conectado;
   final String? mpUserId;

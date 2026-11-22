@@ -25,7 +25,7 @@ class Categoria {
       );
 }
 
-// Las del catálogo de catalogo.sql (t-4.1.3). "Otros" hay de ingreso y de egreso: comparten el emoji.
+// Las del catálogo de V3__catalogo_de_categorias.sql (t-4.1.3). "Otros" hay de ingreso y de egreso: comparten el emoji.
 const _emojis = {
   'sueldo': '💼',
   'inversiones': '📈',

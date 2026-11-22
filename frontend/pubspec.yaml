@@ -2,6 +2,8 @@ name: frontend
 description: "Finza - Frontend Flutter"
 publish_to: "none"
 
+# No se cambia a mano: cada APK sale con la versión que calcula "Publicar APK" a partir de la
+# última release publicada (t-1.9.4). Esta solo se usa al correr la app en la compu.
 version: 1.1.3+8
 
 environment:

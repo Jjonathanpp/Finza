@@ -28,7 +28,7 @@ public class Presupuesto {
     private Long id;
 
     // Un presupuesto es de un perfil personal o de una cuenta compartida, nunca de los dos
-    // (regla CHECK en catalogo.sql).
+    // (regla CHECK en db/migration/V1__esquema_inicial.sql).
     @ManyToOne
     @JoinColumn(name = "perfil_id")
     private Perfil perfil;
