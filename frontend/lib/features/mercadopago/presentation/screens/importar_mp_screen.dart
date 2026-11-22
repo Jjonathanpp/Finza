@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
+import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
 import 'package:frontend/l10n/idioma.dart';
+import 'package:frontend/shared/utils/importe.dart';
 
 class ImportarMPScreen extends StatefulWidget {
   final MercadoPagoViewModel vm;
@@ -83,6 +85,10 @@ class _ImportarMPScreenState extends State<ImportarMPScreen> {
                     final descripcion =
                         item['description'] ?? context.tr('Sin descripción');
                     final monto = (item['transaction_amount'] ?? 0).toDouble();
+                    final esIngreso =
+                        item['collector_id'] != null &&
+                        item['operation_type'] == 'account_fund';
+
                     final fechaStr = item['date_created'] ?? '';
 
                     DateTime? fecha;
@@ -115,11 +121,13 @@ class _ImportarMPScreenState extends State<ImportarMPScreen> {
                             )
                           : null,
                       secondary: Text(
-                        '\$${monto.toStringAsFixed(2)}',
+                        '${esIngreso ? '+ ' : '− '}${importe(monto)}',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: monto > 0 ? AppColors.accent : AppColors.text,
+                          color: esIngreso
+                              ? AppColors.accent
+                              : AppColors.danger,
                         ),
                       ),
                       controlAffinity: ListTileControlAffinity.leading,
@@ -195,15 +203,11 @@ class _ImportarMPScreenState extends State<ImportarMPScreen> {
     if (!mounted) return;
 
     if (resumen != null) {
-      // Volvemos a la pantalla anterior avisando éxito para refrescar
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.tr('{n} movimientos importados correctamente', {
-              'n': '${resumen.creadas}',
-            }),
-          ),
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SincronizacionResumenScreen(resumen: resumen),
         ),
       );
     } else if (widget.vm.error != null) {

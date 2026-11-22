@@ -3,11 +3,13 @@ import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/widgets/aviso_exito.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
 import 'package:frontend/features/movimientos/data/models/movimiento.dart';
 import 'package:frontend/features/movimientos/presentation/screens/revision_movimiento_screen.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/importar_mp_screen.dart';
+import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
 import 'package:frontend/l10n/idioma.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -186,7 +188,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
                 _tarjetaEstadoConectado(),
                 const SizedBox(height: 16),
 
-                _botonImportarSegunContexto(context),
+                _botonImportarSegunContexto(),
 
                 const SizedBox(height: 12),
                 _seccionDesvincular(),
@@ -385,7 +387,7 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
     );
   }
 
-  Widget _botonImportarSegunContexto(BuildContext context) {
+  Widget _botonImportarSegunContexto() {
     return SizedBox(
       width: double.infinity,
       height: 46,
@@ -393,12 +395,35 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
         onPressed: _vm.cargando
             ? null
             : () async {
-                final resultado = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(builder: (_) => ImportarMPScreen(vm: _vm)),
-                );
-                if (resultado == true) {
-                  _vm.cargarPendientes();
+                // Si es cuenta personal (null), sincronizar todo y mostrar resumen
+                if (cuentaActiva.value == null) {
+                  final resumen = await _vm.sincronizar();
+                  if (!mounted) return;
+
+                  if (resumen != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            SincronizacionResumenScreen(resumen: resumen),
+                      ),
+                    );
+                  } else if (_vm.error != null) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(_vm.error!)));
+                  }
+                } else {
+                  // Si es cuenta compartida, abrir pantalla de selección
+                  final resultado = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ImportarMPScreen(vm: _vm),
+                    ),
+                  );
+                  if (resultado == true) {
+                    _vm.cargarPendientes();
+                  }
                 }
               },
         style: ElevatedButton.styleFrom(
