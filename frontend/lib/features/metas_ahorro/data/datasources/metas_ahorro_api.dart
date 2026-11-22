@@ -10,26 +10,16 @@ class MetasAhorroApi {
 
   Future<List<MetaAhorro>> listar({int? cuentaCompartidaId}) async {
     try {
-      final query = cuentaCompartidaId == null
-          ? ''
-          : '?cuentaCompartidaId=$cuentaCompartidaId';
+      final query = cuentaCompartidaId == null ? '' : '?cuentaCompartidaId=$cuentaCompartidaId';
       final response = await _client.get('/api/metas$query');
       if (response is! List) {
-        throw ApiException(
-          500,
-          tr('El servidor devolvió una lista de metas inválida'),
-        );
+        throw ApiException(500, tr('El servidor devolvió una lista de metas inválida'));
       }
-      return response
-          .map((item) => MetaAhorro.fromJson(item as Map<String, dynamic>))
-          .toList();
+      return response.map((item) => MetaAhorro.fromJson(item as Map<String, dynamic>)).toList();
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(
-        500,
-        tr('Error al obtener las metas de ahorro: {error}', {'error': '$e'}),
-      );
+      throw ApiException(500, tr('Error al obtener las metas de ahorro: {error}', {'error': '$e'}));
     }
   }
 
@@ -49,10 +39,7 @@ class MetasAhorroApi {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(
-        500,
-        tr('Error al crear la meta de ahorro: {error}', {'error': '$e'}),
-      );
+      throw ApiException(500, tr('Error al crear la meta de ahorro: {error}', {'error': '$e'}));
     }
   }
 
@@ -71,10 +58,7 @@ class MetasAhorroApi {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(
-        500,
-        tr('Error al editar la meta de ahorro: {error}', {'error': '$e'}),
-      );
+      throw ApiException(500, tr('Error al editar la meta de ahorro: {error}', {'error': '$e'}));
     }
   }
 
@@ -84,10 +68,7 @@ class MetasAhorroApi {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(
-        500,
-        tr('Error al eliminar la meta de ahorro: {error}', {'error': '$e'}),
-      );
+      throw ApiException(500, tr('Error al eliminar la meta de ahorro: {error}', {'error': '$e'}));
     }
   }
 
@@ -97,28 +78,17 @@ class MetasAhorroApi {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(
-        500,
-        tr('Error al ingresar dinero a la meta: {error}', {'error': '$e'}),
-      );
+      throw ApiException(500, tr('Error al ingresar dinero a la meta: {error}', {'error': '$e'}));
     }
   }
 
-  Future<ResumenAportesMeta> obtenerResumenAportes(int id) async {
-    try {
-      final response = await _client.get('/api/metas/$id/aportes');
-      final data = response is Map && response.containsKey('data')
-          ? response['data']
-          : response;
-      if (data is! Map<String, dynamic>) {
-        throw ApiException(500, 'Error al obtener el resumen de aportes');
-      }
-      return ResumenAportesMeta.fromJson(data);
-    } on ApiException {
-      rethrow;
-    } catch (e) {
-      throw ApiException(500, 'Error al obtener los aportes de la meta: $e');
-    }
+  // El desglose de aportes de una meta: todos los integrantes (también los que todavía no pusieron
+  // nada y los que ya se fueron), con cuánto puso cada uno y qué parte del objetivo es.
+  Future<List<AporteMetaAhorro>> aportes(int id) async {
+    final response = await _client.get('/api/metas/$id/aportes');
+    final lista = response is Map ? response['aportes'] : null;
+    if (lista is! List) return const [];
+    return lista.map((item) => AporteMetaAhorro.fromJson(item as Map<String, dynamic>)).toList();
   }
 
   String? _fecha(DateTime? fecha) => fecha == null

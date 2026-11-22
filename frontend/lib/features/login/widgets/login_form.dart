@@ -51,10 +51,7 @@ class _LoginFormState extends State<LoginForm> {
 
       if (mounted) {
         mostrarExito(context, context.tr('Sesión iniciada'));
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const PantallaPrincipal()),
-        );
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PantallaPrincipal()));
         // Si el usuario llegó desde un link de invitación, se abre ahora que ya hay sesión
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => abrirInvitacionPendiente(),
@@ -71,6 +68,8 @@ class _LoginFormState extends State<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+    final colores = context.colores;
+    final textos = Theme.of(context).textTheme;
     return Form(
       key: _formKey,
       child: Column(
@@ -80,7 +79,7 @@ class _LoginFormState extends State<LoginForm> {
             etiqueta: context.tr('Email'),
             child: TextFormField(
               controller: _emailCtrl,
-              decoration: const InputDecoration(hintText: 'maria@correo.com'),
+              decoration: const InputDecoration(hintText: 'tu@email.com'),
               keyboardType: TextInputType.emailAddress,
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return context.tr('Ingresá tu email');
@@ -95,42 +94,18 @@ class _LoginFormState extends State<LoginForm> {
             child: TextFormField(
               controller: _passwordCtrl,
               decoration: InputDecoration(
-                hintText: '••••••••',
+                hintText: context.tr('Tu contraseña'),
                 suffixIcon: TextButton(
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   child: Text(_obscurePassword ? context.tr('Ver') : context.tr('Ocultar')),
                 ),
               ),
               obscureText: _obscurePassword,
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? context.tr('Ingresá tu contraseña') : null,
+              validator: (v) => (v == null || v.isEmpty) ? context.tr('Ingresá tu contraseña') : null,
             ),
           ),
-          if (_errorGeneral != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Text(
-                _errorGeneral!,
-                style: const TextStyle(color: AppColors.danger, fontSize: 12.5),
-              ),
-            ),
-          const SizedBox(height: 10),
-          FilledButton(
-            onPressed: _loading ? null : _submit,
-            child: _loading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.accentInk,
-                    ),
-                  )
-                : Text(context.tr('Ingresar')),
-          ),
-          const SizedBox(height: 16),
-          Center(
+          Align(
+            alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () {
                 Navigator.push(
@@ -143,30 +118,45 @@ class _LoginFormState extends State<LoginForm> {
               child: Text(context.tr('Olvidé mi contraseña')),
             ),
           ),
-          const SizedBox(height: 8),
-          const Divider(color: AppColors.line),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '${context.tr('¿Primera vez?')} ',
-                style: TextStyle(color: AppColors.muted),
+          if (_errorGeneral != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Text(
+                _errorGeneral!,
+                style: textos.bodySmall?.copyWith(
+                  color: colores.coralTexto,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              GestureDetector(
-                onTap: () {
+            ),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: _loading ? null : _submit,
+            child: _loading
+                ? SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colores.sobrePrimario,
+                    ),
+                  )
+                : Text(context.tr('Ingresar')),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(context.tr('¿Primera vez? '), style: textos.bodyMedium?.copyWith(color: colores.suave)),
+              TextButton(
+                onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const RegisterScreen()),
                   );
                 },
-                child: Text(
-                  context.tr('Creá tu cuenta'),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.accent,
-                  ),
-                ),
+                child: Text(context.tr('Creá tu cuenta')),
               ),
             ],
           ),

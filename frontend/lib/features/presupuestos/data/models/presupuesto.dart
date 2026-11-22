@@ -1,3 +1,5 @@
+import 'package:frontend/l10n/idioma.dart';
+
 // Cada cuánto avisa la app que un presupuesto se está llenando, si el usuario no elige otro.
 const intervaloAvisoPorDefecto = 33;
 
@@ -29,18 +31,18 @@ class Presupuesto {
   bool get alertaAlcanzada => porcentajeConsumo >= 80.0;
 
   factory Presupuesto.fromJson(Map<String, dynamic> json) => Presupuesto(
-        presupuestoId: json['presupuestoId'] as int? ?? 0,
-        categoriaId: json['categoriaId'] as int? ?? 0,
-        categoriaNombre: json['categoriaNombre']?.toString() ?? 'Sin categoría',
-        categoriaColor: json['categoriaColor']?.toString() ?? '#2196F3',
-        montoTope: json['montoTope'] != null ? (json['montoTope'] as num).toDouble() : 0.0,
-        montoGastado: json['montoGastado'] != null ? (json['montoGastado'] as num).toDouble() : 0.0,
-        porcentajeConsumo: json['porcentajeConsumo'] != null ? (json['porcentajeConsumo'] as num).toDouble() : 0.0,
-        porPerfil: (json['porPerfil'] as List<dynamic>? ?? [])
-            .map((g) => GastoDePerfil.fromJson(g as Map<String, dynamic>))
-            .toList(),
-        intervaloAviso: json['intervaloAviso'] as int? ?? intervaloAvisoPorDefecto,
-      );
+    presupuestoId: json['presupuestoId'] as int? ?? 0,
+    categoriaId: json['categoriaId'] as int? ?? 0,
+    categoriaNombre: json['categoriaNombre']?.toString() ?? tr('Sin categoría'),
+    categoriaColor: json['categoriaColor']?.toString() ?? '#2196F3',
+    montoTope: json['montoTope'] != null ? (json['montoTope'] as num).toDouble() : 0.0,
+    montoGastado: json['montoGastado'] != null ? (json['montoGastado'] as num).toDouble() : 0.0,
+    porcentajeConsumo: json['porcentajeConsumo'] != null ? (json['porcentajeConsumo'] as num).toDouble() : 0.0,
+    porPerfil: (json['porPerfil'] as List<dynamic>? ?? [])
+        .map((g) => GastoDePerfil.fromJson(g as Map<String, dynamic>))
+        .toList(),
+    intervaloAviso: json['intervaloAviso'] as int? ?? intervaloAvisoPorDefecto,
+  );
 }
 
 // Lo que gastó un integrante en la categoría del presupuesto. porcentaje: qué parte del tope es.

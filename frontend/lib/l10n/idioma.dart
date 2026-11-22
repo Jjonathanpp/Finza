@@ -41,13 +41,10 @@ Future<void> cambiarIdioma(String codigo) async {
 }
 
 Future<Map<String, String>> _leer(String codigo) async =>
-    Map<String, String>.from(
-      jsonDecode(await rootBundle.loadString('$_carpeta$codigo.json')),
-    );
+    Map<String, String>.from(jsonDecode(await rootBundle.loadString('$_carpeta$codigo.json')));
 
 /// Fuera de una pantalla (validaciones, view models). Los datos van entre llaves: tr('Gastado: {monto}', {'monto': x}).
-String tr(String texto, [Map<String, String> datos = const {}]) =>
-    _traducir(texto, datos);
+String tr(String texto, [Map<String, String> datos = const {}]) => _traducir(texto, datos);
 
 extension Traducir on BuildContext {
   /// En las pantallas: así se redibujan cuando cambia el idioma.
@@ -59,8 +56,6 @@ extension Traducir on BuildContext {
 
 String _traducir(String texto, Map<String, String> datos) {
   var traducido = _textos[texto] ?? texto;
-  datos.forEach(
-    (clave, valor) => traducido = traducido.replaceAll('{$clave}', valor),
-  );
+  datos.forEach((clave, valor) => traducido = traducido.replaceAll('{$clave}', valor));
   return traducido;
 }

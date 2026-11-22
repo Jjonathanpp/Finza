@@ -1,28 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/widgets/aviso_en_linea.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
-import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
+import 'package:frontend/core/widgets/esqueleto.dart';
+import 'package:frontend/core/widgets/monto.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/mercadopago/presentation/screens/sincronizacion_resumen_screen.dart';
+import 'package:frontend/features/mercadopago/presentation/viewmodels/mercadopago_view_model.dart';
 import 'package:frontend/l10n/idioma.dart';
-import 'package:frontend/shared/utils/importe.dart';
 
+// Elegir qué movimientos de Mercado Pago traer (Eze en main, 408983b), con el diseño nuevo. En una
+// cuenta compartida es la única forma de importar: así no se mete todo lo personal en la cuenta.
+// Los elegidos quedan por revisar, como los que se importan solos. Al importar se reemplaza por el
+// resumen (como en main, 8f532bc) y devuelve true, para que Mercado Pago recargue los pendientes.
 class ImportarMPScreen extends StatefulWidget {
-  final MercadoPagoViewModel vm;
-
   const ImportarMPScreen({super.key, required this.vm});
+
+  final MercadoPagoViewModel vm;
 
   @override
   State<ImportarMPScreen> createState() => _ImportarMPScreenState();
 }
 
 class _ImportarMPScreenState extends State<ImportarMPScreen> {
+  MercadoPagoViewModel get _vm => widget.vm;
+
   @override
   void initState() {
     super.initState();
-    // Cargamos los movimientos disponibles al entrar
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.vm.cargarDisponibles();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _vm.cargarDisponibles());
+  }
+
+  Future<void> _importar() async {
+    final resumen = await _vm.importarSeleccionados();
+    if (!mounted) return;
+    if (resumen != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => SincronizacionResumenScreen(resumen: resumen)),
+        result: true,
+      );
+    } else if (_vm.error != null) {
+      final c = context.colores;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_vm.error!, style: TextStyle(color: c.coralTexto)), backgroundColor: c.coralFondo),
+      );
+    }
   }
 
   @override
@@ -30,190 +54,119 @@ class _ImportarMPScreenState extends State<ImportarMPScreen> {
     return Scaffold(
       appBar: barraConVolver(
         context,
-        context.tr('Seleccionar de Mercado Pago'),
+        context.tr('Elegir de Mercado Pago'),
+        subtitulo: cuentaActiva.value?['nombre'] as String?,
       ),
-      body: ListenableBuilder(
-        listenable: widget.vm,
-        builder: (context, child) {
-          if (widget.vm.cargando && widget.vm.disponibles.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final disponibles = widget.vm.disponibles;
-          if (disponibles.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.search_off,
-                      size: 48,
-                      color: AppColors.muted,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      context.tr(
-                        'No se encontraron movimientos recientes en tu Mercado Pago.',
-                      ),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.muted),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: widget.vm.cargarDisponibles,
-                      child: Text(context.tr('Reintentar')),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          return Column(
-            children: [
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  itemCount: disponibles.length,
-                  separatorBuilder: (context, child) =>
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                  itemBuilder: (context, index) {
-                    final item = disponibles[index];
-                    final id = item['id'].toString();
-                    final descripcion =
-                        item['description'] ?? context.tr('Sin descripción');
-                    final monto = (item['transaction_amount'] ?? 0).toDouble();
-                    final esIngreso =
-                        item['collector_id'] != null &&
-                        item['operation_type'] == 'account_fund';
-
-                    final fechaStr = item['date_created'] ?? '';
-
-                    DateTime? fecha;
-                    try {
-                      fecha = DateTime.parse(fechaStr);
-                    } catch (_) {}
-
-                    final seleccionado = widget.vm.seleccionados.contains(id);
-
-                    return CheckboxListTile(
-                      value: seleccionado,
-                      onChanged: (_) => widget.vm.toggleSeleccion(id),
-                      activeColor: AppColors.accent,
-                      title: Text(
-                        descripcion,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: fecha != null
-                          ? Text(
-                              '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year} ${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.muted,
-                              ),
-                            )
-                          : null,
-                      secondary: Text(
-                        '${esIngreso ? '+ ' : '− '}${importe(monto)}',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: esIngreso
-                              ? AppColors.accent
-                              : AppColors.danger,
-                        ),
-                      ),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              _botonImportar(),
-            ],
-          );
-        },
-      ),
+      body: ListenableBuilder(listenable: _vm, builder: (context, _) => _contenido(context)),
+      bottomNavigationBar: ListenableBuilder(listenable: _vm, builder: (context, _) => _barraImportar(context)),
     );
   }
 
-  Widget _botonImportar() {
-    final cant = widget.vm.seleccionados.length;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
+  Widget _contenido(BuildContext context) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
+    if (_vm.cargandoDisponibles && _vm.disponibles.isEmpty) {
+      return const Padding(padding: EdgeInsets.fromLTRB(20, 4, 20, 32), child: EsqueletoLista(cantidad: 5));
+    }
+    if (_vm.disponibles.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 12,
+            children: [
+              if (_vm.error != null) AvisoEnLinea(_vm.error!, icono: Icons.cloud_off_outlined),
+              Icon(Icons.search_off, size: 40, color: c.suave),
+              Text(
+                context.tr('No hay movimientos nuevos en tu Mercado Pago.'),
+                textAlign: TextAlign.center,
+                style: textos.bodyMedium?.copyWith(color: c.suave),
+              ),
+              OutlinedButton(onPressed: _vm.cargarDisponibles, child: Text(context.tr('Reintentar'))),
+            ],
+          ),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _vm.cargarDisponibles,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
+            child: Text(
+              context.tr('Marcá los que quieras traer. Después los revisás antes de que cuenten.'),
+              style: textos.bodySmall?.copyWith(color: c.suave),
+            ),
+          ),
+          TarjetaLista(
+            children: [
+              for (final item in _vm.disponibles) _FilaDisponible(item, vm: _vm),
+            ],
           ),
         ],
       ),
-      child: SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: ElevatedButton(
-          onPressed: cant > 0 && !widget.vm.cargando ? _importar : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.accent,
-            foregroundColor: AppColors.accentInk,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: widget.vm.cargando
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
+    );
+  }
+
+  Widget _barraImportar(BuildContext context) {
+    final cantidad = _vm.seleccionados.length;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+        child: FilledButton(
+          onPressed: cantidad > 0 && !_vm.cargando ? _importar : null,
+          child: _vm.cargando
+              ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
               : Text(
-                  cant == 0
-                      ? context.tr('Seleccioná movimientos')
-                      : context.tr('Importar {n} seleccionados', {
-                          'n': '$cant',
-                        }),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
+                  cantidad == 0
+                      ? context.tr('Elegí movimientos')
+                      : context.tr('Importar {n} elegidos', {'n': '$cantidad'}),
                 ),
         ),
       ),
     );
   }
+}
 
-  Future<void> _importar() async {
-    final resumen = await widget.vm.importarSeleccionados();
-    if (!mounted) return;
+class _FilaDisponible extends StatelessWidget {
+  const _FilaDisponible(this.item, {required this.vm});
 
-    if (resumen != null) {
-      Navigator.pop(context, true);
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SincronizacionResumenScreen(resumen: resumen),
-        ),
-      );
-    } else if (widget.vm.error != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(widget.vm.error!)));
-    }
+  final Map<String, dynamic> item;
+  final MercadoPagoViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
+    final id = item['id'].toString();
+    final descripcion = item['description']?.toString();
+    final monto = (item['transaction_amount'] as num?)?.toDouble() ?? 0;
+    // Una carga de saldo es plata que entra; el resto, plata que sale (el mismo criterio que main).
+    final esIngreso = item['collector_id'] != null && item['operation_type'] == 'account_fund';
+    final fecha = DateTime.tryParse(item['date_created']?.toString() ?? '')?.toLocal();
+    String dos(int n) => n.toString().padLeft(2, '0');
+    return CheckboxListTile(
+      value: vm.seleccionados.contains(id),
+      onChanged: (_) => vm.alternarSeleccion(id),
+      controlAffinity: ListTileControlAffinity.leading,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      title: Text(
+        descripcion == null || descripcion.isEmpty ? context.tr('Sin descripción') : descripcion,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
+      subtitle: fecha == null
+          ? null
+          : Text(
+              '${dos(fecha.day)}/${dos(fecha.month)}/${fecha.year} ${dos(fecha.hour)}:${dos(fecha.minute)}',
+              style: textos.bodySmall?.copyWith(color: c.suave),
+            ),
+      secondary: Monto(monto, ingreso: esIngreso, estilo: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+    );
   }
 }

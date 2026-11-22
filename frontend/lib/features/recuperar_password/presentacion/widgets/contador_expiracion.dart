@@ -10,24 +10,32 @@ class ContadorExpiracion extends StatelessWidget {
   bool get _expirado => segundosRestantes <= 0;
 
   String get _tiempoTexto {
-    final m = (segundosRestantes ~/ 60).toString().padLeft(2, '0');
+    final m = (segundosRestantes ~/ 60).toString();
     final s = (segundosRestantes % 60).toString().padLeft(2, '0');
     return '$m:$s';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      _expirado
-          ? context.tr('El código expiró. Pedí uno nuevo.')
-          : context.tr('El código expira en {tiempo}', {'tiempo': _tiempoTexto}),
-      style: TextStyle(
-        color: _expirado || segundosRestantes <= 60
-            ? AppColors.danger
-            : AppColors.muted,
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-      ),
+    final colores = context.colores;
+    final color = _expirado || segundosRestantes <= 60
+        ? colores.coralTexto
+        : colores.suave;
+    return Row(
+      spacing: 6,
+      children: [
+        ExcludeSemantics(
+          child: Icon(Icons.schedule_outlined, size: 16, color: color),
+        ),
+        Flexible(
+          child: Text(
+            _expirado
+                ? context.tr('El código expiró. Pedí uno nuevo.')
+                : context.tr('Vence en {tiempo}', {'tiempo': _tiempoTexto}),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color),
+          ),
+        ),
+      ],
     );
   }
 }

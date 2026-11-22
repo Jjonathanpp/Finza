@@ -27,12 +27,12 @@ class InvitacionRecibida {
   bool get sePuedeResponder => estado == EstadoInvitacion.pendiente && esParaVos && !yaSosMiembro;
 
   factory InvitacionRecibida.fromJson(Map<String, dynamic> json) => InvitacionRecibida(
-        cuentaCompartidaNombre: json['cuentaCompartidaNombre']?.toString() ?? tr('Cuenta compartida'),
-        invitadoPor: json['invitadoPor']?.toString() ?? tr('Alguien'),
-        emailInvitado: json['emailInvitado']?.toString() ?? '',
-        estado: EstadoInvitacion.desdeTexto(json['estado']?.toString() ?? 'PENDIENTE'),
-        fechaExpiracion: DateTime.parse(json['fechaExpiracion'] as String),
-        esParaVos: json['esParaVos'] as bool? ?? false,
-        yaSosMiembro: json['yaSosMiembro'] as bool? ?? false,
-      );
+    cuentaCompartidaNombre: json['cuentaCompartidaNombre']?.toString() ?? tr('Cuenta compartida'),
+    invitadoPor: json['invitadoPor']?.toString() ?? tr('Alguien'),
+    emailInvitado: json['emailInvitado']?.toString() ?? '',
+    estado: EstadoInvitacion.desdeTexto(json['estado']?.toString() ?? tr('PENDIENTE')),
+    fechaExpiracion: DateTime.parse(json['fechaExpiracion'] as String),
+    esParaVos: json['esParaVos'] as bool? ?? false,
+    yaSosMiembro: json['yaSosMiembro'] as bool? ?? false,
+  );
 }

@@ -24,14 +24,15 @@ bool get convierte => monedaVista.value.moneda != 'PESO' && monedaVista.value.co
 
 String get simboloMoneda => !convierte ? '\$' : (monedaVista.value.moneda == 'DOLAR' ? 'US\$' : '€');
 
-String get nombreMoneda => !convierte ? tr('Pesos') : (monedaVista.value.moneda == 'DOLAR' ? tr('Dólares') : tr('Euros'));
+String get nombreMoneda =>
+    !convierte ? tr('Pesos') : (monedaVista.value.moneda == 'DOLAR' ? tr('Dólares') : tr('Euros'));
 
 // De dónde sale la conversión, para mostrarlo una vez (no en cada monto): "Dólar oficial: $ 1.540 · 20/10".
 String? get aclaracionCotizacion {
   if (!convierte) return null;
   final m = monedaVista.value;
   final fecha = m.actualizada == null ? '' : ' · ${m.actualizada!.day}/${m.actualizada!.month}';
-  return '${m.moneda == 'DOLAR' ? tr('Dólar oficial') : tr('Euro oficial')}: \$ ${miles(m.cotizacion!.round())}$fecha';
+  return '${m.moneda == 'DOLAR' ? tr('Dólar') : tr('Euro')} oficial: \$ ${miles(m.cotizacion!.round())}$fecha';
 }
 
 double enMonedaVista(double pesos) => convierte ? pesos / monedaVista.value.cotizacion! : pesos;

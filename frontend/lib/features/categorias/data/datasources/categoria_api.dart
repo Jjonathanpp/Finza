@@ -25,6 +25,7 @@ class CategoriaApi {
   }
 
   // La respuesta no se lee: el PUT devuelve la entidad entera, con otros nombres de campos.
+  // En una cuenta compartida va su id: el backend deja editar y borrar solo a los admins.
   Future<void> editar(
     Categoria categoria, {
     required String nombre,

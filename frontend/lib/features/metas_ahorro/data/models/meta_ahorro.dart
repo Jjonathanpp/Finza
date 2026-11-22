@@ -1,3 +1,5 @@
+// Lo que puso cada integrante. Con el desglose (GET /api/metas/{id}/aportes, Tomás en main) vienen
+// también el porcentaje del objetivo y si sigue en la cuenta; un ex integrante puede no tener perfil.
 class AporteMetaAhorro {
   const AporteMetaAhorro({
     this.perfilId,
@@ -15,51 +17,14 @@ class AporteMetaAhorro {
   final double? porcentaje;
   final bool activo;
 
-  factory AporteMetaAhorro.fromJson(Map<String, dynamic> json) =>
-      AporteMetaAhorro(
-        perfilId: (json['perfilId'] as num?)?.toInt(),
-        usuarioId: (json['usuarioId'] as num?)?.toInt(),
-        nombre: json['nombre']?.toString() ?? 'Ex integrante',
-        monto: (json['monto'] as num?)?.toDouble() ?? 0,
-        porcentaje: (json['porcentaje'] as num?)?.toDouble(),
-        activo: json['activo'] as bool? ?? true,
-      );
-}
-
-class ResumenAportesMeta {
-  const ResumenAportesMeta({
-    required this.metaId,
-    required this.nombreMeta,
-    this.cuentaCompartidaId,
-    required this.montoObjetivo,
-    required this.montoActual,
-    required this.montoRestante,
-    required this.porcentajeAvance,
-    required this.aportes,
-  });
-
-  final int metaId;
-  final String nombreMeta;
-  final int? cuentaCompartidaId;
-  final double montoObjetivo;
-  final double montoActual;
-  final double montoRestante;
-  final double porcentajeAvance;
-  final List<AporteMetaAhorro> aportes;
-
-  factory ResumenAportesMeta.fromJson(Map<String, dynamic> json) =>
-      ResumenAportesMeta(
-        metaId: (json['metaId'] as num).toInt(),
-        nombreMeta: json['nombreMeta']?.toString() ?? '',
-        cuentaCompartidaId: (json['cuentaCompartidaId'] as num?)?.toInt(),
-        montoObjetivo: (json['montoObjetivo'] as num?)?.toDouble() ?? 0,
-        montoActual: (json['montoActual'] as num?)?.toDouble() ?? 0,
-        montoRestante: (json['montoRestante'] as num?)?.toDouble() ?? 0,
-        porcentajeAvance: (json['porcentajeAvance'] as num?)?.toDouble() ?? 0,
-        aportes: (json['aportes'] as List<dynamic>? ?? [])
-            .map((item) => AporteMetaAhorro.fromJson(item as Map<String, dynamic>))
-            .toList(),
-      );
+  factory AporteMetaAhorro.fromJson(Map<String, dynamic> json) => AporteMetaAhorro(
+    perfilId: (json['perfilId'] as num?)?.toInt(),
+    usuarioId: (json['usuarioId'] as num?)?.toInt(),
+    nombre: json['nombre']?.toString() ?? 'Ex integrante',
+    monto: (json['monto'] as num?)?.toDouble() ?? 0,
+    porcentaje: (json['porcentaje'] as num?)?.toDouble(),
+    activo: json['activo'] as bool? ?? true,
+  );
 }
 
 class MetaAhorro {
@@ -91,8 +56,7 @@ class MetaAhorro {
   final int? cuentaCompartidaId;
   final List<AporteMetaAhorro> aportes;
 
-  double get progreso =>
-      montoObjetivo <= 0 ? 0 : (montoActual / montoObjetivo).clamp(0, 1);
+  double get progreso => montoObjetivo <= 0 ? 0 : (montoActual / montoObjetivo).clamp(0, 1);
 
   List<({String periodo, double monto})> cuotasRecomendadas({DateTime? hoy}) {
     final fecha = fechaLimite;
@@ -101,22 +65,16 @@ class MetaAhorro {
     final ahora = hoy ?? DateTime.now();
     final hoySinHora = DateTime(ahora.year, ahora.month, ahora.day);
     final limiteSinHora = DateTime(fecha.year, fecha.month, fecha.day);
-    final inicioSemanaHoy = hoySinHora.subtract(
-      Duration(days: hoySinHora.weekday - DateTime.monday),
-    );
-    final inicioSemanaLimite = limiteSinHora.subtract(
-      Duration(days: limiteSinHora.weekday - DateTime.monday),
-    );
+    final inicioSemanaHoy = hoySinHora.subtract(Duration(days: hoySinHora.weekday - DateTime.monday));
+    final inicioSemanaLimite = limiteSinHora.subtract(Duration(days: limiteSinHora.weekday - DateTime.monday));
     final mismaSemana = inicioSemanaHoy == inicioSemanaLimite;
     final creacion = fechaCreacion;
-    final puedeMostrarMensual =
-        creacion != null && !_agregarMeses(creacion, 1).isAfter(limiteSinHora);
+    final puedeMostrarMensual = creacion != null && !_agregarMeses(creacion, 1).isAfter(limiteSinHora);
 
     final cuotas = <({String periodo, double? monto})>[
       (periodo: 'diaria', monto: cuotaDiaria),
       if (!mismaSemana) (periodo: 'semanal', monto: cuotaSemanal),
-      if (puedeMostrarMensual && cuotaMensual != null)
-        (periodo: 'mensual', monto: cuotaMensual),
+      if (puedeMostrarMensual && cuotaMensual != null) (periodo: 'mensual', monto: cuotaMensual),
     ];
 
     return [
@@ -132,18 +90,15 @@ class MetaAhorro {
     montoActual: (json['montoActual'] as num?)?.toDouble() ?? 0,
     montoRestante:
         (json['montoRestante'] as num?)?.toDouble() ??
-        ((json['montoObjetivo'] as num).toDouble() -
-                ((json['montoActual'] as num?)?.toDouble() ?? 0))
-            .clamp(0, double.infinity),
+        ((json['montoObjetivo'] as num).toDouble() - ((json['montoActual'] as num?)?.toDouble() ?? 0)).clamp(
+          0,
+          double.infinity,
+        ),
     cuotaDiaria: (json['cuotaDiaria'] as num?)?.toDouble(),
     cuotaSemanal: (json['cuotaSemanal'] as num?)?.toDouble(),
     cuotaMensual: (json['cuotaMensual'] as num?)?.toDouble(),
-    fechaLimite: json['fechaLimite'] == null
-        ? null
-        : DateTime.parse(json['fechaLimite'] as String),
-    fechaCreacion: json['fechaCreacion'] == null
-        ? null
-        : DateTime.parse(json['fechaCreacion'] as String),
+    fechaLimite: json['fechaLimite'] == null ? null : DateTime.parse(json['fechaLimite'] as String),
+    fechaCreacion: json['fechaCreacion'] == null ? null : DateTime.parse(json['fechaCreacion'] as String),
     cuentaCompartidaId: (json['cuentaCompartidaId'] as num?)?.toInt(),
     aportes: (json['aportes'] as List<dynamic>? ?? [])
         .map((item) => AporteMetaAhorro.fromJson(item as Map<String, dynamic>))

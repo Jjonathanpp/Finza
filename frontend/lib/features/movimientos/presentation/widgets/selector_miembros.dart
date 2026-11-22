@@ -26,7 +26,7 @@ class _SelectorMiembrosState extends State<SelectorMiembros> {
       children: [
         Text(
           context.tr('Mostrar'),
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.muted),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: context.colores.suave),
         ),
         const SizedBox(height: 8),
         Wrap(

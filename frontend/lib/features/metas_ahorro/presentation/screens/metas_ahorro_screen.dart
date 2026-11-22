@@ -2,698 +2,426 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/session/cuenta_activa.dart';
+import 'package:frontend/core/widgets/avatar_inicial.dart';
+import 'package:frontend/core/widgets/aviso_en_linea.dart';
+import 'package:frontend/core/widgets/aviso_exito.dart';
+import 'package:frontend/core/widgets/barra_con_volver.dart';
+import 'package:frontend/core/widgets/barra_progreso.dart';
+import 'package:frontend/core/widgets/boton_icono.dart';
+import 'package:frontend/core/widgets/chip_estado.dart';
+import 'package:frontend/core/widgets/confirmar.dart';
+import 'package:frontend/core/widgets/encabezado_pestana.dart';
+import 'package:frontend/core/widgets/esqueleto.dart';
+import 'package:frontend/core/widgets/monto.dart';
+import 'package:frontend/core/widgets/tarjeta.dart';
 import 'package:frontend/features/metas_ahorro/data/datasources/metas_ahorro_api.dart';
 import 'package:frontend/features/metas_ahorro/data/models/meta_ahorro.dart';
 import 'package:frontend/features/metas_ahorro/presentation/viewmodels/metas_ahorro_view_model.dart';
 import 'package:frontend/features/metas_ahorro/presentation/widgets/abonar_meta_sheet.dart';
 import 'package:frontend/features/metas_ahorro/presentation/widgets/formulario_meta_sheet.dart';
 import 'package:frontend/l10n/idioma.dart';
-import 'package:frontend/shared/utils/importe.dart';
 
+// Metas de ahorro de la cuenta activa (la personal o una compartida). Cualquiera puede ingresar dinero;
+// crear, editar y borrar, solo el admin en una compartida. En una compartida cada tarjeta muestra
+// cuánto puso cada integrante.
 class MetasAhorroScreen extends StatefulWidget {
-  const MetasAhorroScreen({super.key});
+  const MetasAhorroScreen({super.key, this.enPestana = false, this.viewModel});
+
+  // En la barra de abajo va con el encabezado de pestaña (título grande y el menú); empujada, con volver.
+  final bool enPestana;
+
+  // Para las pruebas; si es null usa el backend.
+  final MetasAhorroViewModel? viewModel;
 
   @override
   State<MetasAhorroScreen> createState() => _MetasAhorroScreenState();
 }
 
 class _MetasAhorroScreenState extends State<MetasAhorroScreen> {
-  late final _viewModel = MetasAhorroViewModel(MetasAhorroApi(ApiClient()));
+  late final _vm = widget.viewModel ?? MetasAhorroViewModel(MetasAhorroApi(ApiClient()));
 
-  int? get _cuentaCompartidaId {
-    final id = cuentaActiva.value?['id'];
-    return id is num ? id.toInt() : null;
-  }
+  int? get _cuentaId => (cuentaActiva.value?['id'] as num?)?.toInt();
+
+  Future<void> _cargar() => _vm.cargarMetas(cuentaCompartidaId: _cuentaId);
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _viewModel.cargarMetas(cuentaCompartidaId: _cuentaCompartidaId),
-    );
+    _cargar();
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    _vm.dispose();
     super.dispose();
   }
 
-  Future<void> _abrirFormulario({MetaAhorro? meta}) async {
-    final creado = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => FormularioMetaSheet(
-        meta: meta,
-        alGuardar: (nombre, monto, fecha) async {
-          if (meta == null) {
-            await _viewModel.crear(
-              nombre: nombre,
-              montoObjetivo: monto,
-              fechaLimite: fecha,
-              cuentaCompartidaId: _cuentaCompartidaId,
-            );
-          } else {
-            await _viewModel.editar(
+  Future<void> _formulario({MetaAhorro? meta}) async {
+    final guardado = await FormularioMetaSheet.mostrar(
+      context,
+      meta: meta,
+      alGuardar: (nombre, monto, fecha) => meta == null
+          ? _vm.crear(nombre: nombre, montoObjetivo: monto, fechaLimite: fecha, cuentaCompartidaId: _cuentaId)
+          : _vm.editar(
               meta: meta,
               nombre: nombre,
               montoObjetivo: monto,
               fechaLimite: fecha,
-              cuentaCompartidaId: _cuentaCompartidaId,
-            );
-          }
-        },
-      ),
+              cuentaCompartidaId: _cuentaId,
+            ),
     );
-    if (creado == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.tr(meta == null ? 'Meta creada' : 'Meta actualizada'),
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _eliminar(MetaAhorro meta) async {
-    final cuenta = cuentaActiva.value?['nombre']?.toString();
-    final confirmado = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr('Eliminar meta')),
-        content: Text(
-          cuenta == null
-              ? context.tr(
-                  '¿Eliminar la meta "{nombre}"? Esta acción no se puede deshacer.',
-                  {'nombre': meta.nombre},
-                )
-              : context.tr(
-                  '¿Eliminar la meta "{nombre}" de {cuenta} para todos sus integrantes? Esta acción no se puede deshacer.',
-                  {'nombre': meta.nombre, 'cuenta': cuenta},
-                ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(context.tr('Cancelar')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: Text(context.tr('Eliminar')),
-          ),
-        ],
-      ),
-    );
-    if (confirmado != true || !mounted) return;
-    try {
-      await _viewModel.eliminar(meta, cuentaCompartidaId: _cuentaCompartidaId);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.tr('Meta eliminada'))));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppColors.danger,
-          ),
-        );
-      }
+    if (guardado == true && mounted) {
+      mostrarExito(context, meta == null ? context.tr('Meta creada') : context.tr('Meta actualizada'));
     }
   }
 
   Future<void> _abonar(MetaAhorro meta) async {
-    final abonado = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => AbonarMetaSheet(
-        meta: meta,
-        alAbonar: (monto) => _viewModel.abonar(
-          meta: meta,
-          monto: monto,
-          cuentaCompartidaId: _cuentaCompartidaId,
-        ),
-      ),
+    final abonado = await AbonarMetaSheet.mostrar(
+      context,
+      meta: meta,
+      alAbonar: (monto) => _vm.abonar(meta: meta, monto: monto, cuentaCompartidaId: _cuentaId),
     );
-    if (abonado == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('Dinero ingresado a la meta'))),
-      );
+    if (abonado == true && mounted) mostrarExito(context, context.tr('Dinero ingresado'));
+  }
+
+  Future<void> _eliminar(MetaAhorro meta) async {
+    final cuenta = cuentaActiva.value?['nombre'] as String?;
+    final seguro = await confirmar(
+      context,
+      titulo: context.tr('Eliminar meta'),
+      texto: cuenta == null
+          ? '¿Eliminar "${meta.nombre}"? No se puede deshacer.'
+          : '¿Eliminar "${meta.nombre}" para todos los de $cuenta? No se puede deshacer.',
+      textoAccion: context.tr('Eliminar'),
+      peligro: true,
+    );
+    if (!seguro || !mounted) return;
+    try {
+      await _vm.eliminar(meta, cuentaCompartidaId: _cuentaId);
+      if (mounted) mostrarExito(context, context.tr('Meta eliminada'));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final compartida = cuentaActiva.value != null;
-    final puedeAdministrar = esAdminDeCuentaActiva;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(conCuentaActiva(context.tr('Metas de ahorro'))),
-      ),
-      body: AnimatedBuilder(
-        animation: _viewModel,
-        builder: (context, _) {
-          if (_viewModel.cargando && _viewModel.metas.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (_viewModel.error != null && _viewModel.metas.isEmpty) {
-            return _ErrorMetas(
-              mensaje: _viewModel.error!,
-              reintentar: () => _viewModel.cargarMetas(
-                cuentaCompartidaId: _cuentaCompartidaId,
-              ),
-            );
-          }
-          return Column(
-            children: [
-              if (compartida && !puedeAdministrar)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 4),
-                  child: Text(
-                    context.tr(
-                      'Solo los administradores de {cuenta} pueden crear, editar o eliminar metas.',
-                      {'cuenta': '${cuentaActiva.value!['nombre']}'},
-                    ),
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              if (puedeAdministrar)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _abrirFormulario(),
-                      icon: const Icon(Icons.add_circle_outline),
-                      label: Text(context.tr('Crear meta de ahorro')),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ),
-              if (_viewModel.error != null && _viewModel.metas.isNotEmpty)
-                MaterialBanner(
-                  content: Text(_viewModel.error!),
-                  actions: [
-                    TextButton(
-                      onPressed: () => _viewModel.cargarMetas(
-                        cuentaCompartidaId: _cuentaCompartidaId,
-                      ),
-                      child: Text(context.tr('Reintentar')),
-                    ),
-                  ],
-                ),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () => _viewModel.cargarMetas(
-                    cuentaCompartidaId: _cuentaCompartidaId,
-                  ),
-                  child: _viewModel.metas.isEmpty
-                      ? ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(
-                              height: MediaQuery.sizeOf(context).height * 0.18,
-                            ),
-                            Icon(
-                              Icons.savings_outlined,
-                              size: 64,
-                              color: AppColors.faint,
-                            ),
-                            const SizedBox(height: 16),
-                            Center(
-                              child: Text(
-                                compartida
-                                    ? context.tr(
-                                        '{cuenta} todavía no tiene metas de ahorro.',
-                                        {
-                                          'cuenta':
-                                              '${cuentaActiva.value!['nombre']}',
-                                        },
-                                      )
-                                    : context.tr(
-                                        'Todavía no tenés metas de ahorro.',
-                                      ),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: AppColors.muted,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                            if (compartida && !puedeAdministrar) ...[
-                              const SizedBox(height: 8),
-                              Center(
-                                child: Text(
-                                  context.tr(
-                                    'Un administrador puede crear una meta para compartirla con la cuenta.',
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: AppColors.muted,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        )
-                      : ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                          itemCount: _viewModel.metas.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final meta = _viewModel.metas[index];
-                            final miPerfilId = cuentaActiva.value?['perfilId'];
-                            return _TarjetaMeta(
-                              meta: meta,
-                              aportes: _viewModel.aportesDe(meta),
-                              cargandoAportes: _viewModel.cargandoAportes(meta.id),
-                              miPerfilId: miPerfilId is num ? miPerfilId.toInt() : null,
-                              mostrarAcciones: puedeAdministrar,
-                              mostrarAportes: compartida,
-                              alExpandirAportes: () => _viewModel.cargarAportes(meta.id),
-                              abonar: () => _abonar(meta),
-                              editar: () => _abrirFormulario(meta: meta),
-                              eliminar: () => _eliminar(meta),
-                            );
-                          },
-                        ),
+    final cuenta = cuentaActiva.value?['nombre'] as String?;
+    final admin = esAdminDeCuentaActiva;
+    final nueva = [
+      if (admin) BotonIcono(icono: Icons.add, principal: true, ayuda: context.tr('Nueva meta'), alTocar: _formulario),
+    ];
+    final lista = ListenableBuilder(
+      listenable: _vm,
+      builder: (context, _) => RefreshIndicator(
+        onRefresh: _cargar,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+          children: [
+            if (cuenta != null && !admin)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: AvisoEnLinea(
+                  context.tr('Solo un administrador de {cuenta} puede crear, editar o eliminar metas.', {
+                    'cuenta': cuenta,
+                  }),
+                  icono: Icons.lock_outline,
                 ),
               ),
-            ],
-          );
-        },
+            ..._contenido(context, cuenta, admin),
+          ],
+        ),
       ),
     );
-  }
-}
-
-class _ErrorMetas extends StatelessWidget {
-  const _ErrorMetas({required this.mensaje, required this.reintentar});
-
-  final String mensaje;
-  final VoidCallback reintentar;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            mensaje,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.danger),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: reintentar,
-            child: Text(context.tr('Reintentar')),
-          ),
-        ],
+    if (widget.enPestana) {
+      return Scaffold(
+        body: Column(
+          children: [
+            EncabezadoPestana(titulo: context.tr('Metas de ahorro'), acciones: nueva),
+            Expanded(child: lista),
+          ],
+        ),
+      );
+    }
+    return Scaffold(
+      appBar: barraConVolver(
+        context,
+        context.tr('Metas de ahorro'),
+        subtitulo: cuenta ?? context.tr('Personal'),
+        acciones: nueva,
       ),
-    ),
-  );
+      body: lista,
+    );
+  }
+
+  List<Widget> _contenido(BuildContext context, String? cuenta, bool admin) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
+    if (_vm.cargando && _vm.metas.isEmpty) return const [EsqueletoLista(cantidad: 3, conBloques: true)];
+    if (_vm.error != null && _vm.metas.isEmpty) {
+      return [
+        const SizedBox(height: 24),
+        Text(
+          _vm.error!,
+          textAlign: TextAlign.center,
+          style: textos.bodyMedium?.copyWith(color: c.coralTexto),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: OutlinedButton(onPressed: _cargar, child: Text(context.tr('Reintentar'))),
+        ),
+      ];
+    }
+    if (_vm.metas.isEmpty) {
+      return [
+        Tarjeta(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            spacing: 10,
+            children: [
+              Icon(Icons.savings_outlined, size: 40, color: c.primario),
+              Text(
+                cuenta == null
+                    ? context.tr('Todavía no tenés metas de ahorro')
+                    : '$cuenta todavía no tiene metas de ahorro',
+                textAlign: TextAlign.center,
+                style: textos.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              Text(
+                context.tr(
+                  'Poné un objetivo, una fecha si querés, y Finza te dice cuánto separar por día, semana o mes.',
+                ),
+                textAlign: TextAlign.center,
+                style: textos.bodySmall?.copyWith(color: c.suave),
+              ),
+              if (admin) ...[
+                const SizedBox(height: 4),
+                FilledButton(onPressed: _formulario, child: Text(context.tr('Crear una meta'))),
+              ],
+            ],
+          ),
+        ),
+      ];
+    }
+    return [
+      if (_vm.error != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: AvisoEnLinea(_vm.error!, icono: Icons.cloud_off_outlined),
+        ),
+      for (final meta in _vm.metas)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _TarjetaMeta(
+            meta: meta,
+            aportes: _vm.aportesDe(meta),
+            miPerfilId: (cuentaActiva.value?['perfilId'] as num?)?.toInt(),
+            admin: admin,
+            compartida: cuenta != null,
+            alAbonar: () => _abonar(meta),
+            alEditar: () => _formulario(meta: meta),
+            alEliminar: () => _eliminar(meta),
+          ),
+        ),
+    ];
+  }
 }
 
 class _TarjetaMeta extends StatelessWidget {
   const _TarjetaMeta({
     required this.meta,
     required this.aportes,
-    required this.cargandoAportes,
     required this.miPerfilId,
-    required this.mostrarAcciones,
-    required this.mostrarAportes,
-    required this.alExpandirAportes,
-    required this.abonar,
-    required this.editar,
-    required this.eliminar,
+    required this.admin,
+    required this.compartida,
+    required this.alAbonar,
+    required this.alEditar,
+    required this.alEliminar,
   });
 
   final MetaAhorro meta;
   final List<AporteMetaAhorro> aportes;
-  final bool cargandoAportes;
   final int? miPerfilId;
-  final bool mostrarAcciones;
-  final bool mostrarAportes;
-  final VoidCallback alExpandirAportes;
-  final VoidCallback abonar;
-  final VoidCallback editar;
-  final VoidCallback eliminar;
+  final bool admin;
+  final bool compartida;
+  final VoidCallback alAbonar;
+  final VoidCallback alEditar;
+  final VoidCallback alEliminar;
 
-  String _fecha(DateTime fecha) =>
-      '${fecha.day.toString().padLeft(2, '0')}/'
-      '${fecha.month.toString().padLeft(2, '0')}/'
-      '${fecha.year}';
+  static const _porPeriodo = {'diaria': 'por día', 'semanal': 'por semana', 'mensual': 'por mes'};
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colores;
+    final textos = Theme.of(context).textTheme;
+    final completa = meta.montoRestante <= 0;
+    final porcentaje = (meta.progreso * 100).floor();
     final cuotas = meta.cuotasRecomendadas();
-    return Card(
-      margin: EdgeInsets.zero,
-      color: AppColors.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.line),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    meta.nombre,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+    final limite = meta.fechaLimite;
+    return Tarjeta(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12,
+        children: [
+          // Nombre, cuánto va y el estado
+          Row(
+            spacing: 8,
+            children: [
+              Expanded(
+                child: Text(
+                  meta.nombre,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: textos.bodyMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w800),
                 ),
-                if (mostrarAcciones) ...[
-                  IconButton(
-                    onPressed: editar,
-                    tooltip: context.tr('Editar meta'),
-                    icon: const Icon(Icons.edit_outlined),
-                    color: AppColors.muted,
-                  ),
-                  IconButton(
-                    onPressed: eliminar,
-                    tooltip: context.tr('Eliminar meta'),
-                    icon: const Icon(Icons.delete_outline),
-                    color: AppColors.danger,
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  importe(meta.montoActual),
-                  style: const TextStyle(
-                    fontSize: 16,
+              ),
+              completa
+                  ? ChipEstado(context.tr('Completada'), TonoChip.menta, chico: true, icono: Icons.check)
+                  : ChipEstado('$porcentaje%', TonoChip.hundido, chico: true),
+            ],
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            spacing: 6,
+            children: [
+              Monto(meta.montoActual, estilo: const TextStyle(fontSize: 24)),
+              Flexible(
+                child: Text(
+                  'de ${Monto.texto(meta.montoObjetivo)}',
+                  overflow: TextOverflow.ellipsis,
+                  style: textos.bodyMedium?.copyWith(color: c.suave),
+                ),
+              ),
+            ],
+          ),
+          BarraProgreso(valor: meta.progreso, grande: true, etiqueta: meta.nombre),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  completa
+                      ? context.tr('¡Llegaste al objetivo!')
+                      : context.tr('Faltan {monto}', {'monto': Monto.texto(meta.montoRestante)}),
+                  style: textos.bodySmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  context.tr('de {monto}', {
-                    'monto': importe(meta.montoObjetivo),
-                  }),
-                  style: const TextStyle(color: AppColors.muted, fontSize: 13),
-                ),
-              ],
-            ),
-            const SizedBox(height: 9),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: meta.progreso,
-                minHeight: 9,
-                backgroundColor: AppColors.surface3,
-                color: AppColors.accent,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  context.tr('{porcentaje}% completado', {
-                    'porcentaje': (meta.progreso * 100).round().toString(),
-                  }),
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
-                ),
-                Text(
-                  context.tr('Faltan {monto}', {
-                    'monto': importe(meta.montoRestante),
-                  }),
-                  style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: meta.montoRestante <= 0 ? null : abonar,
-                icon: Icon(
-                  meta.montoRestante <= 0
-                      ? Icons.check_circle_outline
-                      : Icons.add_circle_outline,
-                ),
-                label: Text(
-                  context.tr(
-                    meta.montoRestante <= 0
-                        ? 'Meta completada'
-                        : 'Ingresar dinero',
+                    color: completa ? c.primario : c.texto,
                   ),
                 ),
               ),
-            ),
-            if (mostrarAportes) ...[
-              const SizedBox(height: 8),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.only(bottom: 8),
-                onExpansionChanged: (expandido) {
-                  if (expandido) alExpandirAportes();
-                },
-                title: Text(
-                  context.tr('Aportes por integrante'),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                children: [
-                  if (cargandoAportes)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: LinearProgressIndicator(minHeight: 2),
-                    ),
-                  for (final aporte in aportes) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.person_outline,
-                                color: AppColors.muted,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        aporte.nombre,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 13),
-                                      ),
-                                    ),
-                                    if (miPerfilId != null &&
-                                        aporte.perfilId == miPerfilId) ...[
-                                      const SizedBox(width: 6),
-                                      _EtiquetaAporte(
-                                        'vos',
-                                        fondo: AppColors.accent.withValues(
-                                          alpha: 0.12,
-                                        ),
-                                        colorTexto: AppColors.text,
-                                      ),
-                                    ],
-                                    if (!aporte.activo) ...[
-                                      const SizedBox(width: 6),
-                                      const _EtiquetaAporte(
-                                        'ya no está',
-                                        fondo: AppColors.surface3,
-                                        colorTexto: AppColors.muted,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                importe(aporte.monto),
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (aporte.porcentaje != null) ...[
-                                const SizedBox(width: 8),
-                                SizedBox(
-                                  width: 46,
-                                  child: Text(
-                                    '${aporte.porcentaje!.toStringAsFixed(1)}%',
-                                    textAlign: TextAlign.right,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.muted,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          if (aporte.porcentaje != null) ...[
-                            const SizedBox(height: 5),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 26),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: LinearProgressIndicator(
-                                  value: (aporte.porcentaje! / 100).clamp(
-                                    0.0,
-                                    1.0,
-                                  ),
-                                  minHeight: 4,
-                                  backgroundColor: AppColors.surface3,
-                                  valueColor: const AlwaysStoppedAnimation(
-                                    AppColors.muted,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+              if (limite != null)
+                Row(
+                  spacing: 4,
+                  children: [
+                    Icon(Icons.event_outlined, size: 15, color: c.suave),
+                    Text(
+                      context.tr('Hasta el {fecha}', {'fecha': '${limite.day}/${limite.month}/${limite.year}'}),
+                      style: textos.bodySmall?.copyWith(color: c.suave),
                     ),
                   ],
-                  if (!cargandoAportes && aportes.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                ),
+            ],
+          ),
+          // Cuánto separar para llegar a tiempo
+          if (cuotas.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: c.hundido, borderRadius: BorderRadius.circular(Radios.control)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 6,
+                children: [
+                  Text(context.tr('Para llegar a tiempo, separá'), style: textos.bodySmall?.copyWith(color: c.suave)),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 4,
+                    children: [
+                      for (final cuota in cuotas)
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: Monto.texto(cuota.monto),
+                                style: const TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                              TextSpan(
+                                text: ' ${context.tr(_porPeriodo[cuota.periodo] ?? '')}',
+                                style: TextStyle(color: c.suave),
+                              ),
+                            ],
+                          ),
+                          style: textos.bodyMedium?.copyWith(fontSize: 14),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          // En una compartida: cuánto puso cada uno
+          if (compartida) ...[
+            Divider(height: 1, color: c.linea),
+            Text(
+              context.tr('Aportes'),
+              style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: c.suave),
+            ),
+            if (aportes.isEmpty)
+              Text(context.tr('Todavía nadie ingresó dinero.'), style: textos.bodySmall?.copyWith(color: c.suave))
+            else
+              // Cada integrante con lo que puso y qué parte del objetivo es; "Vos" para el propio y
+              // "Ya no está" para quien salió de la cuenta (el desglose de Tomás en main).
+              for (final (i, aporte) in aportes.indexed)
+                Row(
+                  spacing: 10,
+                  children: [
+                    AvatarInicial(aporte.nombre.isEmpty ? '?' : aporte.nombre[0].toUpperCase(), serie: i, tamano: 28),
+                    Flexible(
                       child: Text(
-                        context.tr('Todavía no hay aportes registrados.'),
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 13,
+                        aporte.nombre,
+                        overflow: TextOverflow.ellipsis,
+                        style: textos.bodyMedium?.copyWith(color: aporte.activo ? null : c.suave),
+                      ),
+                    ),
+                    if (miPerfilId != null && aporte.perfilId == miPerfilId)
+                      ChipEstado(context.tr('Vos'), TonoChip.menta, chico: true),
+                    if (!aporte.activo) ChipEstado(context.tr('Ya no está'), TonoChip.hundido, chico: true),
+                    const Spacer(),
+                    Monto(aporte.monto, estilo: const TextStyle(fontSize: 14)),
+                    if (aporte.porcentaje != null)
+                      SizedBox(
+                        width: 44,
+                        child: Text(
+                          '${aporte.porcentaje!.round()}%',
+                          textAlign: TextAlign.right,
+                          style: textos.bodySmall?.copyWith(color: c.suave),
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ],
-            if (meta.fechaLimite != null || cuotas.isNotEmpty) ...[
-              const Divider(height: 24),
-              Wrap(
-                spacing: 18,
-                runSpacing: 8,
-                children: [
-                  if (meta.fechaLimite != null)
-                    _DatoMeta(
-                      icono: Icons.event_outlined,
-                      texto: context.tr('Hasta {fecha}', {
-                        'fecha': _fecha(meta.fechaLimite!),
-                      }),
-                    ),
-                  for (final cuota in cuotas)
-                    _DatoMeta(
-                      icono: switch (cuota.periodo) {
-                        'diaria' => Icons.today_outlined,
-                        'semanal' => Icons.date_range_outlined,
-                        _ => Icons.calendar_month_outlined,
-                      },
-                      texto: context.tr(
-                        switch (cuota.periodo) {
-                          'diaria' => 'Ingresar {monto} por día',
-                          'semanal' => 'Ingresar {monto} por semana',
-                          _ => 'Ingresar {monto} por mes',
-                        },
-                        {'monto': importe(cuota.monto, centavos: true)},
-                      ),
-                    ),
-                ],
-              ),
-            ],
+                  ],
+                ),
           ],
-        ),
+          // Acciones: ingresar dinero (si falta) y, para el admin, editar y eliminar
+          if (!completa || admin)
+            Row(
+              spacing: 8,
+              children: [
+                if (!completa)
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: alAbonar,
+                      icon: const Icon(Icons.add),
+                      label: Text(context.tr('Ingresar dinero')),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                if (admin) ...[
+                  BotonIcono(icono: Icons.edit_outlined, ayuda: context.tr('Editar meta'), alTocar: alEditar),
+                  BotonIcono(icono: Icons.delete_outline, ayuda: context.tr('Eliminar meta'), alTocar: alEliminar),
+                ],
+              ],
+            ),
+        ],
       ),
     );
   }
-}
-
-class _EtiquetaAporte extends StatelessWidget {
-  const _EtiquetaAporte(
-    this.texto, {
-    required this.fondo,
-    required this.colorTexto,
-  });
-
-  final String texto;
-  final Color fondo;
-  final Color colorTexto;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(
-      color: fondo,
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Text(
-      texto,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        color: colorTexto,
-      ),
-    ),
-  );
-}
-
-class _DatoMeta extends StatelessWidget {
-  const _DatoMeta({required this.icono, required this.texto});
-
-  final IconData icono;
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icono, size: 16, color: AppColors.muted),
-      const SizedBox(width: 6),
-      Text(texto, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
-    ],
-  );
 }

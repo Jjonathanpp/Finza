@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/config/theme/app_theme.dart';
 import 'package:frontend/core/widgets/campo.dart';
+import 'package:frontend/l10n/idioma.dart';
 
 class CampoPassword extends StatefulWidget {
   final TextEditingController controller;
@@ -32,7 +34,8 @@ class _CampoPasswordState extends State<CampoPassword> {
         decoration: InputDecoration(
           hintText: widget.hint,
           suffixIcon: IconButton(
-            icon: Icon(_ver ? Icons.visibility_off : Icons.visibility),
+            tooltip: _ver ? context.tr('Ocultar contraseña') : context.tr('Mostrar contraseña'),
+            icon: Icon(_ver ? Icons.visibility_off : Icons.visibility, color: context.colores.suave),
             onPressed: () => setState(() => _ver = !_ver),
           ),
         ),

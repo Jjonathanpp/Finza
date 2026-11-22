@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/widgets/filtro_pastilla.dart';
 import 'package:frontend/l10n/idioma.dart';
 
 class SelectorRangoFechas extends StatefulWidget {
@@ -10,8 +10,7 @@ class SelectorRangoFechas extends StatefulWidget {
   State<SelectorRangoFechas> createState() => _SelectorRangoFechasState();
 }
 
-class _SelectorRangoFechasState extends State<SelectorRangoFechas>
-    with AutomaticKeepAliveClientMixin<SelectorRangoFechas> {
+class _SelectorRangoFechasState extends State<SelectorRangoFechas> with AutomaticKeepAliveClientMixin<SelectorRangoFechas> {
   String _opcionElegida = 'Mensual';
   DateTime? _inicioPersonalizado;
   DateTime? _finPersonalizado;
@@ -21,7 +20,7 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
     'Bimestral',
     'Trimestral',
     'Anual',
-    'Personalizado',
+    'Personalizado'
   ];
 
   void _aplicarFiltro(String opcion) {
@@ -37,9 +36,11 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
       start = DateTime(hoy.year, hoy.month, 1);
       end = DateTime(hoy.year, hoy.month + 1, 0);
     } else if (opcion == 'Bimestral') {
+      // Los últimos 2 meses, con el actual (igual que el backend desde 8555abb de Eze).
       start = DateTime(hoy.year, hoy.month - 1, 1);
       end = DateTime(hoy.year, hoy.month + 1, 0);
     } else if (opcion == 'Trimestral') {
+      // Los últimos 3 meses, con el actual.
       start = DateTime(hoy.year, hoy.month - 2, 1);
       end = DateTime(hoy.year, hoy.month + 1, 0);
     } else if (opcion == 'Anual') {
@@ -57,10 +58,8 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
 
   Future<void> _elegirFechaPersonalizada(bool esInicio) async {
     final hoy = DateTime.now();
-    final inicial = esInicio
-        ? (_inicioPersonalizado ?? hoy)
-        : (_finPersonalizado ?? hoy);
-
+    final inicial = esInicio ? (_inicioPersonalizado ?? hoy) : (_finPersonalizado ?? hoy);
+    
     final seleccionada = await showDatePicker(
       context: context,
       initialDate: inicial,
@@ -76,7 +75,7 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
           _finPersonalizado = seleccionada;
         }
       });
-
+      
       if (_inicioPersonalizado != null && _finPersonalizado != null) {
         widget.onCambio(_inicioPersonalizado, _finPersonalizado);
       }
@@ -94,88 +93,42 @@ class _SelectorRangoFechasState extends State<SelectorRangoFechas>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.tr('Período de informes'),
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _opcionElegida,
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
-            ),
-            items: _opciones
-                .map(
-                  (op) =>
-                      DropdownMenuItem(value: op, child: Text(context.tr(op))),
-                )
-                .toList(),
-            onChanged: (val) {
-              if (val != null) _aplicarFiltro(val);
-            },
-          ),
-          if (_opcionElegida == 'Personalizado') ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.tr('Desde'),
-                        style: TextStyle(fontSize: 12, color: AppColors.muted),
-                      ),
-                      const SizedBox(height: 4),
-                      OutlinedButton.icon(
-                        onPressed: () => _elegirFechaPersonalizada(true),
-                        icon: const Icon(Icons.calendar_today, size: 14),
-                        label: Text(
-                          _formatoFecha(_inicioPersonalizado),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.tr('Hasta'),
-                        style: TextStyle(fontSize: 12, color: AppColors.muted),
-                      ),
-                      const SizedBox(height: 4),
-                      OutlinedButton.icon(
-                        onPressed: () => _elegirFechaPersonalizada(false),
-                        icon: const Icon(Icons.calendar_today, size: 14),
-                        label: Text(
-                          _formatoFecha(_finPersonalizado),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    final textos = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 4,
+      children: [
+        FilaFiltros(
+          etiqueta: context.tr('Período de informes'),
+          children: [
+            for (final op in _opciones)
+              FiltroPastilla(texto: context.tr(op), activo: op == _opcionElegida, alTocar: () => _aplicarFiltro(op)),
           ],
-        ],
-      ),
+        ),
+        if (_opcionElegida == 'Personalizado')
+          Row(
+            spacing: 12,
+            children: [
+              Expanded(child: _campoFecha(textos, context.tr('Desde'), _inicioPersonalizado, true)),
+              Expanded(child: _campoFecha(textos, context.tr('Hasta'), _finPersonalizado, false)),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _campoFecha(TextTheme textos, String etiqueta, DateTime? fecha, bool esInicio) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 4,
+      children: [
+        Text(etiqueta, style: textos.bodySmall),
+        OutlinedButton.icon(
+          onPressed: () => _elegirFechaPersonalizada(esInicio),
+          icon: const Icon(Icons.calendar_today, size: 16),
+          label: Text(_formatoFecha(fecha), maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+      ],
     );
   }
 }

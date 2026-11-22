@@ -1,8 +1,11 @@
 import 'dart:developer' as dev;
 
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/mercadopago/data/datasources/mercadopago_api.dart';
 
+// De Eze en main (b5cb12b): al entrar a la app, si hay Mercado Pago conectado, trae los movimientos
+// nuevos en segundo plano, una vez por sesión. Si falla, no se avisa (es solo un adelanto).
 bool _yaSincronizoEstaSesion = false;
 
 void reiniciarSincronizacionAlEntrar() {
@@ -10,7 +13,8 @@ void reiniciarSincronizacionAlEntrar() {
 }
 
 Future<void> sincronizarMercadoPagoAlEntrar({MercadoPagoApi? api}) async {
-  if (_yaSincronizoEstaSesion) return;
+  // Solo en la personal: en una compartida importaría todo lo de Mercado Pago a la cuenta de todos.
+  if (_yaSincronizoEstaSesion || cuentaActiva.value != null) return;
   _yaSincronizoEstaSesion = true;
 
   try {

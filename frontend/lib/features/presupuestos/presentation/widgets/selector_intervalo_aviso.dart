@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/theme/app_theme.dart';
+import 'package:frontend/core/widgets/filtro_pastilla.dart';
 import 'package:frontend/l10n/idioma.dart';
 
 // "Avisarme cada": el intervalo del popup de presupuesto (ver core/avisos/aviso_de_presupuestos.dart).
@@ -40,10 +41,7 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
     if (!_otro || _texto.text.trim().isEmpty) return null;
     final v = int.tryParse(_texto.text.trim());
     if (v == null || v < intervaloAvisoMinimo || v > intervaloAvisoMaximo) {
-      return context.tr('Entre {minimo} y {maximo}', {
-        'minimo': '$intervaloAvisoMinimo',
-        'maximo': '$intervaloAvisoMaximo',
-      });
+      return tr('Entre {minimo} y {maximo}', {'minimo': '$intervaloAvisoMinimo', 'maximo': '$intervaloAvisoMaximo'});
     }
     return null;
   }
@@ -53,27 +51,27 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final opcion in _opciones)
-              ChoiceChip(
-                label: Text('$opcion%'),
-                selected: !_otro && widget.valor == opcion,
-                onSelected: widget.habilitado
-                    ? (_) {
-                        setState(() => _otro = false);
-                        widget.alCambiar(opcion);
-                      }
-                    : null,
-              ),
-            ChoiceChip(
-              label: Text(context.tr('Otro')),
-              selected: _otro,
-              onSelected: widget.habilitado ? (_) => setState(() => _otro = true) : null,
+        // Las pastillas (.filtros) en un Wrap y no en la fila que se desliza: así no queda ninguna escondida.
+        IgnorePointer(
+          ignoring: !widget.habilitado,
+          child: Opacity(
+            opacity: widget.habilitado ? 1 : .5,
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final opcion in _opciones)
+                  FiltroPastilla(
+                    texto: '$opcion%',
+                    activo: !_otro && widget.valor == opcion,
+                    alTocar: () {
+                      setState(() => _otro = false);
+                      widget.alCambiar(opcion);
+                    },
+                  ),
+                FiltroPastilla(texto: context.tr('Otro'), activo: _otro, alTocar: () => setState(() => _otro = true)),
+              ],
             ),
-          ],
+          ),
         ),
         if (_otro) ...[
           const SizedBox(height: 12),
@@ -84,11 +82,7 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
               enabled: widget.habilitado,
               autofocus: true,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: context.tr('Cada cuánto'),
-                suffixText: '%',
-                errorText: _errorOtro,
-              ),
+              decoration: InputDecoration(labelText: context.tr('Cada cuánto'), suffixText: '%', errorText: _errorOtro),
               onChanged: (texto) {
                 setState(() {}); // para el mensaje de error
                 final v = int.tryParse(texto.trim());
@@ -103,12 +97,12 @@ class _SelectorIntervaloAvisoState extends State<SelectorIntervaloAviso> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.notifications_active_outlined, size: 16, color: AppColors.muted),
+            Icon(Icons.notifications_active_outlined, size: 16, color: context.colores.suave),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
                 describirAvisos(widget.valor),
-                style: const TextStyle(fontSize: 12.5, color: AppColors.muted, height: 1.4),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
           ],
@@ -124,17 +118,9 @@ String describirAvisos(int intervalo) {
   final marcas = [for (var k = 1; k * intervalo <= 100; k++) '${k * intervalo}%'];
   final tocaElTope = marcas.isNotEmpty && marcas.last == '100%';
   if (marcas.length == 1 && tocaElTope) return tr('Te avisamos cuando llegues al tope.');
-  final String lista;
-  if (marcas.length == 1) {
-    lista = marcas.first;
-  } else if (tocaElTope) {
-    lista = tr('{primeras} y {ultima}', {
-      'primeras': marcas.sublist(0, marcas.length - 1).join(', '),
-      'ultima': marcas.last,
-    });
-  } else {
-    lista = marcas.join(', ');
-  }
+  final lista = marcas.length == 1
+      ? marcas.first
+      : '${marcas.sublist(0, marcas.length - 1).join(', ')}${tocaElTope ? ' y ' : ', '}${marcas.last}';
   return tocaElTope
       ? tr('Te avisamos al {lista} (el tope).', {'lista': lista})
       : tr('Te avisamos al {lista} y si te pasás del tope.', {'lista': lista});

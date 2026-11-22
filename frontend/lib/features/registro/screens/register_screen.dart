@@ -9,10 +9,10 @@ class RegisterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: barraConVolver(context, context.tr('Crear cuenta')),
+      appBar: barraConVolver(context, context.tr('Crear tu cuenta'), subtitulo: context.tr('Tarda un minuto')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
           child: RegisterForm(),
         ),
       ),
