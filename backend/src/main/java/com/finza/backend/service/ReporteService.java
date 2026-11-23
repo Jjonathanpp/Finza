@@ -2,6 +2,7 @@ package com.finza.backend.service;
 
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +39,19 @@ public class ReporteService {
     private static final float ALTURA_FILA = 20;
     private static final float ALTURA_ENCABEZADO = 80;
 
-    public byte[] generarReportePDF(Long cuentaId, String alcance, LocalDate fechaDesde, LocalDate fechaHasta) {
+    private String t(String lang, String es, String en) {
+        return lang != null && lang.toLowerCase().startsWith("en") ? en : es;
+    }
+
+    private String alcanceTexto(String alcance, String lang) {
+        if ("solo_propios".equals(alcance)) {
+            return t(lang, "solo_propios", "own movements only");
+        }
+        return t(lang, "cuenta_completa", "whole account");
+    }
+
+    public byte[] generarReportePDF(Long cuentaId, String alcance, LocalDate fechaDesde, LocalDate fechaHasta,
+            String lang) {
         if (!"solo_propios".equals(alcance) && !"cuenta_completa".equals(alcance)) {
             throw new BadRequestException("Alcance inválido. Use 'solo_propios' o 'cuenta_completa'");
         }
@@ -62,7 +75,7 @@ public class ReporteService {
         String nombreCuenta;
 
         if ("solo_propios".equals(alcance)) {
-            nombreCuenta = "Movimientos propios";
+            nombreCuenta = t(lang, "Movimientos propios", "Own movements");
             movimientos = movimientoRepository.buscarConFiltros(
                     perfil.getId(), cuentaId, null, fechaDesde, fechaHasta, null, null, null,
                     PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "fecha"))).getContent();
@@ -80,11 +93,11 @@ public class ReporteService {
                     PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "fecha"))).getContent();
         }
 
-        return generarPDF(nombreCuenta, alcance, fechaDesde, fechaHasta, movimientos);
+        return generarPDF(nombreCuenta, alcance, fechaDesde, fechaHasta, movimientos, lang);
     }
 
     private byte[] generarPDF(String nombreCuenta, String alcance, LocalDate fechaDesde,
-            LocalDate fechaHasta, List<Movimiento> movimientos) {
+            LocalDate fechaHasta, List<Movimiento> movimientos, String lang) {
 
         try (PDDocument document = new PDDocument()) {
             int totalPaginas = (int) Math.ceil((double) movimientos.size() / MAX_FILAS_POR_PAGINA);
@@ -117,16 +130,18 @@ public class ReporteService {
                         content.beginText();
                         content.setFont(PDType1Font.HELVETICA_BOLD, 16);
                         content.newLineAtOffset(MARGEN, y);
-                        content.showText("Reporte de Movimientos");
+                        content.showText(t(lang, "Reporte de Movimientos", "Movement Report"));
                         content.newLineAtOffset(0, -16);
                         content.setFont(PDType1Font.HELVETICA, 11);
-                        content.showText("Cuenta: " + nombreCuenta);
+                        content.showText(t(lang, "Cuenta: ", "Account: ") + nombreCuenta);
                         content.newLineAtOffset(0, -12);
-                        content.showText("Alcance: " + alcance);
+                        content.showText(t(lang, "Alcance: ", "Scope: ") + alcanceTexto(alcance, lang));
                         content.newLineAtOffset(0, -12);
-                        content.showText("Período: " + fechaDesde + " al " + fechaHasta);
+                        content.showText(
+                                t(lang, "Período: ", "Period: ") + fechaDesde + t(lang, " al ", " to ") + fechaHasta);
                         content.newLineAtOffset(0, -12);
-                        content.showText("Página " + (pagina + 1) + " de " + totalPaginas);
+                        content.showText(
+                                t(lang, "Página ", "Page ") + (pagina + 1) + t(lang, " de ", " of ") + totalPaginas);
                         content.endText();
 
                         y -= 70;
@@ -135,10 +150,11 @@ public class ReporteService {
                         content.beginText();
                         content.setFont(PDType1Font.HELVETICA_BOLD, 10);
                         content.newLineAtOffset(MARGEN, y);
-                        content.showText("Reporte de Movimientos - " + nombreCuenta);
+                        content.showText(t(lang, "Reporte de Movimientos - ", "Movement Report - ") + nombreCuenta);
                         content.newLineAtOffset(0, -12);
                         content.setFont(PDType1Font.HELVETICA, 9);
-                        content.showText("Página " + (pagina + 1) + " de " + totalPaginas);
+                        content.showText(
+                                t(lang, "Página ", "Page ") + (pagina + 1) + t(lang, " de ", " of ") + totalPaginas);
                         content.endText();
 
                         y -= 40;
@@ -148,15 +164,15 @@ public class ReporteService {
                     content.beginText();
                     content.setFont(PDType1Font.HELVETICA_BOLD, 10);
                     content.newLineAtOffset(MARGEN, y);
-                    content.showText("Fecha");
+                    content.showText(t(lang, "Fecha", "Date"));
                     content.newLineAtOffset(70, 0);
-                    content.showText("Quién");
-                    content.newLineAtOffset(80, 0);
-                    content.showText("Descripción");
+                    content.showText(t(lang, "Quién", "Who"));
+                    content.newLineAtOffset(140, 0);
+                    content.showText(t(lang, "Descripción", "Description"));
                     content.newLineAtOffset(160, 0);
-                    content.showText("Tipo");
+                    content.showText(t(lang, "Tipo", "Type"));
                     content.newLineAtOffset(50, 0);
-                    content.showText("Monto");
+                    content.showText(t(lang, "Monto", "Amount"));
                     content.endText();
 
                     y -= ALTURA_FILA;
@@ -183,16 +199,24 @@ public class ReporteService {
 
                         content.beginText();
                         content.newLineAtOffset(MARGEN, y);
-                        content.showText(m.getFecha() != null ? m.getFecha().toString() : "-");
+                        content.showText(
+                                m.getFecha() != null ? m.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                        : "-");
                         content.newLineAtOffset(70, 0);
                         content.showText(quien);
                         content.newLineAtOffset(80, 0);
                         content.showText(m.getDescripcion() != null ? m.getDescripcion() : "-");
                         content.newLineAtOffset(160, 0);
-                        content.showText(m.isEsIngreso() ? "Ingreso" : "Egreso");
-                        content.newLineAtOffset(50, 0);
-                        content.showText(String.format("%,.2f", m.getMonto()));
+                        content.showText(m.isEsIngreso() ? t(lang, "Ingreso", "Income") : t(lang, "Egreso", "Expense"));
+                        String montoTexto = String.format("%,.2f", m.getMonto());
+                        float montoAncho = PDType1Font.HELVETICA.getStringWidth(montoTexto) / 1000 * 9;
+                        content.newLineAtOffset(50 - montoAncho, 0);
+                        content.showText(montoTexto);
                         content.endText();
+
+                        content.moveTo(MARGEN, y);
+                        content.lineTo(page.getMediaBox().getWidth() - MARGEN, y);
+                        content.stroke();
 
                         y -= ALTURA_FILA;
                     }
@@ -203,14 +227,15 @@ public class ReporteService {
                         content.beginText();
                         content.setFont(PDType1Font.HELVETICA_BOLD, 11);
                         content.newLineAtOffset(MARGEN, y);
-                        content.showText("Totales:");
+                        content.showText(t(lang, "Totales:", "Totals:"));
                         content.newLineAtOffset(0, -14);
                         content.setFont(PDType1Font.HELVETICA, 10);
-                        content.showText("Ingresos:  " + String.format("%,.2f", totalIngresos));
+                        content.showText(t(lang, "Ingresos:  ", "Income:   ") + String.format("%,.2f", totalIngresos));
                         content.newLineAtOffset(0, -12);
-                        content.showText("Egresos:   " + String.format("%,.2f", totalEgresos));
+                        content.showText(t(lang, "Egresos:   ", "Expense:  ") + String.format("%,.2f", totalEgresos));
                         content.newLineAtOffset(0, -12);
-                        content.showText("Saldo:     " + String.format("%,.2f", totalIngresos - totalEgresos));
+                        content.showText(t(lang, "Saldo:     ", "Balance:  ")
+                                + String.format("%,.2f", totalIngresos - totalEgresos));
                         content.endText();
                     }
                 }

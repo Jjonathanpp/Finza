@@ -32,7 +32,8 @@ class _InformesScreenState extends State<InformesScreen> {
       appBar: barraConVolver(
         context,
         context.tr('Informes'),
-        subtitulo: cuentaActiva.value?['nombre'] as String? ?? context.tr('Personal'),
+        subtitulo:
+            cuentaActiva.value?['nombre'] as String? ?? context.tr('Personal'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -40,13 +41,16 @@ class _InformesScreenState extends State<InformesScreen> {
           SelectorRangoFechas(
             key: const PageStorageKey('selector_rango_informes'),
             onCambio: (start, end) => setState(() {
-                _inicio = start;
-                _fin = end;
+              _inicio = start;
+              _fin = end;
             }),
-           ),
+          ),
           const SizedBox(height: 12),
           Segmento<String>(
-            opciones: [('MES', context.tr('Por mes')), ('SEMANA', context.tr('Por semana'))],
+            opciones: [
+              ('MES', context.tr('Por mes')),
+              ('SEMANA', context.tr('Por semana')),
+            ],
             valor: _granularidad,
             alCambiar: (g) => setState(() => _granularidad = g),
           ),
@@ -78,6 +82,7 @@ class _InformesScreenState extends State<InformesScreen> {
                   alcance: alcance,
                   fechaDesde: desde,
                   fechaHasta: hasta,
+                  lang: idioma.value.languageCode,
                 );
                 final dir = await getTemporaryDirectory();
                 final archivo = File('${dir.path}/reporte_finza.pdf');

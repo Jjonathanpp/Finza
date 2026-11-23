@@ -60,9 +60,10 @@ public class InformeController {
                         @AuthenticationPrincipal Long cuentaId,
                         @RequestParam(name = "alcance") String alcance,
                         @RequestParam(name = "fechaDesde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
-                        @RequestParam(name = "fechaHasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta) {
+                        @RequestParam(name = "fechaHasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
+                        @RequestParam(name = "lang", required = false) String lang) {
 
-                byte[] pdf = reporteService.generarReportePDF(cuentaId, alcance, fechaDesde, fechaHasta);
+                byte[] pdf = reporteService.generarReportePDF(cuentaId, alcance, fechaDesde, fechaHasta, lang);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=reporte.pdf")
