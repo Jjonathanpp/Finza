@@ -80,7 +80,7 @@ public class CuentaService {
 
         Perfil perfil = new Perfil();
         perfil.setCuenta(cuenta);
-        perfil.setNombrePerfil(usuario.getNombre());
+        perfil.setNombrePerfil(usuario.getNombre() + " " + usuario.getApellido());
         perfil.setEsPrincipal(true);
         perfil.setEsActivo(true);
         perfil.setRol(Perfil.Rol.ADMIN);

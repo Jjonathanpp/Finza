@@ -180,7 +180,7 @@ public class InvitacionService {
         perfil.setCuenta(cuenta);
         perfil.setCuentaCompartida(inv.getCuentaCompartida());
         perfil.setRol(Perfil.Rol.MIEMBRO);
-        perfil.setNombrePerfil(cuenta.getEmail());
+        perfil.setNombrePerfil(cuenta.getUsuario().getNombre() + " " + cuenta.getUsuario().getApellido());
         perfil.setEsPrincipal(false);
         perfil.setEsActivo(true);
         perfilRepository.save(perfil);

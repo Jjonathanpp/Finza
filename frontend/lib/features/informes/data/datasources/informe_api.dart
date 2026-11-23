@@ -46,10 +46,12 @@ class InformeApi {
     required String alcance,
     DateTime? fechaDesde,
     DateTime? fechaHasta,
+    String? lang,
   }) async {
     final queryParams = <String, dynamic>{'alcance': alcance};
     if (fechaDesde != null) queryParams['fechaDesde'] = _formatearFechaIso(fechaDesde);
     if (fechaHasta != null) queryParams['fechaHasta'] = _formatearFechaIso(fechaHasta);
+    if (lang != null) queryParams['lang'] = lang;
 
     return _api.getBytes('/api/informes/reporte', queryParameters: queryParams);
   }
