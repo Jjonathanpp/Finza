@@ -12,6 +12,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.finza.backend.dto.mercadopago.BusquedaMPResponseDTO;
 import com.finza.backend.dto.mercadopago.TransaccionMPResponseDTO;
+import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
 import com.finza.backend.dto.mercadopago.SincronizacionResumenDTO;
 import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.model.Categoria;
@@ -38,6 +39,7 @@ public class MercadoPagoSyncService {
     private final CategoriaService categoriaService;
     private final MercadoPagoMapper mercadoPagoMapper;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final MercadoPagoOAuthService mercadoPagoOAuthService;
 
     public BusquedaMPResponseDTO obtenerMovimientosDesdeMP(Long usuarioId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
@@ -45,7 +47,8 @@ public class MercadoPagoSyncService {
                         "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(cuentaMP.getAccessToken());
+        String accessToken = mercadoPagoOAuthService.obtenerAccessTokenVigente(usuarioId);
+        headers.setBearerAuth(accessToken);
 
         HttpEntity<Void> peticion = new HttpEntity<>(headers);
 
@@ -63,7 +66,7 @@ public class MercadoPagoSyncService {
         }
     }
 
-    public List<Movimiento> obtenerMovimientosMapeados(Long usuarioId, Long perfilId) {
+    public List<MovimientoResponseDTO> obtenerMovimientosMapeados(Long usuarioId, Long perfilId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new BadRequestException(
                         "No se encontró una cuenta de Mercado Pago vinculada para el usuario"));
@@ -88,7 +91,9 @@ public class MercadoPagoSyncService {
             movimientos.add(movimiento);
         }
 
-        return movimientos;
+        return movimientos.stream()
+                .map(MovimientoResponseDTO::new)
+                .toList();
     }
 
     public SincronizacionResumenDTO sincronizarMovimientos(Long usuarioId, Long perfilId) {

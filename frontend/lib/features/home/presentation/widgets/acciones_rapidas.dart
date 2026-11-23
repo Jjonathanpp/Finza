@@ -28,15 +28,20 @@ class AccionesRapidas extends StatelessWidget {
         ),
         Expanded(
           flex: 4,
-          child: _BotonAccion(
-            icono: Icons.format_list_bulleted,
-            texto: context.tr('Movimientos'),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const MovimientosScreen()),
-              );
-            },
+          child: Semantics(
+            label: context.tr('Abrir historial de movimientos'),
+            button: true,
+            excludeSemantics: true,
+            child: _BotonAccion(
+              icono: Icons.format_list_bulleted,
+              texto: context.tr('Movimientos'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MovimientosScreen()),
+                );
+              },
+            ),
           ),
         ),
         Expanded(

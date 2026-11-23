@@ -53,9 +53,9 @@ public class ReporteService {
 
     private String alcanceTexto(String alcance, String lang) {
         if ("solo_propios".equals(alcance)) {
-            return t(lang, "solo_propios", "own movements only");
+            return t(lang, "Mis movimientos", "My movements");
         }
-        return t(lang, "cuenta_completa", "whole account");
+        return t(lang, "Cuenta completa", "Whole account");
     }
 
     private String truncate(String text, float maxWidth, PDType1Font font, float fontSize) {
@@ -203,95 +203,143 @@ public class ReporteService {
                     }
 
                     // === TABLA DE MOVIMIENTOS ===
-                    float colFechaX = MARGEN;
-                    float colQuienX = colFechaX + COL_FECHA_W + GAP;
-                    float colDescX = mostrarQuien ? colQuienX + COL_QUIEN_W + GAP : colQuienX; // si no hay Quién,
-                                                                                               // Descripción empieza
-                                                                                               // ahí
-                    float colTipoX = colDescX + (mostrarQuien
-                            ? (page.getMediaBox().getWidth() - MARGEN - colDescX - COL_TIPO_W - GAP - COL_MONTO_W)
-                            : (page.getMediaBox().getWidth() - MARGEN - colDescX - COL_TIPO_W - GAP - COL_MONTO_W));
-                    float colMontoX = page.getMediaBox().getWidth() - MARGEN - COL_MONTO_W;
+                    if (movimientos.isEmpty()) {
+                        content.beginText();
+                        content.setFont(PDType1Font.HELVETICA_BOLD, 11);
+                        content.newLineAtOffset(MARGEN, y);
+                        content.showText(t(lang,
+                                "No hay movimientos en el período seleccionado",
+                                "No movements in the selected period"));
+                        content.endText();
 
-                    float colDescW = colTipoX - GAP - colDescX;
+                        y -= 35;
+                    } else {
 
-                    content.beginText();
-                    content.setFont(PDType1Font.HELVETICA_BOLD, 10);
-                    content.newLineAtOffset(colFechaX, y);
-                    content.showText(t(lang, "Fecha", "Date"));
-                    if (mostrarQuien) {
-                        content.newLineAtOffset(COL_FECHA_W + GAP, 0);
-                        content.showText(t(lang, "Quién", "Who"));
-                    }
-                    content.newLineAtOffset(mostrarQuien ? COL_QUIEN_W + GAP : 0, 0);
-                    content.showText(t(lang, "Descripción", "Description"));
-                    content.newLineAtOffset(colDescW + GAP, 0);
-                    content.showText(t(lang, "Tipo", "Type"));
-                    content.newLineAtOffset(COL_TIPO_W + GAP, 0);
-                    content.showText(t(lang, "Monto", "Amount"));
-                    content.endText();
-
-                    y -= ALTURA_FILA;
-
-                    content.moveTo(MARGEN, y);
-                    content.lineTo(page.getMediaBox().getWidth() - MARGEN, y);
-                    content.stroke();
-
-                    y -= ALTURA_FILA;
-
-                    int inicio = pagina * MAX_FILAS_POR_PAGINA;
-                    int fin = Math.min(inicio + MAX_FILAS_POR_PAGINA, movimientos.size());
-
-                    content.setFont(PDType1Font.HELVETICA, 9);
-                    for (int i = inicio; i < fin; i++) {
-                        Movimiento m = movimientos.get(i);
-                        if (y < MARGEN + 50) {
-                            break;
-                        }
-
-                        String quien = m.getPerfil() != null ? m.getPerfil().getNombrePerfil() : "-";
-                        String fechaTexto = m.getFecha() != null
-                                ? m.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                                : "-";
-                        String descTexto = m.getDescripcion() != null ? m.getDescripcion() : "-";
-                        String tipoTexto = m.isEsIngreso() ? t(lang, "Ingreso", "Income")
-                                : t(lang, "Egreso", "Expense");
-                        String montoTexto = String.format("%,.2f", m.getMonto());
-
-                        fechaTexto = truncate(fechaTexto, COL_FECHA_W, PDType1Font.HELVETICA, 9);
-                        if (mostrarQuien)
-                            quien = truncate(quien, COL_QUIEN_W, PDType1Font.HELVETICA, 9);
-                        descTexto = truncate(descTexto, colDescW, PDType1Font.HELVETICA, 9);
-                        tipoTexto = truncate(tipoTexto, COL_TIPO_W, PDType1Font.HELVETICA, 9);
+                        float colFechaX = MARGEN;
+                        float colQuienX = colFechaX + COL_FECHA_W + GAP;
+                        float colDescX = mostrarQuien
+                                ? colQuienX + COL_QUIEN_W + GAP
+                                : colFechaX + COL_FECHA_W + GAP;
+                        float colMontoX = page.getMediaBox().getWidth() - MARGEN - COL_MONTO_W;
+                        float colTipoX = colMontoX - GAP - COL_TIPO_W;
+                        float colDescW = colTipoX - GAP - colDescX;
 
                         content.beginText();
+                        content.setFont(PDType1Font.HELVETICA_BOLD, 10);
+
                         content.newLineAtOffset(colFechaX, y);
-                        content.showText(fechaTexto);
-                        if (mostrarQuien) {
-                            content.newLineAtOffset(COL_FECHA_W + GAP, 0);
-                            content.showText(quien);
-                        }
-                        content.newLineAtOffset(mostrarQuien ? COL_QUIEN_W + GAP : 0, 0);
-                        content.showText(descTexto);
-                        content.newLineAtOffset(colDescW + GAP, 0);
-                        content.showText(tipoTexto);
-                        float montoAncho;
-                        try {
-                            montoAncho = PDType1Font.HELVETICA.getStringWidth(montoTexto) / 1000f * 9;
-                        } catch (IOException e) {
-                            montoAncho = 0;
-                        }
-                        content.newLineAtOffset(COL_TIPO_W + GAP + COL_MONTO_W - montoAncho, 0);
-                        content.showText(montoTexto);
+                        content.showText(t(lang, "Fecha", "Date"));
                         content.endText();
+
+                        if (mostrarQuien) {
+                            content.beginText();
+                            content.setFont(PDType1Font.HELVETICA_BOLD, 10);
+                            content.newLineAtOffset(colQuienX, y);
+                            content.showText(t(lang, "Quién", "Who"));
+                            content.endText();
+                        }
+
+                        content.beginText();
+                        content.setFont(PDType1Font.HELVETICA_BOLD, 10);
+                        content.newLineAtOffset(colDescX, y);
+                        content.showText(t(lang, "Descripción", "Description"));
+                        content.endText();
+
+                        content.beginText();
+                        content.setFont(PDType1Font.HELVETICA_BOLD, 10);
+                        content.newLineAtOffset(colTipoX, y);
+                        content.showText(t(lang, "Tipo", "Type"));
+                        content.endText();
+
+                        content.beginText();
+                        content.setFont(PDType1Font.HELVETICA_BOLD, 10);
+                        content.newLineAtOffset(colMontoX, y);
+                        content.showText(t(lang, "Monto", "Amount"));
+                        content.endText();
+
+                        y -= ALTURA_FILA;
 
                         content.moveTo(MARGEN, y);
                         content.lineTo(page.getMediaBox().getWidth() - MARGEN, y);
+                        content.setLineWidth(0.5f);
                         content.stroke();
 
-                        y -= ALTURA_FILA;
-                    }
+                        y -= ALTURA_FILA + 6;
 
+                        int inicio = pagina * MAX_FILAS_POR_PAGINA;
+                        int fin = Math.min(inicio + MAX_FILAS_POR_PAGINA, movimientos.size());
+
+                        content.setFont(PDType1Font.HELVETICA, 9);
+                        for (int i = inicio; i < fin; i++) {
+                            Movimiento m = movimientos.get(i);
+                            if (y < MARGEN + 50) {
+                                break;
+                            }
+
+                            String quien = m.getPerfil() != null ? m.getPerfil().getNombrePerfil() : "-";
+                            String fechaTexto = m.getFecha() != null
+                                    ? m.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                    : "-";
+                            String descTexto = m.getDescripcion() != null ? m.getDescripcion() : "-";
+                            String tipoTexto = m.isEsIngreso() ? t(lang, "Ingreso", "Income")
+                                    : t(lang, "Egreso", "Expense");
+                            String montoTexto = String.format("%,.2f", m.getMonto());
+
+                            fechaTexto = truncate(fechaTexto, COL_FECHA_W, PDType1Font.HELVETICA, 9);
+                            if (mostrarQuien)
+                                quien = truncate(quien, COL_QUIEN_W, PDType1Font.HELVETICA, 9);
+                            descTexto = truncate(descTexto, colDescW, PDType1Font.HELVETICA, 9);
+                            tipoTexto = truncate(tipoTexto, COL_TIPO_W, PDType1Font.HELVETICA, 9);
+
+                            float montoAncho;
+                            try {
+                                montoAncho = PDType1Font.HELVETICA.getStringWidth(montoTexto) / 1000f * 9;
+                            } catch (IOException e) {
+                                montoAncho = 0;
+                            }
+
+                            content.beginText();
+                            content.setFont(PDType1Font.HELVETICA, 9);
+                            content.newLineAtOffset(colFechaX, y);
+                            content.showText(fechaTexto);
+                            content.endText();
+
+                            if (mostrarQuien) {
+                                content.beginText();
+                                content.setFont(PDType1Font.HELVETICA, 9);
+                                content.newLineAtOffset(colQuienX, y);
+                                content.showText(quien);
+                                content.endText();
+                            }
+
+                            content.beginText();
+                            content.setFont(PDType1Font.HELVETICA, 9);
+                            content.newLineAtOffset(colDescX, y);
+                            content.showText(descTexto);
+                            content.endText();
+
+                            content.beginText();
+                            content.setFont(PDType1Font.HELVETICA, 9);
+                            content.newLineAtOffset(colTipoX, y);
+                            content.showText(tipoTexto);
+                            content.endText();
+
+                            content.beginText();
+                            content.setFont(PDType1Font.HELVETICA, 9);
+                            content.newLineAtOffset(colMontoX + COL_MONTO_W - montoAncho, y);
+                            content.showText(montoTexto);
+                            content.endText();
+
+                            content.moveTo(MARGEN, y);
+                            content.lineTo(page.getMediaBox().getWidth() - MARGEN, y);
+                            content.setLineWidth(0.5f);
+                            content.stroke();
+
+                            y -= ALTURA_FILA;
+                        }
+
+                    }
+                    
                     // === TOTALES SOLO EN LA ÚLTIMA PÁGINA ===
                     if (pagina == totalPaginas - 1) {
                         y -= 20;

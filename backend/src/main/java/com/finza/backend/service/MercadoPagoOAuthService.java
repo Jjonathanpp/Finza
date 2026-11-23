@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.finza.backend.config.MercadoPagoProperties;
 import com.finza.backend.dto.MercadoPagoTokenResponse;
@@ -93,8 +94,7 @@ public class MercadoPagoOAuthService {
                 "client_id", mpProperties.getClientId(),
                 "grant_type", "authorization_code",
                 "code", code,
-                "redirect_uri", mpProperties.getRedirectUri()
-        );
+                "redirect_uri", mpProperties.getRedirectUri());
 
         HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
@@ -109,7 +109,8 @@ public class MercadoPagoOAuthService {
     @org.springframework.transaction.annotation.Transactional
     public void desvincular(Long usuarioId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new BadRequestException("No se encontró una cuenta de Mercado Pago vinculada para este usuario."));
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada para este usuario."));
 
         cuentaMPRepository.deleteByUsuarioId(usuarioId);
         cuentaMPRepository.flush();
@@ -118,5 +119,67 @@ public class MercadoPagoOAuthService {
 
     public boolean estaConectado(Long usuarioId) {
         return cuentaMPRepository.findByUsuarioId(usuarioId).isPresent();
+    }
+
+    @Transactional
+    public String obtenerAccessTokenVigente(Long usuarioId) {
+        CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BadRequestException(
+                        "No se encontró una cuenta de Mercado Pago vinculada"));
+
+        if (cuentaMP.getFechaExpiracionToken() != null
+                && cuentaMP.getFechaExpiracionToken().isAfter(LocalDateTime.now().plusMinutes(5))) {
+            return cuentaMP.getAccessToken();
+        }
+
+        if (cuentaMP.getRefreshToken() == null || cuentaMP.getRefreshToken().isBlank()) {
+            throw new BadRequestException(
+                    "Mercado Pago necesita volver a vincularse");
+        }
+
+        Map<String, Object> body = Map.of(
+                "client_secret", mpProperties.getClientSecret(),
+                "client_id", mpProperties.getClientId(),
+                "grant_type", "refresh_token",
+                "refresh_token", cuentaMP.getRefreshToken());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        try {
+            MercadoPagoTokenResponse response = restTemplate.postForObject(
+                    MP_TOKEN_URL, request, MercadoPagoTokenResponse.class);
+
+            if (response == null || response.getAccessToken() == null) {
+                throw new BadRequestException(
+                        "Mercado Pago no pudo renovar la conexión");
+            }
+
+            cuentaMP.setAccessToken(response.getAccessToken());
+            if (response.getRefreshToken() != null) {
+                cuentaMP.setRefreshToken(response.getRefreshToken());
+            }
+            if (response.getUserId() != null) {
+                cuentaMP.setMpIdUser(String.valueOf(response.getUserId()));
+            }
+            Long expiresIn = response.getExpiresIn();
+            if (expiresIn == null || expiresIn <= 0) {
+                throw new BadRequestException(
+                        "Mercado Pago no informó cuándo vence la nueva conexión");
+            }
+
+            cuentaMP.setFechaExpiracionToken(
+                    LocalDateTime.now().plusSeconds(expiresIn));
+
+            cuentaMPRepository.save(cuentaMP);
+            return response.getAccessToken();
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error renovando el token de Mercado Pago: {}", e.getMessage());
+            throw new BadRequestException(
+                    "Mercado Pago necesita volver a vincularse");
+        }
     }
 }
