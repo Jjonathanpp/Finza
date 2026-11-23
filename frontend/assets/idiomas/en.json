@@ -16,6 +16,7 @@
   "Volver": "Back",
   "Ingreso": "Income",
   "Movimientos": "Transactions",
+  "Abrir historial de movimientos": "Open movements history",
   "Voz": "Voice",
   "Moneda": "Currency",
   "Los montos se cargan siempre en pesos. Con otra moneda, se muestran convertidos con la cotización del día.": "Amounts are always entered in Argentine pesos. With another currency, they are shown converted at today's exchange rate.",

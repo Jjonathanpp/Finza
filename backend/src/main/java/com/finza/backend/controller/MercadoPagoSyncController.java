@@ -19,7 +19,7 @@ import com.finza.backend.exception.BadRequestException;
 import com.finza.backend.dto.mercadopago.BusquedaMPResponseDTO;
 import com.finza.backend.dto.mercadopago.SincronizacionResumenDTO;
 import com.finza.backend.dto.Response;
-import com.finza.backend.model.Movimiento;
+import com.finza.backend.dto.movimiento.MovimientoResponseDTO;
 import com.finza.backend.service.MercadoPagoSyncService;
 
 import lombok.RequiredArgsConstructor;
@@ -42,11 +42,13 @@ public class MercadoPagoSyncController {
     }
 
     @GetMapping("/movimientos/mapeados")
-    public ResponseEntity<List<Movimiento>> obtenerMovimientosMapeados(@AuthenticationPrincipal Long cuentaId) {
+    public ResponseEntity<List<MovimientoResponseDTO>> obtenerMovimientosMapeados(
+            @AuthenticationPrincipal Long cuentaId) {
         Cuenta cuenta = cuentaRepository.findById(cuentaId)
                 .orElseThrow(() -> new BadRequestException("Cuenta no encontrada"));
         Long perfilId = perfilService.idPrincipal(cuentaId);
-        List<Movimiento> movimientos = syncService.obtenerMovimientosMapeados(cuenta.getUsuario().getId(), perfilId);
+        List<MovimientoResponseDTO> movimientos = syncService.obtenerMovimientosMapeados(cuenta.getUsuario().getId(),
+                perfilId);
         return ResponseEntity.ok(movimientos);
     }
 

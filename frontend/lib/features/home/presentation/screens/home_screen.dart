@@ -27,7 +27,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final recargaKey = ValueKey('${_startDate?.toIso8601String()}_${_endDate?.toIso8601String()}');
+    final recargaKey = ValueKey(
+      '${_startDate?.toIso8601String()}_${_endDate?.toIso8601String()}',
+    );
 
     return Scaffold(
       body: Column(
@@ -41,19 +43,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 SelectorRangoFechas(onCambio: _onFechasCambiadas),
                 const SizedBox(height: 12),
 
-                TarjetaSaldo(key: recargaKey, startDate: _startDate, endDate: _endDate),
-                const SizedBox(height: 12),
-
-                GastosPorCategoria(key: recargaKey, startDate: _startDate, endDate: _endDate),
-                const SizedBox(height: 12),
-
-                GraficoBalanceMes(key: recargaKey, startDate: _startDate, endDate: _endDate),
-                const SizedBox(height: 12),
-
-                UltimosMovimientos(key: recargaKey, startDate: _startDate, endDate: _endDate),
+                TarjetaSaldo(
+                  key: recargaKey,
+                  startDate: _startDate,
+                  endDate: _endDate,
+                ),
                 const SizedBox(height: 12),
 
                 const AccionesRapidas(),
+                const SizedBox(height: 12),
+
+                GastosPorCategoria(
+                  key: recargaKey,
+                  startDate: _startDate,
+                  endDate: _endDate,
+                ),
+                const SizedBox(height: 12),
+
+                GraficoBalanceMes(
+                  key: recargaKey,
+                  startDate: _startDate,
+                  endDate: _endDate,
+                ),
+                const SizedBox(height: 12),
+
+                UltimosMovimientos(
+                  key: recargaKey,
+                  startDate: _startDate,
+                  endDate: _endDate,
+                ),
               ],
             ),
           ),

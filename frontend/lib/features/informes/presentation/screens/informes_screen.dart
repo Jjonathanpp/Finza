@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/widgets/barra_con_volver.dart';
 import 'package:frontend/core/widgets/segmento.dart';
+import 'package:frontend/core/widgets/boton_icono.dart';
+import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/session/cuenta_activa.dart';
 import 'package:frontend/features/informes/data/datasources/informe_api.dart';
 import 'package:frontend/features/informes/presentation/widgets/grafico_barras_comparacion.dart';
 import 'package:frontend/features/informes/presentation/widgets/grafico_torta_categorias.dart';
+import 'package:frontend/features/informes/presentation/widgets/exportar_reporte_dialog.dart';
 import 'package:frontend/features/panel/presentation/widgets/selector_rango_fechas.dart';
-import 'package:frontend/core/network/api_client.dart';
 
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:frontend/features/informes/presentation/widgets/exportar_reporte_dialog.dart';
-import 'package:frontend/core/session/cuenta_activa.dart';
 import 'dart:io';
 import 'package:frontend/l10n/idioma.dart';
 
@@ -34,6 +35,36 @@ class _InformesScreenState extends State<InformesScreen> {
         context.tr('Informes'),
         subtitulo:
             cuentaActiva.value?['nombre'] as String? ?? context.tr('Personal'),
+        acciones: [
+          BotonIcono(
+            icono: Icons.picture_as_pdf_outlined,
+            ayuda: context.tr('Exportar reporte en PDF'),
+            alTocar: () => ExportarReporteDialog.mostrar(
+              context,
+              fechaInicial: _inicio,
+              fechaFinal: _fin,
+              cuentaCompartidaActiva: cuentaActiva.value != null,
+              onExportar: (alcance, desde, hasta) async {
+                final api = InformeApi(ApiClient());
+                final bytes = await api.descargarReporte(
+                  alcance: alcance,
+                  fechaDesde: desde,
+                  fechaHasta: hasta,
+                  lang: idioma.value.languageCode,
+                );
+                final dir = await getTemporaryDirectory();
+                final archivo = File('${dir.path}/reporte_finza.pdf');
+                await archivo.writeAsBytes(bytes, flush: true);
+                await SharePlus.instance.share(
+                  ShareParams(
+                    files: [XFile(archivo.path)],
+                    text: 'Reporte Finza',
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -68,35 +99,6 @@ class _InformesScreenState extends State<InformesScreen> {
             startDate: _inicio,
             endDate: _fin,
             granularidad: _granularidad,
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => ExportarReporteDialog.mostrar(
-              context,
-              fechaInicial: _inicio,
-              fechaFinal: _fin,
-              cuentaCompartidaActiva: cuentaActiva.value != null,
-              onExportar: (alcance, desde, hasta) async {
-                final api = InformeApi(ApiClient());
-                final bytes = await api.descargarReporte(
-                  alcance: alcance,
-                  fechaDesde: desde,
-                  fechaHasta: hasta,
-                  lang: idioma.value.languageCode,
-                );
-                final dir = await getTemporaryDirectory();
-                final archivo = File('${dir.path}/reporte_finza.pdf');
-                await archivo.writeAsBytes(bytes, flush: true);
-                await SharePlus.instance.share(
-                  ShareParams(
-                    files: [XFile(archivo.path)],
-                    text: 'Reporte Finza',
-                  ),
-                );
-              },
-            ),
-            icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-            label: Text(context.tr('Exportar reporte en PDF')),
           ),
         ],
       ),
