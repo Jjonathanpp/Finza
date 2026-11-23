@@ -1,10 +1,12 @@
 package com.finza.backend.service;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -39,6 +41,12 @@ public class ReporteService {
     private static final float ALTURA_FILA = 20;
     private static final float ALTURA_ENCABEZADO = 80;
 
+    private static final float COL_FECHA_W = 70f;
+    private static final float COL_QUIEN_W = 110f;
+    private static final float COL_TIPO_W = 55f;
+    private static final float COL_MONTO_W = 75f;
+    private static final float GAP = 10f;
+
     private String t(String lang, String es, String en) {
         return lang != null && lang.toLowerCase().startsWith("en") ? en : es;
     }
@@ -48,6 +56,34 @@ public class ReporteService {
             return t(lang, "solo_propios", "own movements only");
         }
         return t(lang, "cuenta_completa", "whole account");
+    }
+
+    private String truncate(String text, float maxWidth, PDType1Font font, float fontSize) {
+        if (text == null || text.isEmpty())
+            return "-";
+        try {
+            float textWidth = font.getStringWidth(text) / 1000f * fontSize;
+            if (textWidth <= maxWidth)
+                return text;
+            String ellipsis = "…";
+            float ellipsisWidth = font.getStringWidth(ellipsis) / 1000f * fontSize;
+            float available = maxWidth - ellipsisWidth;
+            if (available <= 0)
+                return ellipsis;
+            int low = 0, high = text.length();
+            while (low < high) {
+                int mid = (low + high + 1) / 2;
+                String sub = text.substring(0, mid);
+                float w = font.getStringWidth(sub) / 1000f * fontSize;
+                if (w <= available)
+                    low = mid;
+                else
+                    high = mid - 1;
+            }
+            return text.substring(0, low) + ellipsis;
+        } catch (IOException e) {
+            return text; // fallback: si falla medir, devolvé el original
+        }
     }
 
     public byte[] generarReportePDF(Long cuentaId, String alcance, LocalDate fechaDesde, LocalDate fechaHasta,
@@ -67,8 +103,6 @@ public class ReporteService {
             fechaHasta = LocalDate.now();
         }
 
-        // El perfil en el que está parado el usuario (header X-Perfil-Id), no el
-        // principal
         Perfil perfil = perfilService.perfilActivo(cuentaId);
 
         List<Movimiento> movimientos;
@@ -87,17 +121,25 @@ public class ReporteService {
             Long cuentaCompartidaId = perfil.getCuentaCompartida().getId();
             nombreCuenta = perfil.getCuentaCompartida().getNombre();
 
-            // perfilId = null: todos los perfiles de la cuenta compartida
             movimientos = movimientoRepository.buscarConFiltros(
                     null, cuentaId, cuentaCompartidaId, fechaDesde, fechaHasta, null, null, null,
                     PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "fecha"))).getContent();
         }
 
-        return generarPDF(nombreCuenta, alcance, fechaDesde, fechaHasta, movimientos, lang);
+        // === NUEVO: calcular si hay que mostrar la columna "Quién" ===
+        long distinctOwners = movimientos.stream()
+                .map(Movimiento::getPerfil)
+                .filter(Objects::nonNull)
+                .map(Perfil::getId)
+                .distinct()
+                .count();
+        boolean mostrarQuien = distinctOwners >= 2;
+
+        return generarPDF(nombreCuenta, alcance, fechaDesde, fechaHasta, movimientos, lang, mostrarQuien);
     }
 
     private byte[] generarPDF(String nombreCuenta, String alcance, LocalDate fechaDesde,
-            LocalDate fechaHasta, List<Movimiento> movimientos, String lang) {
+            LocalDate fechaHasta, List<Movimiento> movimientos, String lang, boolean mostrarQuien) {
 
         try (PDDocument document = new PDDocument()) {
             int totalPaginas = (int) Math.ceil((double) movimientos.size() / MAX_FILAS_POR_PAGINA);
@@ -161,17 +203,31 @@ public class ReporteService {
                     }
 
                     // === TABLA DE MOVIMIENTOS ===
+                    float colFechaX = MARGEN;
+                    float colQuienX = colFechaX + COL_FECHA_W + GAP;
+                    float colDescX = mostrarQuien ? colQuienX + COL_QUIEN_W + GAP : colQuienX; // si no hay Quién,
+                                                                                               // Descripción empieza
+                                                                                               // ahí
+                    float colTipoX = colDescX + (mostrarQuien
+                            ? (page.getMediaBox().getWidth() - MARGEN - colDescX - COL_TIPO_W - GAP - COL_MONTO_W)
+                            : (page.getMediaBox().getWidth() - MARGEN - colDescX - COL_TIPO_W - GAP - COL_MONTO_W));
+                    float colMontoX = page.getMediaBox().getWidth() - MARGEN - COL_MONTO_W;
+
+                    float colDescW = colTipoX - GAP - colDescX;
+
                     content.beginText();
                     content.setFont(PDType1Font.HELVETICA_BOLD, 10);
-                    content.newLineAtOffset(MARGEN, y);
+                    content.newLineAtOffset(colFechaX, y);
                     content.showText(t(lang, "Fecha", "Date"));
-                    content.newLineAtOffset(70, 0);
-                    content.showText(t(lang, "Quién", "Who"));
-                    content.newLineAtOffset(140, 0);
+                    if (mostrarQuien) {
+                        content.newLineAtOffset(COL_FECHA_W + GAP, 0);
+                        content.showText(t(lang, "Quién", "Who"));
+                    }
+                    content.newLineAtOffset(mostrarQuien ? COL_QUIEN_W + GAP : 0, 0);
                     content.showText(t(lang, "Descripción", "Description"));
-                    content.newLineAtOffset(160, 0);
+                    content.newLineAtOffset(colDescW + GAP, 0);
                     content.showText(t(lang, "Tipo", "Type"));
-                    content.newLineAtOffset(50, 0);
+                    content.newLineAtOffset(COL_TIPO_W + GAP, 0);
                     content.showText(t(lang, "Monto", "Amount"));
                     content.endText();
 
@@ -193,24 +249,39 @@ public class ReporteService {
                             break;
                         }
 
-                        String quien = "cuenta_completa".equals(alcance) && m.getPerfil() != null
-                                ? m.getPerfil().getNombrePerfil()
+                        String quien = m.getPerfil() != null ? m.getPerfil().getNombrePerfil() : "-";
+                        String fechaTexto = m.getFecha() != null
+                                ? m.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                                 : "-";
+                        String descTexto = m.getDescripcion() != null ? m.getDescripcion() : "-";
+                        String tipoTexto = m.isEsIngreso() ? t(lang, "Ingreso", "Income")
+                                : t(lang, "Egreso", "Expense");
+                        String montoTexto = String.format("%,.2f", m.getMonto());
+
+                        fechaTexto = truncate(fechaTexto, COL_FECHA_W, PDType1Font.HELVETICA, 9);
+                        if (mostrarQuien)
+                            quien = truncate(quien, COL_QUIEN_W, PDType1Font.HELVETICA, 9);
+                        descTexto = truncate(descTexto, colDescW, PDType1Font.HELVETICA, 9);
+                        tipoTexto = truncate(tipoTexto, COL_TIPO_W, PDType1Font.HELVETICA, 9);
 
                         content.beginText();
-                        content.newLineAtOffset(MARGEN, y);
-                        content.showText(
-                                m.getFecha() != null ? m.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                                        : "-");
-                        content.newLineAtOffset(70, 0);
-                        content.showText(quien);
-                        content.newLineAtOffset(80, 0);
-                        content.showText(m.getDescripcion() != null ? m.getDescripcion() : "-");
-                        content.newLineAtOffset(160, 0);
-                        content.showText(m.isEsIngreso() ? t(lang, "Ingreso", "Income") : t(lang, "Egreso", "Expense"));
-                        String montoTexto = String.format("%,.2f", m.getMonto());
-                        float montoAncho = PDType1Font.HELVETICA.getStringWidth(montoTexto) / 1000 * 9;
-                        content.newLineAtOffset(50 - montoAncho, 0);
+                        content.newLineAtOffset(colFechaX, y);
+                        content.showText(fechaTexto);
+                        if (mostrarQuien) {
+                            content.newLineAtOffset(COL_FECHA_W + GAP, 0);
+                            content.showText(quien);
+                        }
+                        content.newLineAtOffset(mostrarQuien ? COL_QUIEN_W + GAP : 0, 0);
+                        content.showText(descTexto);
+                        content.newLineAtOffset(colDescW + GAP, 0);
+                        content.showText(tipoTexto);
+                        float montoAncho;
+                        try {
+                            montoAncho = PDType1Font.HELVETICA.getStringWidth(montoTexto) / 1000f * 9;
+                        } catch (IOException e) {
+                            montoAncho = 0;
+                        }
+                        content.newLineAtOffset(COL_TIPO_W + GAP + COL_MONTO_W - montoAncho, 0);
                         content.showText(montoTexto);
                         content.endText();
 
