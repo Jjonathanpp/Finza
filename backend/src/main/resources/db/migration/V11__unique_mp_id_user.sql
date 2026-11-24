@@ -1,0 +1,2 @@
+-- Restricción para asegurar que una cuenta de Mercado Pago solo pueda estar vinculada a un único usuario de Finza a la vez
+ALTER TABLE cuentamp ADD CONSTRAINT uk_cuentamp_mp_id_user UNIQUE (mp_id_user);

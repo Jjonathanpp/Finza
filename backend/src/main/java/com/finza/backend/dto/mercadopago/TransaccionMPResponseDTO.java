@@ -31,6 +31,12 @@ public class TransaccionMPResponseDTO {
     @JsonProperty("date_approved")
     private String fechaAprobacion;
 
+    @JsonProperty("date_created")
+    private String fechaCreacion;
+
+    @JsonProperty("es_ingreso")
+    private Boolean esIngreso;
+
     @JsonProperty("operation_type")
     private String tipoOperacion;
 }

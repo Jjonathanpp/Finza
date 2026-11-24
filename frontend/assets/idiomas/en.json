@@ -780,5 +780,6 @@
   "Elegí movimientos": "Choose transactions",
   "Importar {n} elegidos": "Import {n} selected",
   "¿Eliminar \"{nombre}\"? No se puede deshacer.": "Delete \"{nombre}\"? This can't be undone.",
-  "¿Eliminar \"{nombre}\" para todos los de {cuenta}? No se puede deshacer.": "Delete \"{nombre}\" for everyone in {cuenta}? This can't be undone."
+  "¿Eliminar \"{nombre}\" para todos los de {cuenta}? No se puede deshacer.": "Delete \"{nombre}\" for everyone in {cuenta}? This can't be undone.",
+  "No se pudo vincular": "Couldn't link"
 }

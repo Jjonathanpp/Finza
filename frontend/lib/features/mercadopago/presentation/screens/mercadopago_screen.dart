@@ -99,12 +99,34 @@ class _MercadoPagoScreenState extends State<MercadoPagoScreen>
       final url = await _vm.obtenerUrlAutorizacion();
       if (!mounted) return;
 
-      await Navigator.push(
+      final resultadoUrl = await Navigator.push<String>(
         context,
         MaterialPageRoute(builder: (context) => _WebViewMercadoPago(url: url)),
       );
 
       if (!mounted) return;
+
+      if (resultadoUrl != null) {
+        final uri = Uri.tryParse(resultadoUrl);
+        final error = uri?.queryParameters['error'];
+        if (error != null) {
+          await showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(context.tr('No se pudo vincular')),
+              content: Text(error),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(context.tr('Entendido')),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+      }
+
       await _vm.cargar();
       if (_vm.estaConectado && mounted) {
         setState(() {});
@@ -421,6 +443,7 @@ class _WebViewMercadoPago extends StatefulWidget {
 
 class _WebViewMercadoPagoState extends State<_WebViewMercadoPago> {
   late final WebViewController _controller;
+  bool _yaCerrado = false;
 
   @override
   void initState() {
@@ -431,15 +454,25 @@ class _WebViewMercadoPagoState extends State<_WebViewMercadoPago> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (url) {
-            if (url.startsWith('finza://mercadopago/callback')) {
-              if (mounted) {
-                Navigator.pop(context);
-              }
+            if (url.startsWith('finza://mercadopago/callback') && !_yaCerrado) {
+              _yaCerrado = true;
+              if (mounted) Navigator.pop(context, url);
             }
           },
         ),
-      )
-      ..loadRequest(Uri.parse(widget.url));
+      );
+    _limpiarYCargar();
+  }
+
+  Future<void> _limpiarYCargar() async {
+    try {
+      await WebViewCookieManager().clearCookies();
+      await _controller.clearCache();
+      await _controller.clearLocalStorage();
+    } catch (_) {}
+    if (mounted) {
+      _controller.loadRequest(Uri.parse(widget.url));
+    }
   }
 
   @override

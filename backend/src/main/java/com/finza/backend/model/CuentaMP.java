@@ -12,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Column;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,6 +30,7 @@ public class CuentaMP {
     @JoinColumn(name = "cuenta_id", nullable = false, unique = true)
     private Usuario usuario;
 
+    @Column(name = "mp_id_user", unique = true)
     private String mpIdUser;
 
     @Convert(converter = CryptoConverter.class)
