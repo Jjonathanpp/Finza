@@ -15,7 +15,8 @@ import com.finza.backend.model.Perfil;
 @Component
 public class MercadoPagoMapper {
 
-    public Movimiento mapearAMovimiento(TransaccionMPResponseDTO dto, Long miMpUserId, Perfil perfil, Categoria categoriaOtros) {
+    public Movimiento mapearAMovimiento(TransaccionMPResponseDTO dto, Long miMpUserId, Perfil perfil,
+            Categoria categoriaOtros) {
         Movimiento movimiento = new Movimiento();
 
         movimiento.setPerfil(perfil);
@@ -31,8 +32,20 @@ public class MercadoPagoMapper {
         movimiento.setOrigen(OrigenMovimiento.MERCADOPAGO);
         movimiento.setFechaCreacion(LocalDateTime.now());
 
-        if (dto.getFechaAprobacion() != null) {
-            movimiento.setFecha(OffsetDateTime.parse(dto.getFechaAprobacion()).toLocalDate());
+        if (dto.getFechaAprobacion() != null && !dto.getFechaAprobacion().isBlank()) {
+            try {
+                movimiento.setFecha(OffsetDateTime.parse(dto.getFechaAprobacion()).toLocalDate());
+            } catch (Exception e) {
+                movimiento.setFecha(java.time.LocalDate.now());
+            }
+        } else if (dto.getFechaCreacion() != null && !dto.getFechaCreacion().isBlank()) {
+            try {
+                movimiento.setFecha(OffsetDateTime.parse(dto.getFechaCreacion()).toLocalDate());
+            } catch (Exception e) {
+                movimiento.setFecha(java.time.LocalDate.now());
+            }
+        } else {
+            movimiento.setFecha(java.time.LocalDate.now());
         }
 
         movimiento.setEstado(EstadoMovimiento.PENDIENTE);

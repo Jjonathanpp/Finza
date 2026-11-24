@@ -59,8 +59,17 @@ public class MercadoPagoSyncService {
                     peticion,
                     BusquedaMPResponseDTO.class);
 
-            return respuesta.getBody();
+            BusquedaMPResponseDTO body = respuesta.getBody();
+            if (body != null && body.getResultados() != null) {
+                Long miMpUserId = cuentaMP.getMpIdUser() != null ? Long.valueOf(cuentaMP.getMpIdUser()) : null;
+                for (TransaccionMPResponseDTO dto : body.getResultados()) {
+                    boolean esIngreso = dto.getCollectorId() != null && dto.getCollectorId().equals(miMpUserId);
+                    dto.setEsIngreso(esIngreso);
+                }
+            }
+            return body;
         } catch (Exception e) {
+
             log.error("Error al consultar la API de Mercado Pago para el usuario {}: {}", usuarioId, e.getMessage());
             throw new RuntimeException("Error al comunicarse con la API de Mercado Pago", e);
         }
@@ -111,7 +120,6 @@ public class MercadoPagoSyncService {
                     .creadas(0)
                     .omitidas(0)
                     .errores(0)
-                    .movimientos(List.of())
                     .build();
         }
 
@@ -154,7 +162,6 @@ public class MercadoPagoSyncService {
                 .creadas(guardados.size())
                 .omitidas(duplicadosOmitidos)
                 .errores(errores)
-                .movimientos(guardados)
                 .build();
     }
 
@@ -178,7 +185,6 @@ public class MercadoPagoSyncService {
                     .creadas(0)
                     .omitidas(0)
                     .errores(0)
-                    .movimientos(List.of())
                     .build();
         }
 
@@ -229,7 +235,6 @@ public class MercadoPagoSyncService {
                 .creadas(guardados.size())
                 .omitidas(duplicadosOmitidos)
                 .errores(errores)
-                .movimientos(guardados)
                 .build();
     }
 }

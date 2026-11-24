@@ -70,6 +70,15 @@ public class MercadoPagoOAuthService {
 
         MercadoPagoTokenResponse tokenResponse = intercambiarCodigoPorToken(code);
 
+        String mpUserId = String.valueOf(tokenResponse.getUserId());
+
+        java.util.Optional<CuentaMP> existente = cuentaMPRepository.findByMpIdUser(mpUserId);
+        if (existente.isPresent() && !existente.get().getUsuario().getId().equals(usuarioId)) {
+            throw new BadRequestException(
+                    "Esta cuenta de Mercado Pago ya está vinculada a otro usuario de Finza. "
+                            + "Desvinculala desde la otra cuenta primero.");
+        }
+
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
                 .orElseGet(() -> {
                     CuentaMP nueva = new CuentaMP();
@@ -79,8 +88,10 @@ public class MercadoPagoOAuthService {
 
         cuentaMP.setAccessToken(tokenResponse.getAccessToken());
         cuentaMP.setRefreshToken(tokenResponse.getRefreshToken());
-        cuentaMP.setMpIdUser(String.valueOf(tokenResponse.getUserId()));
-        cuentaMP.setFechaExpiracionToken(LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn()));
+        cuentaMP.setMpIdUser(mpUserId);
+        if (tokenResponse.getExpiresIn() != null && tokenResponse.getExpiresIn() > 0) {
+            cuentaMP.setFechaExpiracionToken(LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn()));
+        }
 
         return cuentaMPRepository.save(cuentaMP);
     }
@@ -106,15 +117,34 @@ public class MercadoPagoOAuthService {
         }
     }
 
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public void desvincular(Long usuarioId) {
         CuentaMP cuentaMP = cuentaMPRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new BadRequestException(
                         "No se encontró una cuenta de Mercado Pago vinculada para este usuario."));
 
+        if (cuentaMP.getAccessToken() != null && !cuentaMP.getAccessToken().isBlank()
+                && cuentaMP.getMpIdUser() != null) {
+            revocarEnMercadoPago(cuentaMP.getAccessToken(), cuentaMP.getMpIdUser());
+        }
+
         cuentaMPRepository.deleteByUsuarioId(usuarioId);
         cuentaMPRepository.flush();
         log.info("Cuenta de Mercado Pago desvinculada correctamente para el usuario {}", usuarioId);
+    }
+
+    private void revocarEnMercadoPago(String accessToken, String mpUserId) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            String url = "https://api.mercadopago.com/users/" + mpUserId + "/applications/"
+                    + mpProperties.getClientId();
+            restTemplate.exchange(url, org.springframework.http.HttpMethod.DELETE, entity, Void.class);
+            log.info("Aplicación desvinculada en Mercado Pago para mpUserId={}", mpUserId);
+        } catch (Exception e) {
+            log.warn("Aviso al revocar en MP (puede haberse desautorizado antes): {}", e.getMessage());
+        }
     }
 
     public boolean estaConectado(Long usuarioId) {
